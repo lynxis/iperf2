@@ -208,6 +208,7 @@ void Settings_Initialize( thread_Settings *main ) {
     // mAmount is time also              // -n,  N/A
     //main->mOutputFileName = NULL;      // -o,  filename
     main->mPort         = 5001;          // -p,  ttcp port
+    main->mBindPort     = 0;             // -B,  default port for bind
     // mMode    = kTest_Normal;          // -r,  mMode == kTest_TradeOff
     main->mThreadMode   = kMode_Unknown; // -s,  or -c, none
     main->mAmount       = 1000;          // -t,  10 seconds
@@ -311,6 +312,8 @@ void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSetting
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings ) {
     char outarg[100];
+    char *parsedopts;
+    char *results = NULL;
 
     switch ( option ) {
         case '1': // Single Client
@@ -539,8 +542,20 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
             // more esoteric options
         case 'B': // specify bind address
-            mExtSettings->mLocalhost = new char[ strlen( optarg ) + 1 ];
-            strcpy( mExtSettings->mLocalhost, optarg );
+            parsedopts = new char[ strlen( optarg ) + 1 ];
+            strcpy(parsedopts, optarg );
+	    results = strtok(parsedopts, ":");
+	    if (results != NULL) {
+	      mExtSettings->mLocalhost = new char[ strlen( results ) + 1 ];
+	      strcpy( mExtSettings->mLocalhost, results );
+	      results = strtok(NULL, ":");
+	      if (results != NULL) 
+		mExtSettings->mBindPort = atoi(results);
+	    } else {  
+	      mExtSettings->mLocalhost = new char[ strlen( optarg ) + 1 ];
+	      strcpy( mExtSettings->mLocalhost, optarg );
+	    }
+	    delete parsedopts;
             // Test for Multicast
             iperf_sockaddr temp;
             SockAddr_setHostname( mExtSettings->mLocalhost, &temp,

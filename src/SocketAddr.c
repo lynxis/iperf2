@@ -117,7 +117,11 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
     }
         inSettings->size_local = sizeof( struct sockaddr_in );
 #endif
-    SockAddr_setPort( &inSettings->local, inSettings->mPort );
+    if ( inSettings->mLocalhost == NULL ) {
+      SockAddr_setPort( &inSettings->local, inSettings->mPort );
+    } else {
+      SockAddr_setPort( &inSettings->local, inSettings->mBindPort );
+    }
 }
 // end SocketAddr
 
