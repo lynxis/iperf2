@@ -196,26 +196,26 @@ const char report_bw_header[] =
 "[ ID] Interval       Transfer     Bandwidth\n";
 
 const char report_bw_format[] =
-"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec\n";
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec\n";
 
 const char report_sum_bw_format[] =
-"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec\n";
+"[SUM] %4.3f-%4.3f sec  %ss  %ss/sec\n";
 
 const char report_bw_jitter_loss_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
-Datagrams\n";
+Datagrams Latency avg/min/max\n";
 
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f ms\n";
 
 const char report_sum_bw_jitter_loss_format[] =
-"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
+"[SUM] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
 
 const char report_outoforder[] =
-"[%3d] %4.1f-%4.1f sec  %d datagrams received out-of-order\n";
+"[%3d] %4.3f-%4.3f sec  %d datagrams received out-of-order\n";
 
 const char report_sum_outoforder[] =
-"[SUM] %4.1f-%4.1f sec  %d datagrams received out-of-order\n";
+"[SUM] %4.3f-%4.3f sec  %d datagrams received out-of-order\n";
 
 const char report_peer[] =
 "[%3d] local %s port %u connected with %s port %u\n";

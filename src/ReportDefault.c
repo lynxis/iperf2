@@ -94,7 +94,10 @@ void reporter_printstats( Transfer_Info *stats ) {
                 stats->startTime, stats->endTime, 
                 buffer, &buffer[sizeof(buffer)/2],
                 stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-                (100.0 * stats->cntError) / stats->cntDatagrams );
+                (100.0 * stats->cntError) / stats->cntDatagrams,
+		(stats->sumTransit / stats->cntTransit)*1000.0,
+		stats->minTransit*1000.0,
+		stats->maxTransit*1000.0); 
         if ( stats->cntOutofOrder > 0 ) {
             printf( report_outoforder,
                     stats->transferID, stats->startTime, 
@@ -104,6 +107,10 @@ void reporter_printstats( Transfer_Info *stats ) {
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
         printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 
     }
+    stats->minTransit=-1;
+    stats->maxTransit=-1000;
+    stats->sumTransit=0;
+    stats->cntTransit=0;
 }
 
 

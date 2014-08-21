@@ -61,7 +61,7 @@ struct server_hdr;
 
 #include "Settings.hpp"
 
-#define NUM_REPORT_STRUCTS 7000
+#define NUM_REPORT_STRUCTS 10000
 #define NUM_MULTI_SLOTS    5
 
 #ifdef __cplusplus
@@ -77,6 +77,7 @@ typedef struct ReportStruct {
     max_size_t packetLen;
     struct timeval packetTime;
     struct timeval sentTime;
+    int emptyreport;
 } ReportStruct;
 
 /*
@@ -96,6 +97,10 @@ typedef struct Transfer_Info {
     int cntError;
     int cntOutofOrder;
     int cntDatagrams;
+    double maxTransit;
+    double minTransit;
+    double sumTransit;
+    int cntTransit;
     // Hopefully int64_t's
     max_size_t TotalLen;
     double jitter;

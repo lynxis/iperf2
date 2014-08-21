@@ -54,7 +54,7 @@
  * ------------------------------------------------------------------- */
 
 #define HEADERS()
-
+#include <sched.h>
 #include "headers.h"
 #include "Server.hpp"
 #include "List.h"
@@ -100,24 +100,86 @@ void Server::Run( void ) {
     long currLen; 
     max_size_t totLen = 0;
     struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf; 
+    int running;
 
     ReportStruct *reportstruct = NULL;
+
+    // Structures needed for recvmsg
+    // Use to get kernel timestamps of packets
+    struct sockaddr_storage srcaddr;
+    struct iovec iov[1];
+    iov[0].iov_base=mBuf;
+    iov[0].iov_len=mSettings->mBufLen;
+    struct msghdr message;
+    message.msg_iov=iov;
+    message.msg_iovlen=1;
+    message.msg_name=&srcaddr;
+    message.msg_namelen=sizeof(srcaddr);
+    char ctrl[CMSG_SPACE(sizeof(struct timeval))];
+    struct cmsghdr *cmsg = (struct cmsghdr *) &ctrl;
+    message.msg_control = (char *) ctrl;
+    message.msg_controllen = sizeof(ctrl);
+    struct sched_param sp;
 
     reportstruct = new ReportStruct;
     if ( reportstruct != NULL ) {
         reportstruct->packetID = 0;
         mSettings->reporthdr = InitReport( mSettings );
+	running=1;
+	// Set the socket timeout to 1/2 the report interval
+	if (mSettings->mInterval) {
+	    struct timeval timeout;
+	    double intpart, fractpart, half;
+	    half = mSettings->mInterval / 2;
+	    fractpart = modf(half, &intpart);
+	    timeout.tv_sec = (int) (intpart);
+	    timeout.tv_usec = (int) (fractpart * 1e6);
+	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
+	    }
+	}
+        if ( isUDP( mSettings ) ) {
+	    int timestampOn = 1;
+	    if (setsockopt(mSettings->mSock, SOL_SOCKET, SO_TIMESTAMP, (int *) &timestampOn, sizeof(timestampOn)) < 0) {
+		WARN_errno( mSettings->mSock == SO_TIMESTAMP, "socket" );
+	    }
+	}
+       sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+       // SCHED_OTHER, SCHED_FIFO, SCHED_RR
+       if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
+	     perror("Client set scheduler");
+
         do {
             // perform read 
-            currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 ); 
-        
+	    reportstruct->emptyreport=0;
+            currLen = recvmsg( mSettings->mSock, &message, 0 );
+	    if (currLen <= 0) {
+                // End loop on 0 read or socket error
+		// except for socket read timeout
+		if (currLen != -1 || errno != EAGAIN) {
+		    running = 0;
+		} else {
+		    // Socket read timeout
+		    // o  let ReportPacket konow via an "empty" report
+		    reportstruct->emptyreport=1;
+		    currLen=0;
+		}
+	    }
+
             if ( isUDP( mSettings ) ) {
                 // read the datagram ID and sentTime out of the buffer 
                 reportstruct->packetID = ntohl( mBuf_UDP->id ); 
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
 		reportstruct->packetLen = currLen;
-		gettimeofday( &(reportstruct->packetTime), NULL );
+		if (!reportstruct->emptyreport &&
+		    cmsg->cmsg_level == SOL_SOCKET &&
+		    cmsg->cmsg_type  == SCM_TIMESTAMP &&
+		    cmsg->cmsg_len   == CMSG_LEN(sizeof(struct timeval))) {
+			memcpy(&(reportstruct->packetTime), CMSG_DATA(cmsg), sizeof(struct timeval));
+		} else {
+		    gettimeofday( &(reportstruct->packetTime), NULL );
+		}
             } else {
 		totLen += currLen;
 	    }
@@ -126,7 +188,8 @@ void Server::Run( void ) {
             // the datagram ID should be correct, just negated 
             if ( reportstruct->packetID < 0 ) {
                 reportstruct->packetID = -reportstruct->packetID;
-                currLen = -1; 
+                currLen = -1;
+		running = 0; 
             }
 
 	    if ( isUDP (mSettings)) {
@@ -139,7 +202,7 @@ void Server::Run( void ) {
 
 
 
-        } while ( currLen > 0 ); 
+        } while (running); 
         
         
         // stop timing 

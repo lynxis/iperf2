@@ -685,7 +685,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
         data->packetTime = packet->packetTime;
         reporter_condprintstats( &reporthdr->report, reporthdr->multireport, finished );
         data->TotalLen += packet->packetLen;
-        if ( packet->packetID != 0 ) {
+        if ( packet->packetID != 0  && !packet->emptyreport) {
             // UDP packet
             double transit;
             double deltaTransit;
@@ -699,9 +699,22 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
                     deltaTransit = -deltaTransit;
                 }
                 stats->jitter += (deltaTransit - stats->jitter) / (16.0);
-            }
+            } else {
+		stats->minTransit = -1;
+	    }
+	    if (stats->minTransit == -1) {
+		stats->minTransit=transit;
+		stats->maxTransit=-1000;
+		stats->sumTransit=0;
+		stats->cntTransit=0;
+	    }
             data->lastTransit = transit;
-    
+	    if (transit < stats->minTransit)
+		stats->minTransit=transit; 
+	    if (transit > stats->maxTransit)
+		stats->maxTransit=transit; 
+	    stats->sumTransit += transit;
+	    stats->cntTransit++;
             // packet loss occured if the datagram numbers aren't sequential 
             if ( packet->packetID != data->PacketID + 1 ) {
                 if ( packet->packetID < data->PacketID + 1 ) {
@@ -710,7 +723,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
                     data->cntError += packet->packetID - data->PacketID - 1;
                 }
             }
-            // never decrease datagramID (e.g. if we get an out-of-order packet) 
+            // never decrease datagramID (e.g. if we get an out-of-order packet)
             if ( packet->packetID > data->PacketID ) {
                 data->PacketID = packet->packetID;
             }
