@@ -160,20 +160,19 @@ void Server::Run( void ) {
 		    running = 0;
 		} else {
 		    // Socket read timeout
-		    // o  let ReportPacket konow via an "empty" report
+		    // o  let ReportPacket know via an "empty" report
 		    reportstruct->emptyreport=1;
 		    currLen=0;
 		}
 	    }
 
-            if ( isUDP( mSettings ) ) {
+            if (!reportstruct->emptyreport && isUDP( mSettings ) ) {
                 // read the datagram ID and sentTime out of the buffer 
                 reportstruct->packetID = ntohl( mBuf_UDP->id ); 
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
 		reportstruct->packetLen = currLen;
-		if (!reportstruct->emptyreport &&
-		    cmsg->cmsg_level == SOL_SOCKET &&
+		if (cmsg->cmsg_level == SOL_SOCKET &&
 		    cmsg->cmsg_type  == SCM_TIMESTAMP &&
 		    cmsg->cmsg_len   == CMSG_LEN(sizeof(struct timeval))) {
 			memcpy(&(reportstruct->packetTime), CMSG_DATA(cmsg), sizeof(struct timeval));
