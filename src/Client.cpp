@@ -51,6 +51,8 @@
  * sending and receiving data, then closes the socket.
  * ------------------------------------------------------------------- */
 
+#include <sched.h>
+#include <error.h>
 #include "headers.h"
 #include "Client.hpp"
 #include "Thread.h"
@@ -228,6 +230,11 @@ void Client::Run( void ) {
     }
 
     if ( isUDP( mSettings ) ) {
+	 struct sched_param sp;
+	 sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+	 // SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	 if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
+	     perror("Client set scheduler");
         // Due to the UDP timestamps etc, included 
         // reduce the read size by an amount 
         // equal to the header size
