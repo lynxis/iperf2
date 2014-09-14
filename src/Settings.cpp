@@ -542,8 +542,8 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
             // more esoteric options
         case 'B': // specify bind address
-            parsedopts = new char[ strlen( optarg ) + 1 ];
-            strcpy(parsedopts, optarg );
+	    parsedopts = new char[ strlen( optarg ) + 1 ];
+	    strcpy(parsedopts, optarg );
 	    results = strtok(parsedopts, ":");
 	    if (results != NULL) {
 	      mExtSettings->mLocalhost = new char[ strlen( results ) + 1 ];
