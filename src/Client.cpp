@@ -118,7 +118,7 @@ const double kSecs_to_usecs = 1e6;
 const int    kBytes_to_Bits = 8; 
 
 void Client::RunTCP( void ) {
-    unsigned long currLen = 0; 
+    int currLen = 0;
     struct itimerval it;
     max_size_t totLen = 0;
 
@@ -160,9 +160,22 @@ void Client::RunTCP( void ) {
         // perform write 
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
         if ( currLen < 0 ) {
-            WARN_errno( currLen < 0, "write2" ); 
-            break; 
+	    switch (errno) {
+	      case EINTR:
+	      case EAGAIN:
+		  currLen = mSettings->mBufLen;
+	      case ENOBUFS:
+		  currLen = 0;
+	      default:   
+		  perror ("write");
+                  break;
+	    } 
         }
+        if ( currLen < 0 ) {
+	    WARN_errno( currLen < 0, "write:" );
+	    break;
+	}
+
 	totLen += currLen;
 
 	if(mSettings->mInterval > 0) {
@@ -173,8 +186,8 @@ void Client::RunTCP( void ) {
 
         if ( !mMode_Time ) {
             /* mAmount may be unsigned, so don't let it underflow! */
-            if( mSettings->mAmount >= currLen ) {
-                mSettings->mAmount -= currLen;
+            if( mSettings->mAmount >= (unsigned long) currLen ) {
+                mSettings->mAmount -= (unsigned long) currLen;
             } else {
                 mSettings->mAmount = 0;
             }
@@ -205,11 +218,11 @@ void Client::RunTCP( void ) {
 
 void Client::Run( void ) {
     struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf; 
-    unsigned long currLen = 0; 
+    int currLen = 0; 
 
     int delay_target = 0; 
     int delay = 0; 
-    int adjust = 0; 
+    int adjust = 0;
 
     char* readAt = mBuf;
 
@@ -241,7 +254,7 @@ void Client::Run( void ) {
     
         // compute delay for bandwidth restriction, constrained to [0,1] seconds 
         delay_target = (int) ( mSettings->mBufLen * ((kSecs_to_usecs * kBytes_to_Bits) 
-                                                     / mSettings->mUDPRate) ); 
+						      / mSettings->mUDPRate) ); 
         if ( delay_target < 0  || 
              delay_target > (int) 1 * kSecs_to_usecs ) {
             fprintf( stderr, warn_delay_large, delay_target / kSecs_to_usecs ); 
@@ -292,8 +305,7 @@ void Client::Run( void ) {
             // TODO this doesn't work well in certain cases, like 2 parallel streams 
             adjust = delay_target + lastPacketTime.subUsec( reportstruct->packetTime ); 
             lastPacketTime.set( reportstruct->packetTime.tv_sec, 
-                                reportstruct->packetTime.tv_usec ); 
-
+				reportstruct->packetTime.tv_usec );
             if ( adjust > 0  ||  delay > 0 ) {
                 delay += adjust; 
             }
@@ -310,16 +322,23 @@ void Client::Run( void ) {
         // perform write 
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
         if ( currLen < 0) {
-	  if (errno != ENOBUFS ) {
-            WARN_errno( currLen < 0, "write2" ); 
-            break;
-	  } else {
-	    currLen = 0;
-	  }
+	    switch (errno) {
+	      case EINTR:
+	      case EAGAIN:
+		  currLen = mSettings->mBufLen;
+	      case ENOBUFS:
+		  currLen = 0;
+	      default: 
+		  perror ("write");  
+                  break;
+	    } 
         }
-
+        if ( currLen < 0 ) {
+	    WARN_errno( currLen < 0, "write:" );
+	    break;
+	}
         // report packets 
-        reportstruct->packetLen = currLen;
+        reportstruct->packetLen = (unsigned long) currLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
         
         if ( delay > 0 ) {
@@ -327,8 +346,8 @@ void Client::Run( void ) {
         }
         if ( !mMode_Time ) {
             /* mAmount may be unsigned, so don't let it underflow! */
-            if( mSettings->mAmount >= currLen ) {
-                mSettings->mAmount -= currLen;
+            if( mSettings->mAmount >= (unsigned long) currLen ) {
+                mSettings->mAmount -= (unsigned long) currLen;
             } else {
                 mSettings->mAmount = 0;
             }
