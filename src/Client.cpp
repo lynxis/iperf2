@@ -306,9 +306,14 @@ void Client::Run( void ) {
             adjust = delay_target + lastPacketTime.subUsec( reportstruct->packetTime ); 
             lastPacketTime.set( reportstruct->packetTime.tv_sec, 
 				reportstruct->packetTime.tv_usec );
-            if ( adjust > 0  ||  delay > 0 ) {
-                delay += adjust; 
-            }
+	    // Since linux nanosleep can exceed delay
+	    // there are two possible equilibriums
+	    //  1)  Try to perserve inter packet gap 
+	    //  2)  Try to perserve requested transmit rate
+	    // The latter seems preferred, hence
+	    // use a running delay that spans the life
+	    // of the thread and constantly adjust.
+	    delay += adjust; 
         }
 
         // Read the next data block from 
