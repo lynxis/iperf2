@@ -222,6 +222,7 @@ void Client::Run( void ) {
 
     int delay_target = 0; 
     int delay = 0; 
+    int previous_delay;
     int adjust = 0;
 
     char* readAt = mBuf;
@@ -313,7 +314,13 @@ void Client::Run( void ) {
 	    // The latter seems preferred, hence
 	    // use a running delay that spans the life
 	    // of the thread and constantly adjust.
-	    delay += adjust; 
+	    previous_delay = delay;
+	    delay += adjust;
+	    // Check for case of divergence (neg integer overflow)
+	    if ((adjust < 0) && (previous_delay < 0)) {
+		if (delay > 0) 
+		    delay = 0;
+	    }
         }
 
         // Read the next data block from 
