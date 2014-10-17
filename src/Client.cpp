@@ -162,10 +162,12 @@ void Client::RunTCP( void ) {
         if ( currLen < 0 ) {
 	    switch (errno) {
 	      case EINTR:
-	      case EAGAIN:
 		  currLen = mSettings->mBufLen;
+		  break;
+	      case EAGAIN:
 	      case ENOBUFS:
 		  currLen = 0;
+		  break;
 	      default:   
 		  perror ("write");
                   break;
@@ -333,13 +335,15 @@ void Client::Run( void ) {
 
         // perform write 
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
-        if ( currLen < 0) {
+        if ( currLen < 0 ) {
 	    switch (errno) {
 	      case EINTR:
-	      case EAGAIN:
 		  currLen = mSettings->mBufLen;
+		  break;
+	      case EAGAIN:
 	      case ENOBUFS:
 		  currLen = 0;
+		  break;
 	      default: 
 		  perror ("write");  
                   break;
