@@ -53,11 +53,14 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#define BILLION 1000000000
+#define MILLION 1000000
+
 void delay_loop( unsigned long usecs );
 
 int main (int argc, char **argv) {
-    struct timespec tsp0, tsp1, dummy;
-    double sum=0;
+    struct timespec tsp0, tsp1, now;
+    double sum=0, timer;
     long delta, max=0, min=-1,t1, t0;
     int ix, jx=0, delay=1,loopcount=1000000;
     int c;
@@ -108,21 +111,23 @@ int main (int argc, char **argv) {
     }
     if (clockgettime) 
 	if (loopcount > 1000) 
-	    fprintf(stdout,"Measuring clock_gettime syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
+	    fprintf(stdout,"Measuring clock_gettime syscall over %.0e iterations\n", (double) loopcount, delay);
 	else 
-	    fprintf(stdout,"Measuring clock_gettime syscall over %d iterations using %d usec delay\n", loopcount, delay);
+	    fprintf(stdout,"Measuring clock_gettime syscall over %d iterations\n", loopcount, delay);
     else 
 	if (loopcount > 1000) 
 	    fprintf(stdout,"Measuring nanosleep syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
 	else 
 	    fprintf(stdout,"Measuring nanosleep syscall over %d iterations using %d usec delay\n", loopcount, delay);
+    fflush(stdout);
     for (ix=0; ix < loopcount; ix++) {
 	// Find the max jitter for delay call
 	clock_gettime(CLOCK_REALTIME, &tsp0);
-	if (clockgettime) 
-	    clock_gettime(CLOCK_REALTIME, &dummy);
-	else 
-	    delay_loop(delay); 
+	if (clockgettime) {
+	    clock_gettime(CLOCK_REALTIME, &now);
+	} else { 
+	    delay_loop(delay);
+	} 
 	clock_gettime(CLOCK_REALTIME, &tsp1);
 	if (tsp0.tv_sec == tsp1.tv_sec) {
 	    delta = (tsp1.tv_nsec - tsp0.tv_nsec);
