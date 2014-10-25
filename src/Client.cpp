@@ -53,6 +53,8 @@
 
 #include <sched.h>
 #include <error.h>
+#include <time.h>
+#include <sys/mman.h>
 #include "headers.h"
 #include "Client.hpp"
 #include "Thread.h"
@@ -115,6 +117,7 @@ Client::~Client() {
 } // end ~Client
 
 const double kSecs_to_usecs = 1e6; 
+const double kSecs_to_nsecs = 1e9; 
 const int    kBytes_to_Bits = 8; 
 
 void Client::RunTCP( void ) {
@@ -222,12 +225,12 @@ void Client::Run( void ) {
     struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf; 
     int currLen = 0; 
 
-    int delay_target = 0; 
-    int delay = 0; 
-    int previous_delay;
-    int adjust = 0;
+    double delay_target = 0; 
+    double delay = 0; 
+    double adjust = 0;
 
     char* readAt = mBuf;
+
 
 #if HAVE_THREAD
     if ( !isUDP( mSettings ) ) {
@@ -246,22 +249,28 @@ void Client::Run( void ) {
     }
 
     if ( isUDP( mSettings ) ) {
+	 // Thread settings to support realtime operations
+	 // SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	 struct sched_param sp;
 	 sp.sched_priority = sched_get_priority_max(SCHED_RR); 
-	 // SCHED_OTHER, SCHED_FIFO, SCHED_RR
-	 if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
+
+	 if (sched_setscheduler(0, SCHED_RR, &sp) < 0) { 
 	     perror("Client set scheduler");
+	 } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+	     // lock the threads memory
+	     perror ("mlockall");
+	 }
         // Due to the UDP timestamps etc, included 
         // reduce the read size by an amount 
         // equal to the header size
     
         // compute delay for bandwidth restriction, constrained to [0,1] seconds 
-        delay_target = (int) ( mSettings->mBufLen * ((kSecs_to_usecs * kBytes_to_Bits) 
+        delay_target = (double) ( mSettings->mBufLen * ((kSecs_to_nsecs * kBytes_to_Bits) 
 						      / mSettings->mUDPRate) ); 
         if ( delay_target < 0  || 
-             delay_target > (int) 1 * kSecs_to_usecs ) {
-            fprintf( stderr, warn_delay_large, delay_target / kSecs_to_usecs ); 
-            delay_target = (int) kSecs_to_usecs * 1; 
+             delay_target > 1.0 * kSecs_to_nsecs ) {
+            fprintf( stderr, warn_delay_large, delay_target / kSecs_to_nsecs ); 
+            delay_target = (double) kSecs_to_nsecs * 1; 
         }
         if ( isFileInput( mSettings ) ) {
             if ( isCompat( mSettings ) ) {
@@ -304,9 +313,9 @@ void Client::Run( void ) {
             mBuf_UDP->tv_usec = htonl( reportstruct->packetTime.tv_usec );
 
             // delay between writes 
-            // make an adjustment for how long the last loop iteration took 
-            // TODO this doesn't work well in certain cases, like 2 parallel streams 
-            adjust = delay_target + lastPacketTime.subUsec( reportstruct->packetTime ); 
+            // make an adjustment for how long the last loop iteration took
+	    // adjust units are nanoseconds 
+            adjust = delay_target + (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime )); 
             lastPacketTime.set( reportstruct->packetTime.tv_sec, 
 				reportstruct->packetTime.tv_usec );
 	    // Since linux nanosleep can exceed delay
@@ -316,13 +325,7 @@ void Client::Run( void ) {
 	    // The latter seems preferred, hence
 	    // use a running delay that spans the life
 	    // of the thread and constantly adjust.
-	    previous_delay = delay;
 	    delay += adjust;
-	    // Check for case of divergence (neg integer overflow)
-	    if ((adjust < 0) && (previous_delay < 0)) {
-		if (delay > 0) 
-		    delay = 0;
-	    }
         }
 
         // Read the next data block from 
@@ -356,10 +359,16 @@ void Client::Run( void ) {
         // report packets 
         reportstruct->packetLen = (unsigned long) currLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
-        
-        if ( delay > 0 ) {
-            delay_loop( delay ); 
+
+	// Insert delay if the running delay needed
+	// is greater than 1 usec, otherwise
+	// continue the tx loop.  
+        if ( delay > 1000 ) {
+	    // Convert from nanoseconds to microseconds
+	    // and invoke the microsecond delay
+            delay_loop((unsigned long) (delay / 1000)); 
         }
+
         if ( !mMode_Time ) {
             /* mAmount may be unsigned, so don't let it underflow! */
             if( mSettings->mAmount >= (unsigned long) currLen ) {

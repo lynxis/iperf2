@@ -57,9 +57,10 @@
 #define MILLION 1000000
 
 void delay_loop( unsigned long usecs );
+void delay_busyloop( unsigned long usecs );
 
 int main (int argc, char **argv) {
-    struct timespec tsp0, tsp1, now;
+    struct timespec tsp0, tsp1;
     double sum=0, timer;
     long delta, max=0, min=-1,t1, t0;
     int ix, jx=0, delay=1,loopcount=1000000;
@@ -124,7 +125,7 @@ int main (int argc, char **argv) {
 	// Find the max jitter for delay call
 	clock_gettime(CLOCK_REALTIME, &tsp0);
 	if (clockgettime) {
-	    clock_gettime(CLOCK_REALTIME, &now);
+	    delay_busyloop(delay);
 	} else { 
 	    delay_loop(delay);
 	} 
@@ -144,7 +145,7 @@ int main (int argc, char **argv) {
     fprintf(stdout,"delay=%.0f/%ld/%ld ns (mean/min/max)\n", (sum / jx), min, max);
 }
 
-void delay_loop(unsigned long usec) {
+void delay_loop (unsigned long usec) {
     struct timespec requested, remaining;
 
     requested.tv_sec  = 0;
@@ -155,6 +156,21 @@ void delay_loop(unsigned long usec) {
 	exit(-1);
     }
 }
+void delay_busyloop (unsigned long usec) {
+    struct timespec t1, t2;
+    double time1, time2;
+
+    clock_gettime(CLOCK_REALTIME, &t1);
+    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    while (1) {
+	clock_gettime(CLOCK_REALTIME, &t2);
+	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	if ((time2 - time1) >= (usec / 1000000.0)) 
+	    break;
+    }
+}
+
+
 
 
 

@@ -61,16 +61,31 @@
  * ------------------------------------------------------------------- */
 void delay_loop(unsigned long usec)
 {
-    struct timespec requested, remaining;
+    struct timespec requested, remaining, t1, t2;
+    double time1, time2, sec;
 
-    requested.tv_sec  = 0;
-    requested.tv_nsec = usec * 1000L;
-
-    while (nanosleep(&requested, &remaining) == -1)
-        if (errno == EINTR)
-            requested = remaining;
-        else {
-            WARN_errno(1, "nanosleep");
-            break;
-        }
+    // Context switching greatly effects accuracy of nanosleep
+    // Use nanosleep syscall for values of 1 ms or greater
+    // otherwise use a busy loop
+    if (usec >= 1000) {
+	requested.tv_sec  = 0;
+	requested.tv_nsec = usec * 1000L;
+	while (nanosleep(&requested, &remaining) == -1)
+	    if (errno == EINTR)
+		requested = remaining;
+	    else {
+		WARN_errno(1, "nanosleep");
+		break;
+	    }
+    } else {
+	sec = usec / 1000000.0;
+	clock_gettime(CLOCK_REALTIME, &t1);
+	time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+	while (1) {
+	    clock_gettime(CLOCK_REALTIME, &t2);
+	    time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	    if ((time2 - time1) > sec) 
+		break;
+	}
+    }
 }
