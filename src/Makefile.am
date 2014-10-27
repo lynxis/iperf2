@@ -1,5 +1,7 @@
 bin_PROGRAMS = iperf
 
+noinst_PROGRAMS = checkdelay
+
 LIBCOMPAT_LDADDS = @STRIP_BEGIN@ \
 		   $(top_builddir)/compat/libcompat.a \
 		   @STRIP_END@
@@ -37,3 +39,7 @@ iperf_SOURCES = \
 		tcp_window_size.c
 
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
+
+checkdelay_SOURCES = checkdelay.c
+checkdelay_LDADD = $(LIBCOMPAT_LDADDS) 
+

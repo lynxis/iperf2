@@ -223,7 +223,7 @@ void Client::RunTCP( void ) {
 
 void Client::Run( void ) {
     struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf; 
-    int currLen = 0; 
+    int currLen; 
 
     double delay_target = 0; 
     double delay = 0; 
@@ -249,6 +249,7 @@ void Client::Run( void ) {
     }
 
     if ( isUDP( mSettings ) ) {
+ #if HAVE_SCHED_SETSCHEDULER
 	 // Thread settings to support realtime operations
 	 // SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	 struct sched_param sp;
@@ -260,6 +261,7 @@ void Client::Run( void ) {
 	     // lock the threads memory
 	     perror ("mlockall");
 	 }
+#endif
         // Due to the UDP timestamps etc, included 
         // reduce the read size by an amount 
         // equal to the header size
@@ -293,7 +295,9 @@ void Client::Run( void ) {
     reportstruct->packetID = 0;
 
     lastPacketTime.setnow();
-    
+    // Set this to > 0 so first loop iteration will delay the IPG
+    currLen = 1;
+
     do {
 
         // Test case: drop 17 packets and send 2 out-of-order: 

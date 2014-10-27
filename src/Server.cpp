@@ -119,7 +119,6 @@ void Server::Run( void ) {
     struct cmsghdr *cmsg = (struct cmsghdr *) &ctrl;
     message.msg_control = (char *) ctrl;
     message.msg_controllen = sizeof(ctrl);
-    struct sched_param sp;
 
     reportstruct = new ReportStruct;
     if ( reportstruct != NULL ) {
@@ -144,11 +143,13 @@ void Server::Run( void ) {
 		WARN_errno( mSettings->mSock == SO_TIMESTAMP, "socket" );
 	    }
 	}
+ #if HAVE_SCHED_SETSCHEDULER
+       struct sched_param sp;
        sp.sched_priority = sched_get_priority_max(SCHED_RR); 
        // SCHED_OTHER, SCHED_FIFO, SCHED_RR
        if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
 	     perror("Client set scheduler");
-
+#endif
         do {
             // perform read 
 	    reportstruct->emptyreport=0;

@@ -7,6 +7,7 @@ AM_CPPFLAGS = @STRIP_BEGIN@ \
 
 AM_CXXFLAGS = -Wall
 AM_CFLAGS = -Wall
+AM_LDFLAGS = -lrt
 
 libcompat_a_SOURCES = \
 		      Thread.c \

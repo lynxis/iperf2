@@ -52,6 +52,7 @@ AC_CANONICAL_HOST
 dnl ===================================================================
 dnl Checks for libraries.
 dnl ===================================================================
+AC_CHECK_LIB([rt], [clock_gettime])
 
 dnl check for -lpthread
  
@@ -115,7 +116,7 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit gettimeofday memset pthread_cancel select strchr strerror strtol usleep])
+AC_CHECK_FUNCS([atexit gettimeofday memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler])
 AC_REPLACE_FUNCS(snprintf inet_pton inet_ntop gettimeofday)
 
 dnl             Gotten from some NetBSD configure.in
