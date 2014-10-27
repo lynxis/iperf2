@@ -43,6 +43,7 @@
  * Simple tool to measure mean/min/max of nanosleep
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, rmcmahon@broadcom.com)
  * ------------------------------------------------------------------- */
+#define _GNU_SOURCE
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
