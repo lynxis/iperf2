@@ -54,5 +54,7 @@
 #define DELAY_H
 
 void delay_loop( unsigned long usecs );
+void delay_busyloop(unsigned long usecs);
+void delay_nanosleep(unsigned long usecs);
 
 #endif /* DELAY_H */

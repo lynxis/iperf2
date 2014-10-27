@@ -52,30 +52,28 @@
 #include <sys/mman.h>
 #include <ctype.h>
 #include <unistd.h>
+#include "delay.hpp"
 
 #define BILLION 1000000000
 #define MILLION 1000000
-
-void delay_loop( unsigned long usecs );
-void delay_busyloop( unsigned long usecs );
 
 int main (int argc, char **argv) {
     struct timespec tsp0, tsp1;
     double sum=0, timer;
     long delta, max=0, min=-1,t1, t0;
-    int ix, jx=0, delay=1,loopcount=1000000;
+    int ix, jx=0, delay=1,loopcount=1000;
     int c;
     int realtime = 0;
     int affinity = 0;
     int clockgettime = 0;
     struct sched_param sp;
     
-    while ((c=getopt(argc, argv, "a:cd:i:r")) != -1) 
+    while ((c=getopt(argc, argv, "a:bd:i:r")) != -1) 
 	switch (c) {
 	case 'a':
 	    affinity=atoi(optarg);
 	    break;
-	case 'c':
+	case 'b':
 	    clockgettime = 1;
 	    break;
 	case 'd':
@@ -88,7 +86,7 @@ int main (int argc, char **argv) {
 	    realtime = 1;
 	    break;
 	case '?':
-	    fprintf(stderr,"Usage -a affinity, -d usec delay, -i iterations, -r realtime\n");
+	    fprintf(stderr,"Usage -a affinity, -b busyloop, -d usec delay, -i iterations, -r realtime\n");
 	    return 1;
 	default:
 	    abort();
@@ -127,7 +125,7 @@ int main (int argc, char **argv) {
 	if (clockgettime) {
 	    delay_busyloop(delay);
 	} else { 
-	    delay_loop(delay);
+	    delay_nanosleep(delay);
 	} 
 	clock_gettime(CLOCK_REALTIME, &tsp1);
 	if (tsp0.tv_sec == tsp1.tv_sec) {
@@ -144,33 +142,3 @@ int main (int argc, char **argv) {
     }
     fprintf(stdout,"delay=%.0f/%ld/%ld ns (mean/min/max)\n", (sum / jx), min, max);
 }
-
-void delay_loop (unsigned long usec) {
-    struct timespec requested, remaining;
-
-    requested.tv_sec  = 0;
-    requested.tv_nsec = usec * 1000L;
-
-    if (nanosleep(&requested, &remaining) < 0) {
-	fprintf(stderr,"Nanosleep failed\n");
-	exit(-1);
-    }
-}
-void delay_busyloop (unsigned long usec) {
-    struct timespec t1, t2;
-    double time1, time2;
-
-    clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-    while (1) {
-	clock_gettime(CLOCK_REALTIME, &t2);
-	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
-	if ((time2 - time1) >= (usec / 1000000.0)) 
-	    break;
-    }
-}
-
-
-
-
-

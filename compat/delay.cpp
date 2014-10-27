@@ -54,6 +54,7 @@
 #include "util.h"
 #include "delay.hpp"
 
+
 /* -------------------------------------------------------------------
  * A micro-second delay function using POSIX nanosleep(). This allows a
  * higher timing resolution (under Linux e.g. it uses hrtimers), does not
@@ -61,31 +62,41 @@
  * ------------------------------------------------------------------- */
 void delay_loop(unsigned long usec)
 {
-    struct timespec requested, remaining, t1, t2;
-    double time1, time2, sec;
-
     // Context switching greatly effects accuracy of nanosleep
     // Use nanosleep syscall for values of 1 ms or greater
     // otherwise use a busy loop
-    if (usec >= 1000) {
-	requested.tv_sec  = 0;
-	requested.tv_nsec = usec * 1000L;
-	while (nanosleep(&requested, &remaining) == -1)
-	    if (errno == EINTR)
-		requested = remaining;
-	    else {
-		WARN_errno(1, "nanosleep");
-		break;
-	    }
+    if (usec < 1000) {
+      delay_busyloop(usec);
     } else {
-	sec = usec / 1000000.0;
-	clock_gettime(CLOCK_REALTIME, &t1);
-	time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-	while (1) {
-	    clock_gettime(CLOCK_REALTIME, &t2);
-	    time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
-	    if ((time2 - time1) > sec) 
-		break;
-	}
+      delay_nanosleep(usec);
     }
 }
+// Use the nanosleep syscall
+void delay_nanosleep (unsigned long usec) {
+    struct timespec requested, remaining;
+
+    requested.tv_sec  = 0;
+    requested.tv_nsec = usec * 1000L;
+
+    if (nanosleep(&requested, &remaining) < 0) {
+	fprintf(stderr,"Nanosleep failed\n");
+	exit(-1);
+    }
+}
+
+// use a cpu busy loop
+void delay_busyloop (unsigned long usec) {
+    struct timespec t1, t2;
+    double time1, time2, sec;
+
+    sec = usec / 1000000.0;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    while (1) {
+	clock_gettime(CLOCK_REALTIME, &t2);
+	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	if ((time2 - time1) >= sec) 
+	    break;
+    }
+}
+
