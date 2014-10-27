@@ -320,7 +320,7 @@ void Client::Run( void ) {
 	    // o then adjust the overall running delay
 	    // Note: adjust units are nanoseconds, 
 	    //       packet timestamps are microseconds
-	    if (currLen < 0) 
+	    if (currLen > 0) 
 	      adjust = delay_target + \
 		       (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime )); 
 	    else 
