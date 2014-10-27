@@ -53,8 +53,14 @@
 #ifndef DELAY_H
 #define DELAY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void delay_loop( unsigned long usecs );
 void delay_busyloop(unsigned long usecs);
 void delay_nanosleep(unsigned long usecs);
+#ifdef __cplusplus
+} /* end extern "C" */
+#endif
 
 #endif /* DELAY_H */
