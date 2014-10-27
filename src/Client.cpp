@@ -314,13 +314,22 @@ void Client::Run( void ) {
 
             // Adjustment for the running delay
 	    // o measure how long the last loop iteration took
-	    // o calculate the target delay - the loop time which is the desired loop delay
+	    // o calculate the delay adjust
+	    //   - If write succeeded, adjust = target IPG - the loop time
+	    //   - If write succeeded, adjust = the loop time
 	    // o then adjust the overall running delay
-	    // Note: adjust units are nanoseconds, packet timestamps are microseconds 
-            adjust = delay_target + (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime )); 
+	    // Note: adjust units are nanoseconds, 
+	    //       packet timestamps are microseconds
+	    if (currLen < 0) 
+	      adjust = delay_target + \
+		       (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime )); 
+	    else 
+	      adjust = 1000.0 * lastPacketTime.subUsec( reportstruct->packetTime );
+
             lastPacketTime.set( reportstruct->packetTime.tv_sec, 
 				reportstruct->packetTime.tv_usec );
-	    // Since linux nanosleep/busyloop can exceed delay there are two possible equilibriums
+	    // Since linux nanosleep/busyloop can exceed delay 
+	    // there are two possible equilibriums
 	    //  1)  Try to perserve inter packet gap 
 	    //  2)  Try to perserve requested transmit rate
 	    // The latter seems preferred, hence use a running delay 
