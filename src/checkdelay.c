@@ -59,8 +59,8 @@
 
 int main (int argc, char **argv) {
     struct timespec tsp0, tsp1;
-    double sum=0, timer;
-    long delta, max=0, min=-1,t1, t0;
+    double sum=0;
+    long delta, max=0, min=-1;
     int ix, jx=0, delay=1,loopcount=1000;
     int c;
     int realtime = 0;
@@ -93,7 +93,7 @@ int main (int argc, char **argv) {
 	}
     
     if (realtime) {
-	fprintf(stdout,"Setting scheduler to realtime via SCHED_RR\n", affinity);
+	fprintf(stdout,"Setting scheduler to realtime via SCHED_RR\n");
 	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	sp.sched_priority = sched_get_priority_max(SCHED_RR); 
 	if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
@@ -110,9 +110,9 @@ int main (int argc, char **argv) {
     }
     if (clockgettime) 
 	if (loopcount > 1000) 
-	    fprintf(stdout,"Measuring clock_gettime syscall over %.0e iterations\n", (double) loopcount, delay);
+	    fprintf(stdout,"Measuring clock_gettime syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
 	else 
-	    fprintf(stdout,"Measuring clock_gettime syscall over %d iterations\n", loopcount, delay);
+	    fprintf(stdout,"Measuring clock_gettime syscall over %d iterations using %d usec delay\n", loopcount, delay);
     else 
 	if (loopcount > 1000) 
 	    fprintf(stdout,"Measuring nanosleep syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
@@ -141,4 +141,5 @@ int main (int argc, char **argv) {
 	}
     }
     fprintf(stdout,"delay=%.0f/%ld/%ld ns (mean/min/max)\n", (sum / jx), min, max);
+    return(0);
 }
