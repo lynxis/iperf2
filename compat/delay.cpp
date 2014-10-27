@@ -62,7 +62,7 @@
  * ------------------------------------------------------------------- */
 void delay_loop(unsigned long usec)
 {
-    // Context switching greatly effects accuracy of nanosleep
+    // Context switching greatly affects accuracy of nanosleep
     // Use nanosleep syscall for values of 1 ms or greater
     // otherwise use a busy loop
     if (usec < 1000) {
