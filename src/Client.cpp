@@ -270,7 +270,7 @@ void Client::Run( void ) {
         if ( delay_target < 0  || 
              delay_target > 1.0 * kSecs_to_nsecs ) {
             fprintf( stderr, warn_delay_large, delay_target / kSecs_to_nsecs ); 
-            delay_target = (double) kSecs_to_nsecs * 1; 
+            delay_target = 1.0 * kSecs_to_nsecs; 
         }
         if ( isFileInput( mSettings ) ) {
             if ( isCompat( mSettings ) ) {
@@ -312,19 +312,20 @@ void Client::Run( void ) {
             mBuf_UDP->tv_sec  = htonl( reportstruct->packetTime.tv_sec ); 
             mBuf_UDP->tv_usec = htonl( reportstruct->packetTime.tv_usec );
 
-            // delay between writes 
-            // make an adjustment for how long the last loop iteration took
-	    // adjust units are nanoseconds 
+            // Adjustment for the running delay
+	    // o measure how long the last loop iteration took
+	    // o calculate the target delay - the loop time which is the desired loop delay
+	    // o then adjust the overall running delay
+	    // Note: adjust units are nanoseconds, packet timestamps are microseconds 
             adjust = delay_target + (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime )); 
             lastPacketTime.set( reportstruct->packetTime.tv_sec, 
 				reportstruct->packetTime.tv_usec );
-	    // Since linux nanosleep can exceed delay
-	    // there are two possible equilibriums
+	    // Since linux nanosleep/busyloop can exceed delay there are two possible equilibriums
 	    //  1)  Try to perserve inter packet gap 
 	    //  2)  Try to perserve requested transmit rate
-	    // The latter seems preferred, hence
-	    // use a running delay that spans the life
-	    // of the thread and constantly adjust.
+	    // The latter seems preferred, hence use a running delay 
+	    // that spans the life of the thread and constantly adjust.
+	    // A negative delay means the iperf app is behind.
 	    delay += adjust;
         }
 
@@ -360,9 +361,8 @@ void Client::Run( void ) {
         reportstruct->packetLen = (unsigned long) currLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
 
-	// Insert delay if the running delay needed
-	// is greater than 1 usec, otherwise
-	// continue the tx loop.  
+	// Insert delay here only if the running delay is greater than 1 usec, 
+        // otherwise don't delay and immediately continue with the next tx.  
         if ( delay > 1000 ) {
 	    // Convert from nanoseconds to microseconds
 	    // and invoke the microsecond delay
