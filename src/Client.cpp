@@ -316,7 +316,7 @@ void Client::Run( void ) {
 	    // o measure how long the last loop iteration took
 	    // o calculate the delay adjust
 	    //   - If write succeeded, adjust = target IPG - the loop time
-	    //   - If write succeeded, adjust = the loop time
+	    //   - If write failed, adjust = the loop time
 	    // o then adjust the overall running delay
 	    // Note: adjust units are nanoseconds, 
 	    //       packet timestamps are microseconds
