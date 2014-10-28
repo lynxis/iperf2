@@ -109,7 +109,7 @@ void delay_busyloop (unsigned long usec) {
     gettimeofday( &t1, NULL );
     time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
     while (1) {
-	gettimeofday( &t1, NULL );
+	gettimeofday( &t2, NULL );
 	time2 = t2.tv_sec + (t2.tv_usec / 1000000.0);
 	if ((time2 - time1) >= sec) 
 	    break;
