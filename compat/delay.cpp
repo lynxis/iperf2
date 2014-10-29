@@ -79,6 +79,7 @@ void delay_loop(unsigned long usec)
       delay_nanosleep(usec);
     }
 }
+
 // Use the nanosleep syscall
 void delay_nanosleep (unsigned long usec) {
     struct timespec requested, remaining;
@@ -99,11 +100,11 @@ void delay_nanosleep_kalman (unsigned long usec) {
     struct timespec t1, t2; 
     double time1, time2, sec, err;
     static kalman_state kalmanerr={
-	.q=0.00001, //q process noise covariance
-	.r=0.1, //r measurement noise covariance
-	.x=0.0, //x value
-	.p=1, //p estimation error covariance
-	.k=1 //k kalman gain
+	0.00001, //q process noise covariance
+	0.1, //r measurement noise covariance
+	0.0, //x value
+	1, //p estimation error covariance
+	1 //k kalman gain
     };
     sec = (usec / 1000000.0) - kalmanerr.x;
     if (sec > 0) {
@@ -114,14 +115,19 @@ void delay_nanosleep_kalman (unsigned long usec) {
     }
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-    if (sec > 0) {
+    if (sec > 1000) {
 	if (nanosleep(&requested, &remaining) < 0) {
 	    fprintf(stderr,"Nanosleep failed\n");
 	    exit(-1);
 	}
     }
-    clock_gettime(CLOCK_REALTIME, &t2);
-    time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+    while (1) {
+	clock_gettime(CLOCK_REALTIME, &t2);
+	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	if ((time2 - time1) >= sec) {
+	    break;
+	}
+    }
     err = (time2 - time1) - sec;
     kalman_update(&kalmanerr, err);
 }
@@ -144,11 +150,11 @@ void delay_busyloop_kalman (unsigned long usec) {
     struct timespec t1, t2;
     double time1, time2, sec, err;
     static kalman_state kalmanerr={
-	.q=0.00001, //q process noise covariance
-	.r=0.1, //r measurement noise covariance
-	.x=0.0, //x value
-	.p=1, //p estimation error covariance
-	.k=1 //k kalman gain
+	0.00001, //q process noise covariance
+	0.1, //r measurement noise covariance
+	0.0, //x value
+	1, //p estimation error covariance
+	1 //k kalman gain
     };
     sec = (usec / 1000000.0) - kalmanerr.x;
     clock_gettime(CLOCK_REALTIME, &t1);
