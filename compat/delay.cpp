@@ -46,6 +46,8 @@
  *
  * delay.c
  * by Mark Gates <mgates@nlanr.net>
+ * updates 
+ * by Robert J. McMahon <rmcmahon@broadcom.com> <rjmcmahon@rjmcmahon.com>
  * -------------------------------------------------------------------
  * accurate microsecond delay
  * ------------------------------------------------------------------- */
@@ -56,18 +58,24 @@
 
 
 /* -------------------------------------------------------------------
- * A micro-second delay function using POSIX nanosleep(). This allows a
- * higher timing resolution (under Linux e.g. it uses hrtimers), does not
- * affect any signals, and will use up remaining time when interrupted.
+ * A micro-second delay function
+ * o Use a busy loop or nanosleep
+ * 
+ * Some notes:
+ * o clock_gettime (if available) is preferred over gettimeofday because 
+ *   there are no time adjustments (e.g. ntp) and support nanoseconds
+ * o Not using Timestamp object because these functions are about 
+ *   accurate delays (vs accurate timestamps.)
+ * o The syscalls such as nanosleep gaurantee at least the request time
+ *   and will lose accuracy, particularly due to things like context switching
+ * o Kalman filtering is used for better delay accuracy.  This can cause the delay
+ *   to return faster than the request.  
+ * o Remember the Client is keeping a running average delay for the thread
+ *   so errors in delay will be adjusted there. (Assuming it's possible)
+ * POSIX nanosleep(). This allowss a higher timing resolution 
+ * (under Linux e.g. it uses hrtimers), does not affect any signals, 
+ * and will use up remaining time when interrupted.
  * ------------------------------------------------------------------- */
-void kalman_update (kalman_state *state, double measurement) {
-    //prediction update
-    state->p = state->p + state->q;
-    //measurement update
-    state->k = state->p / (state->p + state->r);
-    state->x = state->x + (state->k * (measurement - state->x));
-    state->p = (1 - state->k) * state->p; 
-}
 void delay_loop(unsigned long usec)
 {
     // Context switching greatly affects accuracy of nanosleep
@@ -79,7 +87,41 @@ void delay_loop(unsigned long usec)
       delay_nanosleep(usec);
     }
 }
+#if HAVE_CLOCK_GETTIME
+// A cpu busy loop
+void delay_busyloop (unsigned long usec) {
+    struct timespec t1, t2; 
+    double time1, time2, sec;
 
+    sec = usec / 1000000.0;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    while (1) {
+	clock_gettime(CLOCK_REALTIME, &t2);
+	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	if ((time2 - time1) >= sec) {
+	    break;
+	}
+    }
+}
+#else
+void delay_busyloop (unsigned long usec) {
+    struct timeval t1, t2;
+    double time1, time2, sec;
+
+    if (usec <= 0) 
+	return;
+    sec = usec / 1000000.0;
+    gettimeofday( &t1, NULL );
+    time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+    while (1) {
+	gettimeofday( &t2, NULL );
+	time2 = t2.tv_sec + (t2.tv_usec / 1000000.0);
+	if ((time2 - time1) >= sec) 
+	    break;
+    }
+}
+#endif
 // Use the nanosleep syscall
 void delay_nanosleep (unsigned long usec) {
     struct timespec requested, remaining;
@@ -92,9 +134,18 @@ void delay_nanosleep (unsigned long usec) {
 	exit(-1);
     }
 }
-
-// use a cpu busy loop
+// Kalman versions below that should support accuracy
+// over a minimum gauranteed delay.  The ideal function
+// to use is delay_nanosleep_kalman
 #if HAVE_CLOCK_GETTIME
+void kalman_update (kalman_state *state, double measurement) {
+    //prediction update
+    state->p = state->p + state->q;
+    //measurement update
+    state->k = state->p / (state->p + state->r);
+    state->x = state->x + (state->k * (measurement - state->x));
+    state->p = (1 - state->k) * state->p; 
+}
 void delay_nanosleep_kalman (unsigned long usec) {
     struct timespec requested, remaining;
     struct timespec t1, t2; 
@@ -131,21 +182,6 @@ void delay_nanosleep_kalman (unsigned long usec) {
     err = (time2 - time1) - sec;
     kalman_update(&kalmanerr, err);
 }
-void delay_busyloop (unsigned long usec) {
-    struct timespec t1, t2; 
-    double time1, time2, sec;
-
-    sec = usec / 1000000.0;
-    clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-    while (1) {
-	clock_gettime(CLOCK_REALTIME, &t2);
-	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
-	if ((time2 - time1) >= sec) {
-	    break;
-	}
-    }
-}
 void delay_busyloop_kalman (unsigned long usec) {
     struct timespec t1, t2;
     double time1, time2, sec, err;
@@ -167,23 +203,6 @@ void delay_busyloop_kalman (unsigned long usec) {
 	    kalman_update(&kalmanerr, err);
 	    break;
 	}
-    }
-}
-#else 
-void delay_busyloop (unsigned long usec) {
-    struct timeval t1, t2;
-    double time1, time2, sec;
-
-    if (usec <= 0) 
-	return;
-    sec = usec / 1000000.0;
-    gettimeofday( &t1, NULL );
-    time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
-    while (1) {
-	gettimeofday( &t2, NULL );
-	time2 = t2.tv_sec + (t2.tv_usec / 1000000.0);
-	if ((time2 - time1) >= sec) 
-	    break;
     }
 }
 #endif
