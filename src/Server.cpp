@@ -55,6 +55,7 @@
 
 #define HEADERS()
 #include <sched.h>
+#include <sys/mman.h>
 #include "headers.h"
 #include "Server.hpp"
 #include "List.h"
@@ -144,11 +145,17 @@ void Server::Run( void ) {
 	    }
 	}
  #if HAVE_SCHED_SETSCHEDULER
-       struct sched_param sp;
-       sp.sched_priority = sched_get_priority_max(SCHED_RR); 
-       // SCHED_OTHER, SCHED_FIFO, SCHED_RR
-       if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
-	     perror("Client set scheduler");
+	if ( isRealtime( mSettings ) ) {
+	    struct sched_param sp;
+	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
+		perror("Client set scheduler");
+	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+		// lock the threads memory
+		perror ("mlockall");
+	    }
+	}
 #endif
         do {
             // perform read 

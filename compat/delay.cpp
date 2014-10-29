@@ -56,6 +56,8 @@
 #include "util.h"
 #include "delay.hpp"
 
+#define MILLION 1000000.0
+#define BILLION 1000000000.0
 
 /* -------------------------------------------------------------------
  * A micro-second delay function
@@ -93,12 +95,12 @@ void delay_busyloop (unsigned long usec) {
     struct timespec t1, t2; 
     double time1, time2, sec;
 
-    sec = usec / 1000000.0;
+    sec = usec / MILLION;
     clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    time1 = t1.tv_sec + (t1.tv_nsec / BILLION);
     while (1) {
 	clock_gettime(CLOCK_REALTIME, &t2);
-	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	time2 = t2.tv_sec + (t2.tv_nsec / BILLION);
 	if ((time2 - time1) >= sec) {
 	    break;
 	}
@@ -109,12 +111,12 @@ void delay_busyloop (unsigned long usec) {
     struct timeval t1, t2;
     double time1, time2, sec;
 
-    sec = usec / 1000000.0;
+    sec = usec / MILLION;
     gettimeofday( &t1, NULL );
-    time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+    time1 = t1.tv_sec + (t1.tv_usec / MILLION);
     while (1) {
 	gettimeofday( &t2, NULL );
-	time2 = t2.tv_sec + (t2.tv_usec / 1000000.0);
+	time2 = t2.tv_sec + (t2.tv_usec / MILLION);
 	if ((time2 - time1) >= sec) 
 	    break;
     }
@@ -155,7 +157,7 @@ void delay_nanosleep_kalman (unsigned long usec) {
 	1, //p estimation error covariance
 	1 //k kalman gain
     };
-    sec = (usec / 1000000.0) - kalmanerr.x;
+    sec = (usec / MILLION) - kalmanerr.x;
     if (sec > 0) {
 	requested.tv_sec  = (long) sec;
 	requested.tv_nsec = (sec - requested.tv_sec) * 1e9;
@@ -163,8 +165,11 @@ void delay_nanosleep_kalman (unsigned long usec) {
 	sec = 0.0;
     }
     clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-    if (sec > 1000) {
+    time1 = t1.tv_sec + (t1.tv_nsec / BILLION);
+    // Don't call nanosleep for values less than 1 microsecond
+    // the syscall is too expensive.  Let the busy loop
+    // provide the delay.
+    if (sec > (1 / MILLION)) {
 	if (nanosleep(&requested, &remaining) < 0) {
 	    fprintf(stderr,"Nanosleep failed\n");
 	    exit(-1);
@@ -172,7 +177,7 @@ void delay_nanosleep_kalman (unsigned long usec) {
     }
     while (1) {
 	clock_gettime(CLOCK_REALTIME, &t2);
-	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	time2 = t2.tv_sec + (t2.tv_nsec / BILLION);
 	if ((time2 - time1) >= sec) {
 	    break;
 	}
@@ -180,6 +185,7 @@ void delay_nanosleep_kalman (unsigned long usec) {
     err = (time2 - time1) - sec;
     kalman_update(&kalmanerr, err);
 }
+
 void delay_busyloop_kalman (unsigned long usec) {
     struct timespec t1, t2;
     double time1, time2, sec, err;
@@ -190,12 +196,12 @@ void delay_busyloop_kalman (unsigned long usec) {
 	1, //p estimation error covariance
 	1 //k kalman gain
     };
-    sec = (usec / 1000000.0) - kalmanerr.x;
+    sec = (usec / MILLION) - kalmanerr.x;
     clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    time1 = t1.tv_sec + (t1.tv_nsec / BILLION);
     while (1) {
 	clock_gettime(CLOCK_REALTIME, &t2);
-	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	time2 = t2.tv_sec + (t2.tv_nsec / BILLION);
 	if ((time2 - time1) >= sec) {
 	    err = (time2 - time1) - sec;
 	    kalman_update(&kalmanerr, err);

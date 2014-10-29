@@ -253,16 +253,18 @@ void Client::Run( void ) {
 
     if ( isUDP( mSettings ) ) {
 #if HAVE_SCHED_SETSCHEDULER
-	// Thread settings to support realtime operations
-	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
-	struct sched_param sp;
-	sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+	if ( isRealtime( mSettings ) ) {
+	    // Thread settings to support realtime operations
+	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	    struct sched_param sp;
+	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
 
-	if (sched_setscheduler(0, SCHED_RR, &sp) < 0) { 
-	    perror("Client set scheduler");
-	} else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
-	    // lock the threads memory
-	    perror ("mlockall");
+	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0) { 
+		perror("Client set scheduler");
+	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+		// lock the threads memory
+		perror ("mlockall");
+	    }
 	}
 #endif
 	// compute delay target in units of nanoseconds

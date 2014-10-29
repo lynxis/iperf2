@@ -103,6 +103,7 @@ const struct option long_options[] =
 {"window",     required_argument, NULL, 'w'},
 {"reportexclude", required_argument, NULL, 'x'},
 {"reportstyle",required_argument, NULL, 'y'},
+{"realtime",         no_argument, NULL, 'z'},
 
 // more esoteric options
 {"bind",       required_argument, NULL, 'B'},
@@ -169,7 +170,7 @@ const struct option env_options[] =
 
 #define SHORT_OPTIONS()
 
-const char short_options[] = "1b:c:df:hi:l:mn:o:p:rst:uvw:x:y:B:CDF:IL:M:NP:RS:T:UVWZ:";
+const char short_options[] = "1b:c:df:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWZ:";
 
 /* -------------------------------------------------------------------
  * defaults
@@ -535,6 +536,9 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
                 }
                 optarg++;
             }
+            break;
+        case 'z': // Use realtime scheduling
+	    setRealtime( mExtSettings );
             break;
 
         case 'y': // Reporting Style
