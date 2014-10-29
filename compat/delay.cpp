@@ -109,8 +109,6 @@ void delay_busyloop (unsigned long usec) {
     struct timeval t1, t2;
     double time1, time2, sec;
 
-    if (usec <= 0) 
-	return;
     sec = usec / 1000000.0;
     gettimeofday( &t1, NULL );
     time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
