@@ -108,6 +108,16 @@ extern const char report_bw_header[];
 
 extern const char report_bw_format[];
 
+extern const char report_bw_pps_header[];
+
+extern const char report_bw_pps_format[];
+
+extern const char report_sum_bw_format[];
+
+extern const char report_bw_writes_header[];
+
+extern const char report_bw_writes_format[];
+
 extern const char report_sum_bw_format[];
 
 extern const char report_bw_jitter_loss_header[];
