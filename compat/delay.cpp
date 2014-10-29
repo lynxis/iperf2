@@ -60,6 +60,14 @@
  * higher timing resolution (under Linux e.g. it uses hrtimers), does not
  * affect any signals, and will use up remaining time when interrupted.
  * ------------------------------------------------------------------- */
+void kalman_update (kalman_state *state, double measurement) {
+    //prediction update
+    state->p = state->p + state->q;
+    //measurement update
+    state->k = state->p / (state->p + state->r);
+    state->x = state->x + (state->k * (measurement - state->x));
+    state->p = (1 - state->k) * state->p; 
+}
 void delay_loop(unsigned long usec)
 {
     // Context switching greatly affects accuracy of nanosleep
@@ -86,8 +94,39 @@ void delay_nanosleep (unsigned long usec) {
 
 // use a cpu busy loop
 #if HAVE_CLOCK_GETTIME
+void delay_nanosleep_kalman (unsigned long usec) {
+    struct timespec requested, remaining;
+    struct timespec t1, t2; 
+    double time1, time2, sec, err;
+    static kalman_state kalmanerr={
+	.q=0.00001, //q process noise covariance
+	.r=0.1, //r measurement noise covariance
+	.x=0.0, //x value
+	.p=1, //p estimation error covariance
+	.k=1 //k kalman gain
+    };
+    sec = (usec / 1000000.0) - kalmanerr.x;
+    if (sec > 0) {
+	requested.tv_sec  = (long) sec;
+	requested.tv_nsec = (sec - requested.tv_sec) * 1e9;
+    } else {
+	sec = 0.0;
+    }
+    clock_gettime(CLOCK_REALTIME, &t1);
+    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    if (sec > 0) {
+	if (nanosleep(&requested, &remaining) < 0) {
+	    fprintf(stderr,"Nanosleep failed\n");
+	    exit(-1);
+	}
+    }
+    clock_gettime(CLOCK_REALTIME, &t2);
+    time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+    err = (time2 - time1) - sec;
+    kalman_update(&kalmanerr, err);
+}
 void delay_busyloop (unsigned long usec) {
-    struct timespec t1, t2;
+    struct timespec t1, t2; 
     double time1, time2, sec;
 
     sec = usec / 1000000.0;
@@ -96,8 +135,32 @@ void delay_busyloop (unsigned long usec) {
     while (1) {
 	clock_gettime(CLOCK_REALTIME, &t2);
 	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
-	if ((time2 - time1) >= sec) 
+	if ((time2 - time1) >= sec) {
 	    break;
+	}
+    }
+}
+void delay_busyloop_kalman (unsigned long usec) {
+    struct timespec t1, t2;
+    double time1, time2, sec, err;
+    static kalman_state kalmanerr={
+	.q=0.00001, //q process noise covariance
+	.r=0.1, //r measurement noise covariance
+	.x=0.0, //x value
+	.p=1, //p estimation error covariance
+	.k=1 //k kalman gain
+    };
+    sec = (usec / 1000000.0) - kalmanerr.x;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+    while (1) {
+	clock_gettime(CLOCK_REALTIME, &t2);
+	time2 = t2.tv_sec + (t2.tv_nsec / 1000000000.0);
+	if ((time2 - time1) >= sec) {
+	    err = (time2 - time1) - sec;
+	    kalman_update(&kalmanerr, err);
+	    break;
+	}
     }
 }
 #else 
@@ -105,6 +168,8 @@ void delay_busyloop (unsigned long usec) {
     struct timeval t1, t2;
     double time1, time2, sec;
 
+    if (usec <= 0) 
+	return;
     sec = usec / 1000000.0;
     gettimeofday( &t1, NULL );
     time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);

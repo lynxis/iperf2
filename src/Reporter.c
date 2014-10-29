@@ -672,7 +672,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
     Transfer_Info *stats = &reporthdr->report.info;
     int finished = 0;
 
-    data->cntDatagrams++;
     // If this is the last packet set the endTime
     if ( packet->packetID < 0 ) {
         data->packetTime = packet->packetTime;
@@ -681,11 +680,17 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
             data->TotalLen += packet->packetLen;
         }
     } else {
-        // update recieved amount and time
+	// update fields common to client and server
+	if (!packet->emptyreport) {
+	    data->cntDatagrams++;
+	    if (packet->errwrite) 
+		data->cntError++;
+	} 
         data->packetTime = packet->packetTime;
         reporter_condprintstats( &reporthdr->report, reporthdr->multireport, finished );
         data->TotalLen += packet->packetLen;
-        if ( packet->packetID != 0  && !packet->emptyreport) {
+        // UDP server per packet code below 
+        if ( stats->mUDP == kMode_Server && packet->packetID != 0  && !packet->emptyreport) {
             // UDP packet
             double transit;
             double deltaTransit;
@@ -804,7 +809,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         if ( stats->info.cntError > stats->info.cntOutofOrder ) {
             stats->info.cntError -= stats->info.cntOutofOrder;
         }
-        stats->info.cntDatagrams = (isUDP(stats) ? stats->PacketID : stats->cntDatagrams);
+        stats->info.cntDatagrams = ((stats->info.mUDP == kMode_Server) ? stats->PacketID : stats->cntDatagrams);
         stats->info.TotalLen = stats->TotalLen;
         stats->info.startTime = 0;
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
@@ -819,16 +824,16 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                                   stats->packetTime ) < 0 ) {
         stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;
         stats->lastOutofOrder = stats->cntOutofOrder;
-        // assume most of the time out-of-order packets are not
+        // assume most of the  time out-of-order packets are not
         // duplicate packets, so conditionally subtract them from the lost packets.
         stats->info.cntError = stats->cntError - stats->lastError;
         if ( stats->info.cntError > stats->info.cntOutofOrder ) {
             stats->info.cntError -= stats->info.cntOutofOrder;
         }
         stats->lastError = stats->cntError;
-        stats->info.cntDatagrams = (isUDP( stats ) ? stats->PacketID - stats->lastDatagrams :
+        stats->info.cntDatagrams = ((stats->info.mUDP == kMode_Server) ? stats->PacketID - stats->lastDatagrams :
                                                      stats->cntDatagrams - stats->lastDatagrams);
-        stats->lastDatagrams = (isUDP( stats ) ? stats->PacketID : stats->cntDatagrams);
+        stats->lastDatagrams = ((stats->info.mUDP == kMode_Server) ? stats->PacketID : stats->cntDatagrams);
         stats->info.TotalLen = stats->TotalLen - stats->lastTotal;
         stats->lastTotal = stats->TotalLen;
         stats->info.startTime = stats->info.endTime;

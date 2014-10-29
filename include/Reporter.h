@@ -77,6 +77,7 @@ typedef struct ReportStruct {
     max_size_t packetLen;
     struct timeval packetTime;
     struct timeval sentTime;
+    int errwrite;
     int emptyreport;
 } ReportStruct;
 
@@ -100,7 +101,7 @@ typedef struct Transfer_Info {
     double maxTransit;
     double minTransit;
     double sumTransit;
-    int cntTransit;
+    max_size_t cntTransit;
     // Hopefully int64_t's
     max_size_t TotalLen;
     double jitter;
@@ -166,6 +167,10 @@ typedef struct ReporterData {
     struct timeval packetTime;
     struct timeval nextTime;
     struct timeval intervalTime;
+    double maxTransit;
+    double minTransit;
+    double sumTransit;
+    max_size_t cntTransit;
 } ReporterData;
 
 typedef struct MultiHeader {

@@ -74,18 +74,28 @@ void reporter_printstats( Transfer_Info *stats ) {
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
                    stats->TotalLen / (stats->endTime - stats->startTime), 
                    stats->mFormat);
-
-    if ( stats->mUDP != (char)kMode_Server ) {
-        // TCP Reporting
-        if( !header_printed ) {
-            printf( report_bw_header);
-            header_printed = 1;
-        }
-        printf( report_bw_format, stats->transferID, 
-                stats->startTime, stats->endTime, 
-                buffer, &buffer[sizeof(buffer)/2] );
+    if (!stats->mUDP) {
+	// TCP Reporting
+	if( !header_printed ) {
+	    printf( report_bw_header);
+	    header_printed = 1;
+	}
+	printf( report_bw_format, stats->transferID, 
+		stats->startTime, stats->endTime, 
+		buffer, &buffer[sizeof(buffer)/2] );
+    } else if ( stats->mUDP == (char)kMode_Client ) {
+	// UDP Client reporting
+	if( !header_printed ) {
+	    printf( report_bw_pps_header);
+	    header_printed = 1;
+	}
+	printf( report_bw_pps_format, stats->transferID, 
+		stats->startTime, stats->endTime, 
+		buffer, &buffer[sizeof(buffer)/2],
+	        ((stats->cntDatagrams - stats->cntError) / \
+		 (stats->endTime - stats->startTime)) + 0.5);
     } else {
-        // UDP Reporting
+        // UDP Server Reporting
         if( !header_printed ) {
             printf( report_bw_jitter_loss_header);
             header_printed = 1;
@@ -97,7 +107,9 @@ void reporter_printstats( Transfer_Info *stats ) {
                 (100.0 * stats->cntError) / stats->cntDatagrams,
 		(stats->sumTransit / stats->cntTransit)*1000.0,
 		stats->minTransit*1000.0,
-		stats->maxTransit*1000.0); 
+		stats->maxTransit*1000.0,
+	        ((stats->cntDatagrams - stats->cntError) / \
+		 (stats->endTime - stats->startTime)) + 0.5);
         if ( stats->cntOutofOrder > 0 ) {
             printf( report_outoforder,
                     stats->transferID, stats->startTime, 

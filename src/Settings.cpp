@@ -314,6 +314,8 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
     char outarg[100];
     char *parsedopts;
     char *results = NULL;
+    double theNum;
+    char suffix='\0';
 
     switch ( option ) {
         case '1': // Single Client
@@ -330,9 +332,16 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             }
 
             Settings_GetLowerCaseArg(optarg,outarg);
-            mExtSettings->mUDPRate = byte_atoi(outarg);
+	    // scan for PPS units, just look for 'p' as that's good enough
+	    sscanf(outarg, "%lf%c", &theNum, &suffix );
+	    if (suffix == 'p') {
+		mExtSettings->mUDPRateUnits = kRate_PPS;
+		mExtSettings->mUDPRate = theNum;
+	    } else {
+		mExtSettings->mUDPRateUnits = kRate_BW;
+		mExtSettings->mUDPRate = byte_atoi(outarg);
+	    }
             setUDP( mExtSettings );
-
             // if -l has already been processed, mBufLenSet is true
             // so don't overwrite that value.
             if ( !isBuflenSet( mExtSettings ) ) {

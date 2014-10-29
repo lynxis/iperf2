@@ -97,6 +97,12 @@ typedef enum TestMode {
     kTest_Unknown
 } TestMode;
 
+// rate request units
+typedef enum RateUnits {
+    kRate_BW = 0,
+    kRate_PPS
+} RateUnits;
+
 #include "Reporter.h"
 /*
  * The thread_Settings is a structure that holds all
@@ -157,6 +163,7 @@ typedef struct thread_Settings {
     TestMode mMode;                 // -r or -d
     // Hopefully int64_t's
     max_size_t mUDPRate;            // -b or -u
+    RateUnits mUDPRateUnits;        // -b is either bw or pps
     max_size_t mAmount;             // -n or -t
     // doubles
     double mInterval;               // -i

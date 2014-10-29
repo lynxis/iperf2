@@ -138,6 +138,8 @@ void Client::RunTCP( void ) {
     mSettings->reporthdr = InitReport( mSettings );
     reportstruct = new ReportStruct;
     reportstruct->packetID = 0;
+    reportstruct->emptyreport=0;
+    reportstruct->errwrite=0;
 
     lastPacketTime.setnow();
     if ( mMode_Time ) {
@@ -161,8 +163,9 @@ void Client::RunTCP( void ) {
             canRead = true; 
 
         // perform write 
-        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
+        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
+	    reportstruct->errwrite=1; 
 	    switch (errno) {
 	      case EINTR:
 		  currLen = mSettings->mBufLen;
@@ -249,32 +252,38 @@ void Client::Run( void ) {
     }
 
     if ( isUDP( mSettings ) ) {
- #if HAVE_SCHED_SETSCHEDULER
-	 // Thread settings to support realtime operations
-	 // SCHED_OTHER, SCHED_FIFO, SCHED_RR
-	 struct sched_param sp;
-	 sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+#if HAVE_SCHED_SETSCHEDULER
+	// Thread settings to support realtime operations
+	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	struct sched_param sp;
+	sp.sched_priority = sched_get_priority_max(SCHED_RR); 
 
-	 if (sched_setscheduler(0, SCHED_RR, &sp) < 0) { 
-	     perror("Client set scheduler");
-	 } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
-	     // lock the threads memory
-	     perror ("mlockall");
-	 }
+	if (sched_setscheduler(0, SCHED_RR, &sp) < 0) { 
+	    perror("Client set scheduler");
+	} else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+	    // lock the threads memory
+	    perror ("mlockall");
+	}
 #endif
-        // Due to the UDP timestamps etc, included 
-        // reduce the read size by an amount 
-        // equal to the header size
-    
-        // compute delay for bandwidth restriction, constrained to [0,1] seconds 
-        delay_target = (double) ( mSettings->mBufLen * ((kSecs_to_nsecs * kBytes_to_Bits) 
-						      / mSettings->mUDPRate) ); 
-        if ( delay_target < 0  || 
+	// compute delay target in units of nanoseconds
+	if (mSettings->mUDPRateUnits == kRate_BW) { 
+	    // compute delay for bandwidth restriction, constrained to [0,1] seconds 
+	    delay_target = (double) ( mSettings->mBufLen * ((kSecs_to_nsecs * kBytes_to_Bits) 
+							    / mSettings->mUDPRate) );
+	} else {
+	    delay_target = 1e9 / mSettings->mUDPRate;
+	    // Move the display of the delay_target to report header
+	    // fprintf(stdout,"Interpacket gap (IPG) target is %.0e nanoseconds\n", delay_target);
+	}
+	if ( delay_target < 0  || 
              delay_target > 1.0 * kSecs_to_nsecs ) {
             fprintf( stderr, warn_delay_large, delay_target / kSecs_to_nsecs ); 
             delay_target = 1.0 * kSecs_to_nsecs; 
         }
         if ( isFileInput( mSettings ) ) {
+	    // Due to the UDP timestamps etc, included 
+	    // reduce the read size by an amount 
+	    // equal to the header size
             if ( isCompat( mSettings ) ) {
                 Extractor_reduceReadSize( sizeof(struct UDP_datagram), mSettings );
                 readAt += sizeof(struct UDP_datagram);
@@ -282,7 +291,7 @@ void Client::Run( void ) {
                 Extractor_reduceReadSize( sizeof(struct UDP_datagram) +
                                           sizeof(struct client_hdr), mSettings );
                 readAt += sizeof(struct UDP_datagram) +
-                          sizeof(struct client_hdr);
+		    sizeof(struct client_hdr);
             }
         }
     }
@@ -293,6 +302,8 @@ void Client::Run( void ) {
     mSettings->reporthdr = InitReport( mSettings );
     reportstruct = new ReportStruct;
     reportstruct->packetID = 0;
+    reportstruct->emptyreport=0;
+    reportstruct->errwrite=0;
 
     lastPacketTime.setnow();
     // Set this to > 0 so first loop iteration will delay the IPG
@@ -351,8 +362,9 @@ void Client::Run( void ) {
             canRead = true; 
 
         // perform write 
-        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
+        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
+	    reportstruct->errwrite = 1; 
 	    switch (errno) {
 	      case EINTR:
 		  currLen = mSettings->mBufLen;
@@ -376,12 +388,15 @@ void Client::Run( void ) {
 
 	// Insert delay here only if the running delay is greater than 1 usec, 
         // otherwise don't delay and immediately continue with the next tx.  
-        if ( delay > 1000 ) {
+        if ( delay >= 1000 ) {
 	    // Convert from nanoseconds to microseconds
 	    // and invoke the microsecond delay
-            delay_loop((unsigned long) (delay / 1000)); 
+#if HAVE_CLOCK_GETTIME
+	    delay_nanosleep_kalman((unsigned long) (delay / 1000));
+#else
+	    delay_loop((unsigned long) (delay / 1000)); 
+#endif
         }
-
         if ( !mMode_Time ) {
             /* mAmount may be unsigned, so don't let it underflow! */
             if( mSettings->mAmount >= (unsigned long) currLen ) {

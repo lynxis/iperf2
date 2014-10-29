@@ -67,9 +67,10 @@ int main (int argc, char **argv) {
     int realtime = 0;
     int affinity = 0;
     int clockgettime = 0;
+    int kalmanfilter = 0;
     struct sched_param sp;
     
-    while ((c=getopt(argc, argv, "a:bd:i:r")) != -1) 
+    while ((c=getopt(argc, argv, "a:bd:i:kr")) != -1) 
 	switch (c) {
 	case 'a':
 	    affinity=atoi(optarg);
@@ -83,11 +84,14 @@ int main (int argc, char **argv) {
 	case 'i':
 	    loopcount = atoi(optarg);
 	    break;
+        case 'k':
+	    kalmanfilter = 1;
+	    break;
 	case 'r':
 	    realtime = 1;
 	    break;
 	case '?':
-	    fprintf(stderr,"Usage -a affinity, -b busyloop, -d usec delay, -i iterations, -r realtime\n");
+	    fprintf(stderr,"Usage -a affinity, -b busyloop, -d usec delay, -i iterations, -k kalman filter, -r realtime\n");
 	    return 1;
 	default:
 	    abort();
@@ -109,6 +113,8 @@ int main (int argc, char **argv) {
 	CPU_ZERO(&myset);
 	CPU_SET(affinity,&myset);
     }
+    if (kalmanfilter) 
+	fprintf(stdout, "Kalman filter will be used\n");
     if (clockgettime) 
 	if (loopcount > 1000) 
 	    fprintf(stdout,"Measuring clock_gettime syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
@@ -124,9 +130,15 @@ int main (int argc, char **argv) {
 	// Find the max jitter for delay call
 	clock_gettime(CLOCK_REALTIME, &tsp0);
 	if (clockgettime) {
-	    delay_busyloop(delay);
+	    if (kalmanfilter) 
+		delay_busyloop_kalman(delay);
+	    else
+		delay_busyloop(delay);
 	} else { 
-	    delay_nanosleep(delay);
+	    if (kalmanfilter) 
+		delay_nanosleep_kalman(delay);
+	    else 
+		delay_nanosleep(delay);
 	} 
 	clock_gettime(CLOCK_REALTIME, &tsp1);
 	if (tsp0.tv_sec == tsp1.tv_sec) {
