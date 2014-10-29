@@ -195,18 +195,30 @@ const char report_read_length_times[] =
 const char report_bw_header[] =
 "[ ID] Interval       Transfer     Bandwidth\n";
 
+const char report_bw_pps_header[] =
+"[ ID] Interval       Transfer     Bandwidth      PPS\n";
+
+const char report_bw_writes_header[] =
+"[ ID] Interval       Transfer     Bandwidth     Writes/Errs\n";
+
 const char report_bw_format[] =
 "[%3d] %4.3f-%4.3f sec  %ss  %ss/sec\n";
+
+const char report_bw_pps_format[] =
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f pps\n";
+
+const char report_bw_writes_format[] =
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f/%4.0f\n";
 
 const char report_sum_bw_format[] =
 "[SUM] %4.3f-%4.3f sec  %ss  %ss/sec\n";
 
 const char report_bw_jitter_loss_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
-Datagrams Latency avg/min/max\n";
+Datagrams Latency avg/min/max PPS\n";
 
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f ms\n";
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f ms %4.0f pps\n";
 
 const char report_sum_bw_jitter_loss_format[] =
 "[SUM] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
