@@ -110,7 +110,7 @@ AC_DEFINE_UNQUOTED([Socklen_t], $ac_cv_accept_arg, [Define 3rd arg of accept])
 
 dnl Checks for library functions.
 AC_FUNC_FORK
-AC_FUNC_MALLOC
+dnl AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
