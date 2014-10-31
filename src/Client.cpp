@@ -271,8 +271,6 @@ void Client::Run( void ) {
 							    / mSettings->mUDPRate) );
 	} else {
 	    delay_target = 1e9 / mSettings->mUDPRate;
-	    // Move the display of the delay_target to report header
-	    // fprintf(stdout,"Interpacket gap (IPG) target is %.0e nanoseconds\n", delay_target);
 	}
 	if ( delay_target < 0  || 
              delay_target > 1.0 * kSecs_to_nsecs ) {
