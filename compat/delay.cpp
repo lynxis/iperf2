@@ -49,7 +49,7 @@
  * updates 
  * by Robert J. McMahon <rmcmahon@broadcom.com> <rjmcmahon@rjmcmahon.com>
  * -------------------------------------------------------------------
- * accurate microsecond delay
+ * attempts at accurate microsecond delays
  * ------------------------------------------------------------------- */
 
 #include "Timestamp.hpp"
@@ -64,16 +64,26 @@
  * o Use a busy loop or nanosleep
  * 
  * Some notes:
- * o clock_gettime (if available) is preferred over gettimeofday because 
- *   there are no time adjustments (e.g. ntp) and support nanoseconds
- * o Not using Timestamp object because these functions are about 
+ * o clock_gettime() (if available) is preferred over gettimeofday() 
+ *   becausethere are no time adjustments (e.g. ntp) and clock_getttime() 
+ *   support nanosecond resolution vs microsecond for gettimeofday()
+ * o Not using Timestamp object here as the goal of these functions is
  *   accurate delays (vs accurate timestamps.)
- * o The syscalls such as nanosleep gaurantee at least the request time
- *   and will lose accuracy, particularly due to things like context switching
- * o Kalman filtering is used for better delay accuracy.  This can cause the delay
- *   to return faster than the request.  
- * o Remember the Client is keeping a running average delay for the thread
- *   so errors in delay will be adjusted there. (Assuming it's possible)
+ * o The syscalls such as nanosleep guarantee at least the request time
+ *   and can delay longer, particularly due to things like context 
+ *   switching, causing the delay to lose accuracy
+ * o Kalman filtering is used for to predict delay error which in turn
+ *   is used to adjust the delay, mitigating the described above.  
+ *   Note:  This can cause the delay to return faster than the request,
+ *   i.e. the *at least* guarantee is not preserved for the kalman
+ *   adjused delay calls.
+ * o Remember, the Client is keeping a running average delay for the 
+ *   thread so errors in delay will also be adjusted there. (Assuming 
+ *   it's possible.  It's not really possible at top line link rates 
+ *   because lost time can't be made up for by speeding up the transmits.  
+ *   Hence, don't lose time with delay calls which error on the side of 
+ *   taking too long.  Kalman should help much here.)
+ * 
  * POSIX nanosleep(). This allowss a higher timing resolution 
  * (under Linux e.g. it uses hrtimers), does not affect any signals, 
  * and will use up remaining time when interrupted.
@@ -135,8 +145,8 @@ void delay_nanosleep (unsigned long usec) {
     }
 }
 // Kalman versions below that should support accuracy
-// over a minimum gauranteed delay.  The ideal function
-// to use is delay_nanosleep_kalman
+// over a minimum guaranteed delay.  The preferred function
+// to use for accurate delay is delay_nanosleep_kalman()
 #if HAVE_CLOCK_GETTIME
 void kalman_update (kalman_state *state, double measurement) {
     //prediction update
