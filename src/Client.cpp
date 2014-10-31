@@ -252,7 +252,7 @@ void Client::Run( void ) {
     }
 
     if ( isUDP( mSettings ) ) {
-#if HAVE_SCHED_SETSCHEDULER
+#ifdef HAVE_SCHED_SETSCHEDULER
 	if ( isRealtime( mSettings ) ) {
 	    // Thread settings to support realtime operations
 	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
@@ -393,7 +393,7 @@ void Client::Run( void ) {
         if ( delay >= 1000 ) {
 	    // Convert from nanoseconds to microseconds
 	    // and invoke the microsecond delay
-#if HAVE_CLOCK_GETTIME
+#ifdef HAVE_CLOCK_GETTIME
 	    delay_nanosleep_kalman((unsigned long) (delay / 1000));
 #else
 	    delay_loop((unsigned long) (delay / 1000)); 

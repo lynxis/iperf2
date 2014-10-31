@@ -89,7 +89,7 @@ void delay_loop(unsigned long usec)
       delay_nanosleep(usec);
     }
 }
-#if HAVE_CLOCK_GETTIME
+#ifdef HAVE_CLOCK_GETTIME
 // A cpu busy loop
 void delay_busyloop (unsigned long usec) {
     struct timespec t1, t2; 

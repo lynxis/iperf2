@@ -144,7 +144,7 @@ void Server::Run( void ) {
 		WARN_errno( mSettings->mSock == SO_TIMESTAMP, "socket" );
 	    }
 	}
- #if HAVE_SCHED_SETSCHEDULER
+ #ifdef HAVE_SCHED_SETSCHEDULER
 	if ( isRealtime( mSettings ) ) {
 	    struct sched_param sp;
 	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
