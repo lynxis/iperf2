@@ -179,10 +179,6 @@ void Client::RunTCP( void ) {
                   break;
 	    } 
         }
-        if ( currLen < 0 ) {
-	    WARN_errno( currLen < 0, "write:" );
-	    break;
-	}
 
 	totLen += currLen;
 
@@ -380,10 +376,7 @@ void Client::Run( void ) {
                   break;
 	    } 
         }
-        if ( currLen < 0 ) {
-	    WARN_errno( currLen < 0, "write:" );
-	    break;
-	}
+
         // report packets 
         reportstruct->packetLen = (unsigned long) currLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
