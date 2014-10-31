@@ -69,6 +69,24 @@ extern "C" {
 #endif
 
 /*
+ *
+ * Used for end/end latency measurements
+ *
+ */
+typedef struct TransitStats {
+    int  reset;
+    double maxTransit;
+    double minTransit;
+    double sumTransit;
+    double lastTransit;
+    int cntTransit;
+    double totmaxTransit;
+    double totminTransit;
+    double totsumTransit;
+    int totcntTransit;
+} TransitStats;    
+
+/*
  * This struct contains all important information from the sending or
  * recieving thread.
  */
@@ -80,6 +98,7 @@ typedef struct ReportStruct {
     int errwrite;
     int emptyreport;
 } ReportStruct;
+
 
 /*
  * The type field of ReporterData is a bitmask
@@ -98,10 +117,7 @@ typedef struct Transfer_Info {
     int cntError;
     int cntOutofOrder;
     int cntDatagrams;
-    double maxTransit;
-    double minTransit;
-    double sumTransit;
-    max_size_t cntTransit;
+    TransitStats transit;
     // Hopefully int64_t's
     max_size_t TotalLen;
     double jitter;
@@ -136,6 +152,8 @@ typedef struct ReporterData {
     int mBufLen;                    // -l
     int mMSS;                       // -M
     int mTCPWin;                    // -w
+    max_size_t mUDPRate;            // -b or -u
+    RateUnits mUDPRateUnits;        // -b is either bw or pps
     /*   flags is a BitMask of old bools
         bool   mBufLenSet;              // -l
         bool   mCompat;                 // -C
@@ -157,7 +175,6 @@ typedef struct ReporterData {
     max_size_t TotalLen;
     max_size_t lastTotal;
     // doubles
-    double lastTransit;
     // shorts
     unsigned short mPort;           // -p
     // structs or miscellaneous
@@ -167,10 +184,6 @@ typedef struct ReporterData {
     struct timeval packetTime;
     struct timeval nextTime;
     struct timeval intervalTime;
-    double maxTransit;
-    double minTransit;
-    double sumTransit;
-    max_size_t cntTransit;
 } ReporterData;
 
 typedef struct MultiHeader {

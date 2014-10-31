@@ -386,6 +386,13 @@ typedef struct server_hdr {
     int32_t datagrams;
     int32_t jitter1;
     int32_t jitter2;
+    int32_t minTransit1;
+    int32_t minTransit2;
+    int32_t maxTransit1;
+    int32_t maxTransit2;
+    int32_t sumTransit1;
+    int32_t sumTransit2;
+    int32_t cntTransit;
 #else
     signed int flags        : 32;
     signed int total_len1   : 32;
@@ -397,6 +404,14 @@ typedef struct server_hdr {
     signed int datagrams    : 32;
     signed int jitter1      : 32;
     signed int jitter2      : 32;
+    signed int minTransit1  : 32;
+    signed int minTransit2  : 32;
+    signed int maxTransit1  : 32;
+    signed int maxTransit2  : 32;
+    signed int sumTransit1  : 32;
+    signed int sumTransit2  : 32;
+    signed int cntTransit   : 32;
+
 #endif
 
 } server_hdr;

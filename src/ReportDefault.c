@@ -105,9 +105,9 @@ void reporter_printstats( Transfer_Info *stats ) {
                 buffer, &buffer[sizeof(buffer)/2],
                 stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
                 (100.0 * stats->cntError) / stats->cntDatagrams,
-		(stats->sumTransit / stats->cntTransit)*1000.0,
-		stats->minTransit*1000.0,
-		stats->maxTransit*1000.0,
+		(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
+		stats->transit.minTransit*1000.0,
+		stats->transit.maxTransit*1000.0,
 	        ((stats->cntDatagrams - stats->cntError) / \
 		 (stats->endTime - stats->startTime)) + 0.5);
         if ( stats->cntOutofOrder > 0 ) {
@@ -115,14 +115,12 @@ void reporter_printstats( Transfer_Info *stats ) {
                     stats->transferID, stats->startTime, 
                     stats->endTime, stats->cntOutofOrder );
         }
+	// Reset the transit stats for the next report interval 
+	stats->transit.reset= 1;
     }
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
         printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 
     }
-    stats->minTransit=-1;
-    stats->maxTransit=-1000;
-    stats->sumTransit=0;
-    stats->cntTransit=0;
 }
 
 
@@ -197,9 +195,22 @@ void reporter_reportsettings( ReporterData *data ) {
     }
 
     if ( isUDP( data ) ) {
-        printf( (data->mThreadMode == kMode_Listener ? 
-                                   server_datagram_size : client_datagram_size),
-                data->mBufLen );
+
+	if (data->mThreadMode != kMode_Listener) {
+	    double delay_target;
+	    if (data->mUDPRateUnits == kRate_BW) { 
+		delay_target = (double) ( data->mBufLen * 8000000.0 / data->mUDPRate);
+	    } else {
+		delay_target = (1e6 / data->mUDPRate);
+	    }
+#ifdef HAVE_CLOCK_GETTIME
+	    printf(client_datagram_size_kalman, data->mBufLen, delay_target);
+#else 	
+	    printf(client_datagram_size, data->mBufLen, delay_target);
+#endif
+	} else {
+	    printf(server_datagram_size, data->mBufLen);
+	}
         if ( SockAddr_isMulticast( &data->connection.peer ) ) {
             printf( multicast_ttl, data->info.mTTL);
         }
@@ -218,7 +229,7 @@ void reporter_reportsettings( ReporterData *data ) {
     }
     printf( "\n" );
     printf( separator_line );
-}
+ }
 
 /*
  * Report a socket's peer IP address in default style

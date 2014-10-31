@@ -283,7 +283,16 @@ void Server::write_UDP_AckFIN( ) {
             hdr->jitter1      = htonl( (long) stats->jitter );
             hdr->jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) 
                                                * rMillion) );
-
+            hdr->minTransit1  = htonl( (long) stats->transit.totminTransit );
+            hdr->minTransit2  = htonl( (long) ((stats->transit.totminTransit - (long)stats->transit.totminTransit) 
+                                               * rMillion) );
+            hdr->maxTransit1  = htonl( (long) stats->transit.totmaxTransit );
+            hdr->maxTransit2  = htonl( (long) ((stats->transit.totmaxTransit - (long)stats->transit.totmaxTransit) 
+                                               * rMillion) );
+            hdr->sumTransit1  = htonl( (long) stats->transit.totsumTransit );
+            hdr->sumTransit2  = htonl( (long) ((stats->transit.totsumTransit - (long)stats->transit.totsumTransit) 
+                                               * rMillion) );
+            hdr->cntTransit   = htonl( stats->transit.totcntTransit );
         }
 
         // write data 

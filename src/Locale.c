@@ -165,7 +165,10 @@ const char join_multicast[] =
 "Joining multicast group  %s\n";
 
 const char client_datagram_size[] =
-"Sending %d byte datagrams\n";
+"Sending %d byte datagrams, IPG target: %4.2f us\n";
+
+const char client_datagram_size_kalman[] =
+"Sending %d byte datagrams, IPG target: %4.2f us (kalman adjust)\n";
 
 const char server_datagram_size[] =
 "Receiving %d byte datagrams\n";
