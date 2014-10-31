@@ -80,7 +80,9 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( report_bw_header);
 	    header_printed = 1;
 	}
-	printf( report_bw_format, stats->transferID, 
+	printf( report_bw_format,
+		stats->transferID, 
+		stats->mIntervalPrecision, stats->mIntervalPrecision,
 		stats->startTime, stats->endTime, 
 		buffer, &buffer[sizeof(buffer)/2] );
     } else if ( stats->mUDP == (char)kMode_Client ) {
@@ -89,7 +91,9 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( report_bw_pps_header);
 	    header_printed = 1;
 	}
-	printf( report_bw_pps_format, stats->transferID, 
+	printf( report_bw_pps_format,
+		stats->transferID, 
+		stats->mIntervalPrecision, stats->mIntervalPrecision,
 		stats->startTime, stats->endTime, 
 		buffer, &buffer[sizeof(buffer)/2],
 	        ((stats->cntDatagrams - stats->cntError) / \
@@ -100,7 +104,9 @@ void reporter_printstats( Transfer_Info *stats ) {
             printf( report_bw_jitter_loss_header);
             header_printed = 1;
         }
-        printf( report_bw_jitter_loss_format, stats->transferID, 
+        printf( report_bw_jitter_loss_format, 
+		stats->transferID, 
+		stats->mIntervalPrecision, stats->mIntervalPrecision,
                 stats->startTime, stats->endTime, 
                 buffer, &buffer[sizeof(buffer)/2],
                 stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
@@ -112,7 +118,9 @@ void reporter_printstats( Transfer_Info *stats ) {
 		 (stats->endTime - stats->startTime)) + 0.5);
         if ( stats->cntOutofOrder > 0 ) {
             printf( report_outoforder,
-                    stats->transferID, stats->startTime, 
+                    stats->transferID, 
+		    stats->mIntervalPrecision, stats->mIntervalPrecision,
+		    stats->startTime, 
                     stats->endTime, stats->cntOutofOrder );
         }
 	// Reset the transit stats for the next report interval 
@@ -137,18 +145,21 @@ void reporter_multistats( Transfer_Info *stats ) {
 
     if ( stats->mUDP != (char)kMode_Server ) {
         // TCP Reporting
-        printf( report_sum_bw_format, 
+        printf( report_sum_bw_format,
+		stats->mIntervalPrecision, stats->mIntervalPrecision, 
                 stats->startTime, stats->endTime, 
                 buffer, &buffer[sizeof(buffer)/2] );
     } else {
         // UDP Reporting
-        printf( report_sum_bw_jitter_loss_format, 
+        printf( report_sum_bw_jitter_loss_format,
+		stats->mIntervalPrecision, stats->mIntervalPrecision, 
                 stats->startTime, stats->endTime, 
                 buffer, &buffer[sizeof(buffer)/2],
                 stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
                 (100.0 * stats->cntError) / stats->cntDatagrams );
         if ( stats->cntOutofOrder > 0 ) {
             printf( report_sum_outoforder,
+		    stats->mIntervalPrecision, stats->mIntervalPrecision,
                     stats->startTime, 
                     stats->endTime, stats->cntOutofOrder );
         }

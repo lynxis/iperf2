@@ -161,6 +161,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
                 data->mThreadMode = agent->mThreadMode;
                 data->mode = agent->mReportMode;
                 data->info.mFormat = agent->mFormat;
+                data->info.mIntervalPrecision = agent->mIntervalPrecision;
                 data->info.mTTL = agent->mTTL;
                 if ( isUDP( agent ) ) {
                     multihdr->report->info.mUDP = (char)agent->mThreadMode;
@@ -242,6 +243,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->mThreadMode = agent->mThreadMode;
             data->mode = agent->mReportMode;
             data->info.mFormat = agent->mFormat;
+	    data->info.mIntervalPrecision = agent->mIntervalPrecision;
             data->info.mTTL = agent->mTTL;
             if ( isUDP( agent ) ) {
                 reporthdr->report.info.mUDP = (char)agent->mThreadMode;
@@ -447,6 +449,7 @@ void ReportSettings( thread_Settings *agent ) {
             data->mThreadMode = agent->mThreadMode;
             data->mPort = agent->mPort;
             data->info.mFormat = agent->mFormat;
+            data->info.mIntervalPrecision = agent->mIntervalPrecision;
             data->info.mTTL = agent->mTTL;
             data->connection.peer = agent->peer;
             data->connection.size_peer = agent->size_peer;
@@ -793,6 +796,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
                 current->cntOutofOrder = stats->cntOutofOrder;
                 current->TotalLen = stats->TotalLen;
                 current->mFormat = stats->mFormat;
+                current->mIntervalPrecision = stats->mIntervalPrecision;
                 current->endTime = stats->endTime;
                 current->jitter = stats->jitter;
                 current->startTime = stats->startTime;
@@ -803,6 +807,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
                 current->cntOutofOrder += stats->cntOutofOrder;
                 current->TotalLen += stats->TotalLen;
                 current->mFormat = stats->mFormat;
+                current->mIntervalPrecision = stats->mIntervalPrecision;
                 if ( current->endTime < stats->endTime ) {
                     current->endTime = stats->endTime;
                 }

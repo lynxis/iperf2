@@ -1,6 +1,5 @@
-
 /*--------------------------------------------------------------- 
- * Copyright (c) 1999,2000,2001,2002,2003                              
+ * Copyright (C) 1999,2000,2001,2002,2003                              
  * The Board of Trustees of the University of Illinois            
  * All Rights Reserved.                                           
  *--------------------------------------------------------------- 
@@ -165,10 +164,10 @@ const char join_multicast[] =
 "Joining multicast group  %s\n";
 
 const char client_datagram_size[] =
-"Sending %d byte datagrams, IPG target: %4.2f us\n";
+"Sending %d byte datagrams, IPG target: %4.3f us\n";
 
 const char client_datagram_size_kalman[] =
-"Sending %d byte datagrams, IPG target: %4.2f us (kalman adjust)\n";
+"Sending %d byte datagrams, IPG target: %4.3f us (kalman adjust)\n";
 
 const char server_datagram_size[] =
 "Receiving %d byte datagrams\n";
@@ -205,32 +204,29 @@ const char report_bw_writes_header[] =
 "[ ID] Interval       Transfer     Bandwidth     Writes/Errs\n";
 
 const char report_bw_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec\n";
+    "[%3d] %4.*f-%4.*f sec  %ss  %ss/sec\n";
 
 const char report_bw_pps_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f pps\n";
-
-const char report_bw_writes_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f/%4.0f\n";
+    "[%3d] %4.*f-%4.*f sec  %ss  %ss/sec %4.0f pps\n";
 
 const char report_sum_bw_format[] =
-"[SUM] %4.3f-%4.3f sec  %ss  %ss/sec\n";
+"[SUM] %4.*f-%4.*f sec  %ss  %ss/sec\n";
 
 const char report_bw_jitter_loss_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
 Datagrams Latency avg/min/max PPS\n";
 
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f ms %4.0f pps\n";
+"[%3d] %4.*f-%4.*f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f ms %4.0f pps\n";
 
 const char report_sum_bw_jitter_loss_format[] =
-"[SUM] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
+"[SUM] %4.*f-%4.*f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
 
 const char report_outoforder[] =
-"[%3d] %4.3f-%4.3f sec  %d datagrams received out-of-order\n";
+"[%3d] %4.*f-%4.*f sec  %d datagrams received out-of-order\n";
 
 const char report_sum_outoforder[] =
-"[SUM] %4.3f-%4.3f sec  %d datagrams received out-of-order\n";
+"[SUM] %4.*f-%4.*f sec  %d datagrams received out-of-order\n";
 
 const char report_peer[] =
 "[%3d] local %s port %u connected with %s port %u\n";
