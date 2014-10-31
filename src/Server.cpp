@@ -101,10 +101,10 @@ void Server::Run( void ) {
     long currLen; 
     max_size_t totLen = 0;
     struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf; 
+    ReportStruct *reportstruct = NULL;
     int running;
 
-    ReportStruct *reportstruct = NULL;
-
+#ifndef WIN32
     // Structures needed for recvmsg
     // Use to get kernel timestamps of packets
     struct sockaddr_storage srcaddr;
@@ -120,12 +120,14 @@ void Server::Run( void ) {
     struct cmsghdr *cmsg = (struct cmsghdr *) &ctrl;
     message.msg_control = (char *) ctrl;
     message.msg_controllen = sizeof(ctrl);
+#endif
 
     reportstruct = new ReportStruct;
     if ( reportstruct != NULL ) {
         reportstruct->packetID = 0;
         mSettings->reporthdr = InitReport( mSettings );
 	running=1;
+#ifndef WIN32
 	// Set the socket timeout to 1/2 the report interval
 	if (mSettings->mInterval) {
 	    struct timeval timeout;
@@ -144,7 +146,8 @@ void Server::Run( void ) {
 		WARN_errno( mSettings->mSock == SO_TIMESTAMP, "socket" );
 	    }
 	}
- #ifdef HAVE_SCHED_SETSCHEDULER
+#endif
+#ifdef HAVE_SCHED_SETSCHEDULER
 	if ( isRealtime( mSettings ) ) {
 	    struct sched_param sp;
 	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
@@ -158,6 +161,7 @@ void Server::Run( void ) {
 	}
 #endif
         do {
+#ifndef WIN32
             // perform read 
 	    reportstruct->emptyreport=0;
             currLen = recvmsg( mSettings->mSock, &message, 0 );
@@ -190,7 +194,27 @@ void Server::Run( void ) {
             } else {
 		totLen += currLen;
 	    }
-        
+#else
+            // perform read 
+            currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
+	    if (currLen <= 0) {
+                // End loop on 0 read or socket error
+		// except for socket read timeout
+		if (currLen != -1 || errno != EAGAIN) {
+		    running = 0;
+		}
+	    }
+	    gettimeofday( &(reportstruct->packetTime), NULL );
+	    reportstruct->packetLen = currLen;
+	    totLen += currLen;
+            if ( isUDP( mSettings ) ) {
+                // read the datagram ID and sentTime out of the buffer 
+                reportstruct->packetID = ntohl( mBuf_UDP->id ); 
+                reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
+                reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
+		reportstruct->packetLen = currLen;
+            }
+#endif
             // terminate when datagram begins with negative index 
             // the datagram ID should be correct, just negated 
             if ( reportstruct->packetID < 0 ) {
@@ -206,12 +230,8 @@ void Server::Run( void ) {
                 gettimeofday( &(reportstruct->packetTime), NULL );
                 ReportPacket( mSettings->reporthdr, reportstruct );
             }
-
-
-
         } while (running); 
-        
-        
+                
         // stop timing 
         gettimeofday( &(reportstruct->packetTime), NULL );
         
