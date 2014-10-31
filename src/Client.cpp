@@ -176,6 +176,7 @@ void Client::RunTCP( void ) {
 		  break;
 	      default:   
 		  perror ("write");
+		  exit(1);
                   break;
 	    } 
         }
@@ -373,6 +374,7 @@ void Client::Run( void ) {
 		  break;
 	      default: 
 		  perror ("write");  
+		  exit(1);
                   break;
 	    } 
         }
