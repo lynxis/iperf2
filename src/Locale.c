@@ -201,17 +201,11 @@ const char report_bw_header[] =
 const char report_bw_pps_header[] =
 "[ ID] Interval       Transfer     Bandwidth      PPS\n";
 
-const char report_bw_writes_header[] =
-"[ ID] Interval       Transfer     Bandwidth     Writes/Errs\n";
-
 const char report_bw_format[] =
 "[%3d] %4.3f-%4.3f sec  %ss  %ss/sec\n";
 
 const char report_bw_pps_format[] =
 "[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f pps\n";
-
-const char report_bw_writes_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f/%4.0f\n";
 
 const char report_sum_bw_format[] =
 "[SUM] %4.3f-%4.3f sec  %ss  %ss/sec\n";
