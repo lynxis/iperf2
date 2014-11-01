@@ -72,6 +72,9 @@ public:
     // TCP specific version of above
     void RunTCP( void );
 
+    // TCP version which supports rate limiting per -b
+    void RunRateLimitedTCP( void );
+
     void InitiateServer();
 
     // UDP / TCP

@@ -120,6 +120,122 @@ const double kSecs_to_usecs = 1e6;
 const double kSecs_to_nsecs = 1e9; 
 const int    kBytes_to_Bits = 8; 
 
+
+// A version of the transmit loop that
+// supports TCP rate limiting using a token bucket
+void Client::RunRateLimitedTCP ( void ) {
+    int currLen = 0;
+    struct itimerval it;
+    max_size_t totLen = 0;
+    struct timespec t1; 
+    double time1, time2, tokens;
+    tokens=0;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+
+    int err;
+
+    char* readAt = mBuf;
+
+    // Indicates if the stream is readable 
+    bool canRead = true, mMode_Time = isModeTime( mSettings ); 
+
+    ReportStruct *reportstruct = NULL;
+
+    // InitReport handles Barrier for multiple Streams
+    mSettings->reporthdr = InitReport( mSettings );
+    reportstruct = new ReportStruct;
+    reportstruct->packetID = 0;
+    reportstruct->emptyreport=0;
+    reportstruct->errwrite=0;
+
+    lastPacketTime.setnow();
+    if ( mMode_Time ) {
+	memset (&it, 0, sizeof (it));
+	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
+	it.it_value.tv_usec = (int) 10000 * (mSettings->mAmount -
+	    it.it_value.tv_sec * 100.0);
+	err = setitimer( ITIMER_REAL, &it, NULL );
+	if ( err != 0 ) {
+	    perror("setitimer");
+	    exit(1);
+	}
+    }
+    do {
+        // Read the next data block from 
+        // the file if it's file input 
+        if ( isFileInput( mSettings ) ) {
+            Extractor_getNextDataBlock( readAt, mSettings ); 
+            canRead = Extractor_canRead( mSettings ) != 0; 
+        } else
+            canRead = true; 
+
+	// UDPRate is a misnomer, it's really the rate request
+	// for the traffic stream.
+	if (mSettings->mUDPRate > 0) { 
+	    // apply rate limiter
+	    clock_gettime(CLOCK_REALTIME, &t1);
+	    time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+	    tokens += ((time2 - time1) * mSettings->mUDPRate / 8);
+	    time1 = time2;
+	}
+	if (tokens >= 0) { 
+	    // perform write 
+	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+	    if ( currLen < 0 ) {
+		reportstruct->errwrite=1; 
+		switch (errno) {
+		case EINTR:
+		    currLen = mSettings->mBufLen;
+		    break;
+		case EAGAIN:
+		case ENOBUFS:
+		    currLen = 0;
+		    break;
+		default:   
+		    perror ("write");
+		    exit(1);
+		    break;
+		} 
+	    }
+	    tokens -= currLen;
+	    totLen += currLen;
+
+	    if(mSettings->mInterval > 0) {
+		gettimeofday( &(reportstruct->packetTime), NULL );
+		reportstruct->packetLen = currLen;
+		ReportPacket( mSettings->reporthdr, reportstruct );
+	    }	
+
+	    if ( !mMode_Time ) {
+		/* mAmount may be unsigned, so don't let it underflow! */
+		if( mSettings->mAmount >= (unsigned long) currLen ) {
+		    mSettings->mAmount -= (unsigned long) currLen;
+		} else {
+		    mSettings->mAmount = 0;
+		}
+	    }
+	} else {
+	    // Use a 4 usec delay to fill tokens
+	    delay_nanosleep_kalman(4);
+	}
+    } while ( ! (sInterupted  || 
+                   (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
+
+    // stop timing
+    gettimeofday( &(reportstruct->packetTime), NULL );
+
+    // if we're not doing interval reporting, report the entire transfer as one big packet
+    if(0.0 == mSettings->mInterval) {
+        reportstruct->packetLen = totLen;
+        ReportPacket( mSettings->reporthdr, reportstruct );
+    }
+    CloseReport( mSettings->reporthdr, reportstruct );
+
+    DELETE_PTR( reportstruct );
+    EndReport( mSettings->reporthdr );
+}
+
 void Client::RunTCP( void ) {
     int currLen = 0;
     struct itimerval it;
@@ -177,7 +293,7 @@ void Client::RunTCP( void ) {
 	      default:   
 		  perror ("write");
 		  exit(1);
-                  break;
+		  break;
 	    } 
         }
 
@@ -197,7 +313,6 @@ void Client::RunTCP( void ) {
                 mSettings->mAmount = 0;
             }
         }
-
     } while ( ! (sInterupted  || 
                    (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
 
@@ -234,7 +349,10 @@ void Client::Run( void ) {
 
 #if HAVE_THREAD
     if ( !isUDP( mSettings ) ) {
-	RunTCP();
+	if (mSettings->mUDPRate > 0)
+	    RunRateLimitedTCP();
+	else 
+	    RunTCP();
 	return;
     }
 #endif
