@@ -167,7 +167,6 @@ typedef struct thread_Settings {
     max_size_t mAmount;             // -n or -t
     // doubles
     double mInterval;               // -i
-    int mIntervalPrecision;         // dynamic precision
     // shorts
     unsigned short mListenPort;     // -L
     unsigned short mPort;           // -p

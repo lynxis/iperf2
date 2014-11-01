@@ -394,16 +394,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'i': // specify interval between periodic bw reports
-	    parsedopts = new char[ strlen( optarg ) + 1 ];
-	    strcpy(parsedopts, optarg );
-	    results = strtok(parsedopts, ".");
-	    if (results != NULL) {
-	      results = strtok(NULL, ".");
-	      mExtSettings->mIntervalPrecision = strlen(results);
-	    } else {
-	      mExtSettings->mIntervalPrecision = 0;
-	    }
-	    delete parsedopts;
             mExtSettings->mInterval = atof( optarg );
             if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
                 fprintf (stderr, report_interval_small, mExtSettings->mInterval);

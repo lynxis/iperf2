@@ -117,7 +117,6 @@ typedef struct Transfer_Info {
     int cntError;
     int cntOutofOrder;
     int cntDatagrams;
-    int mIntervalPrecision;
     TransitStats transit;
     // Hopefully int64_t's
     max_size_t TotalLen;
