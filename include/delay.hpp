@@ -67,8 +67,11 @@ typedef struct kalman_state {
 void delay_loop( unsigned long usecs );
 void delay_busyloop(unsigned long usecs);
 void delay_nanosleep(unsigned long usecs);
+#ifdef HAVE_CLOCK_GETTIME
 void delay_busyloop_kalman(unsigned long usecs);
-void delay_nanosleep_kalman(unsigned long usecs);
+inline void delay_nanosleep_kalman(unsigned long usecs);
+inline void kalman_update (kalman_state, double);
+#endif    
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif

@@ -90,6 +90,9 @@
  * ------------------------------------------------------------------- */
 void delay_loop(unsigned long usec)
 {
+#ifdef HAVE_CLOCK_GETTIME
+    delay_nanosleep_kalman(usec);
+#else 
     // Context switching greatly affects accuracy of nanosleep
     // Use nanosleep syscall for values of 1 ms or greater
     // otherwise use a busy loop
@@ -98,6 +101,7 @@ void delay_loop(unsigned long usec)
     } else {
       delay_nanosleep(usec);
     }
+#endif
 }
 #ifdef HAVE_CLOCK_GETTIME
 // A cpu busy loop

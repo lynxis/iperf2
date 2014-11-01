@@ -213,7 +213,7 @@ void Client::RunRateLimitedTCP ( void ) {
 	    }
 	} else {
 	    // Use a 4 usec delay to fill tokens
-	    delay_nanosleep_kalman(4);
+	    delay_loop(4);
 	}
     } while ( ! (sInterupted  || 
                    (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
@@ -500,11 +500,7 @@ void Client::Run( void ) {
         if ( delay >= 1000 ) {
 	    // Convert from nanoseconds to microseconds
 	    // and invoke the microsecond delay
-#ifdef HAVE_CLOCK_GETTIME
-	    delay_nanosleep_kalman((unsigned long) (delay / 1000));
-#else
 	    delay_loop((unsigned long) (delay / 1000)); 
-#endif
         }
         if ( !mMode_Time ) {
             /* mAmount may be unsigned, so don't let it underflow! */
