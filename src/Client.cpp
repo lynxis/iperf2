@@ -169,16 +169,11 @@ void Client::RunRateLimitedTCP ( void ) {
             canRead = Extractor_canRead( mSettings ) != 0; 
         } else
             canRead = true; 
-
-	// UDPRate is a misnomer, it's really the rate request
-	// for the traffic stream.
-	if (mSettings->mUDPRate > 0) { 
-	    // apply rate limiter
-	    clock_gettime(CLOCK_REALTIME, &t1);
-	    time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-	    tokens += ((time2 - time1) * mSettings->mUDPRate / 8);
-	    time1 = time2;
-	}
+	// Add tokens per the loop time
+	clock_gettime(CLOCK_REALTIME, &t1);
+	time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+	tokens += (time2 - time1) * (mSettings->mUDPRate / 8.0);
+	time1 = time2;
 	if (tokens >= 0) { 
 	    // perform write 
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
@@ -198,6 +193,7 @@ void Client::RunRateLimitedTCP ( void ) {
 		    break;
 		} 
 	    }
+	    // Consume tokens per the transmit
 	    tokens -= currLen;
 	    totLen += currLen;
 
