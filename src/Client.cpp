@@ -127,12 +127,18 @@ void Client::RunRateLimitedTCP ( void ) {
     int currLen = 0;
     struct itimerval it;
     max_size_t totLen = 0;
-    struct timespec t1; 
     double time1, time2, tokens;
     tokens=0;
+
+#if HAVE_CLOCK_GETTIME
+    struct timespec t1; 
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-
+#else 
+    struct timeval t1;
+    gettimeofday( &t1, NULL );
+    time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+#endif    
     int err;
 
     char* readAt = mBuf;
