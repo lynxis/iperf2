@@ -12,9 +12,20 @@
 /* Define to 1 if you have the `atexit' function. */
 #undef HAVE_ATEXIT
 
+/* Define to 1 if you have the `clock_gettime' function. */
+#undef HAVE_CLOCK_GETTIME
+
 /* Define to 1 if you have the declaration of `AF_INET6', and to 0 if you
    don't. */
 #undef HAVE_DECL_AF_INET6
+
+/* Define to 1 if you have the declaration of `ENOBUFS', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ENOBUFS
+
+/* Define to 1 if you have the declaration of `EWOULDBLOCK', and to 0 if you
+   don't. */
+#undef HAVE_DECL_EWOULDBLOCK
 
 /* Define to 1 if you have the declaration of `IPV6_ADD_MEMBERSHIP', and to 0
    if you don't. */
@@ -27,6 +38,14 @@
 /* Define to 1 if you have the declaration of `IP_ADD_MEMBERSHIP', and to 0 if
    you don't. */
 #undef HAVE_DECL_IP_ADD_MEMBERSHIP
+
+/* Define to 1 if you have the declaration of `SO_SNDTIMEO', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SO_SNDTIMEO
+
+/* Define to 1 if you have the declaration of `SO_TIMESTAMP', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SO_TIMESTAMP
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
@@ -55,15 +74,11 @@
 /* Define to 1 if you have the <libintl.h> header file. */
 #undef HAVE_LIBINTL_H
 
-/* Define to 1 if you have the `nsl' library (-lnsl). */
-#undef HAVE_LIBNSL
+/* Define to 1 if you have the `rt' library (-lrt). */
+#undef HAVE_LIBRT
 
-/* Define to 1 if you have the `socket' library (-lsocket). */
-#undef HAVE_LIBSOCKET
-
-/* Define to 1 if your system has a GNU libc compatible `malloc' function, and
-   to 0 otherwise. */
-#undef HAVE_MALLOC
+/* Define if libws2_32 exists. */
+#undef HAVE_LIBWS2_32
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -71,8 +86,14 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
+/* Define to 1 if you have the `mlockall' function. */
+#undef HAVE_MLOCKALL
+
 /* Define to enable multicast support */
 #undef HAVE_MULTICAST
+
+/* Define to 1 if you have the `nanosleep' function. */
+#undef HAVE_NANOSLEEP
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
@@ -95,8 +116,14 @@
 /* */
 #undef HAVE_QUAD_SUPPORT
 
+/* Define to 1 if you have the `sched_setscheduler' function. */
+#undef HAVE_SCHED_SETSCHEDULER
+
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
+
+/* Define to 1 if you have the `setitimer' function. */
+#undef HAVE_SETITIMER
 
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
@@ -275,9 +302,6 @@
 
 /* */
 #undef false
-
-/* Define to rpl_malloc if the replacement function should be used. */
-#undef malloc
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t

@@ -92,17 +92,19 @@ void delay_loop(unsigned long usec)
 {
 #ifdef HAVE_CLOCK_GETTIME
     delay_nanosleep_kalman(usec);
-#else 
+#else
+#ifdef HAVE_NANOSLEEP
     // Context switching greatly affects accuracy of nanosleep
     // Use nanosleep syscall for values of 1 ms or greater
     // otherwise use a busy loop
-    if (usec < 1000) {
-      delay_busyloop(usec);
-    } else {
+    if (usec >= 1000)
       delay_nanosleep(usec);
-    }
+    else
+#endif
+      delay_busyloop(usec);
 #endif
 }
+
 #ifdef HAVE_CLOCK_GETTIME
 // A cpu busy loop
 void delay_busyloop (unsigned long usec) {
@@ -136,6 +138,7 @@ void delay_busyloop (unsigned long usec) {
     }
 }
 #endif
+#ifdef HAVE_NANOSLEEP
 // Use the nanosleep syscall
 void delay_nanosleep (unsigned long usec) {
     struct timespec requested, remaining;
@@ -148,10 +151,11 @@ void delay_nanosleep (unsigned long usec) {
 	exit(-1);
     }
 }
+#endif
 // Kalman versions below that should support accuracy
 // over a minimum guaranteed delay.  The preferred function
 // to use for accurate delay is delay_nanosleep_kalman()
-#if HAVE_CLOCK_GETTIME
+#ifdef HAVE_CLOCK_GETTIME
 void kalman_update (kalman_state *state, double measurement) {
     //prediction update
     state->p = state->p + state->q;

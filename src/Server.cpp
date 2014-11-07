@@ -54,14 +54,18 @@
  * ------------------------------------------------------------------- */
 
 #define HEADERS()
-#include <sched.h>
-#include <sys/mman.h>
 #include "headers.h"
 #include "Server.hpp"
 #include "List.h"
 #include "Extractor.h"
 #include "Reporter.h"
 #include "Locale.h"
+#ifdef HAVE_SCHED_SETSCHEDULER
+#include <sched.h>
+#endif
+#ifdef HAVE_MLOCKALL
+#include <sys/mman.h>
+#endif
 
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
@@ -104,7 +108,7 @@ void Server::Run( void ) {
     ReportStruct *reportstruct = NULL;
     int running;
 
-#ifndef WIN32
+#if HAVE_DECL_SO_TIMESTAMP
     // Structures needed for recvmsg
     // Use to get kernel timestamps of packets
     struct sockaddr_storage srcaddr;
@@ -127,7 +131,6 @@ void Server::Run( void ) {
         reportstruct->packetID = 0;
         mSettings->reporthdr = InitReport( mSettings );
 	running=1;
-#ifndef WIN32
 	// Set the socket timeout to 1/2 the report interval
 	if (mSettings->mInterval) {
 	    struct timeval timeout;
@@ -140,6 +143,7 @@ void Server::Run( void ) {
 		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
 	    }
 	}
+#if HAVE_DECL_SO_TIMESTAMP
         if ( isUDP( mSettings ) ) {
 	    int timestampOn = 1;
 	    if (setsockopt(mSettings->mSock, SOL_SOCKET, SO_TIMESTAMP, (int *) &timestampOn, sizeof(timestampOn)) < 0) {
@@ -154,14 +158,16 @@ void Server::Run( void ) {
 	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
 		perror("Client set scheduler");
+#ifdef HAVE_MLOCKALL
 	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
 		// lock the threads memory
 		perror ("mlockall");
+#endif
 	    }
 	}
 #endif
         do {
-#ifndef WIN32
+#if HAVE_DECL_SO_TIMESTAMP
             // perform read 
 	    reportstruct->emptyreport=0;
             currLen = recvmsg( mSettings->mSock, &message, 0 );

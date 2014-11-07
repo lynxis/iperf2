@@ -66,6 +66,8 @@ int gettimeofday( struct timeval* tv, void* timezone );
 } /* end extern "C" */
     #endif
 
+#else
+#include <sys/time.h>
 #endif /* HAVE_GETTIMEOFDAY */
 #endif /* GETTIMEOFDAY_H */
 

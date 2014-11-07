@@ -51,10 +51,7 @@
  * sending and receiving data, then closes the socket.
  * ------------------------------------------------------------------- */
 
-#include <sched.h>
-#include <error.h>
 #include <time.h>
-#include <sys/mman.h>
 #include "headers.h"
 #include "Client.hpp"
 #include "Thread.h"
@@ -64,6 +61,12 @@
 #include "delay.hpp"
 #include "util.h"
 #include "Locale.h"
+#ifdef HAVE_SCHED_SETSCHEDULER
+#include <sched.h>
+#endif
+#ifdef HAVE_MLOCKALL
+#include <sys/mman.h>
+#endif
 
 /* -------------------------------------------------------------------
  * Store server hostname, optionally local hostname, and socket info.
@@ -120,17 +123,18 @@ const double kSecs_to_usecs = 1e6;
 const double kSecs_to_nsecs = 1e9; 
 const int    kBytes_to_Bits = 8; 
 
-
 // A version of the transmit loop that
 // supports TCP rate limiting using a token bucket
 void Client::RunRateLimitedTCP ( void ) {
     int currLen = 0;
+#ifdef HAVE_SETITIMER
     struct itimerval it;
+#endif
     max_size_t totLen = 0;
     double time1, time2, tokens;
     tokens=0;
 
-#if HAVE_CLOCK_GETTIME
+#ifdef HAVE_CLOCK_GETTIME
     struct timespec t1; 
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
@@ -139,7 +143,6 @@ void Client::RunRateLimitedTCP ( void ) {
     gettimeofday( &t1, NULL );
     time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
 #endif    
-    int err;
 
     char* readAt = mBuf;
 
@@ -157,15 +160,17 @@ void Client::RunRateLimitedTCP ( void ) {
 
     lastPacketTime.setnow();
     if ( mMode_Time ) {
+#ifdef HAVE_SETITIMER
+        int err;
 	memset (&it, 0, sizeof (it));
 	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
 	it.it_value.tv_usec = (int) 10000 * (mSettings->mAmount -
 	    it.it_value.tv_sec * 100.0);
 	err = setitimer( ITIMER_REAL, &it, NULL );
-	if ( err != 0 ) {
-	    perror("setitimer");
-	    exit(1);
-	}
+	FAIL_errno( err != 0, "setitimer", mSettings);
+#endif
+        mEndTime.setnow();
+	mEndTime.add( mSettings->mAmount / 100.0 );
     }
     do {
         // Read the next data block from 
@@ -176,8 +181,13 @@ void Client::RunRateLimitedTCP ( void ) {
         } else
             canRead = true; 
 	// Add tokens per the loop time
+#ifdef HAVE_CLOCK_GETTIME
 	clock_gettime(CLOCK_REALTIME, &t1);
 	time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+#else 
+	gettimeofday( &t1, NULL );
+	time2 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+#endif    
 	tokens += (time2 - time1) * (mSettings->mUDPRate / 8.0);
 	time1 = time2;
 	if (tokens >= 0) { 
@@ -190,12 +200,16 @@ void Client::RunRateLimitedTCP ( void ) {
 		    currLen = mSettings->mBufLen;
 		    break;
 		case EAGAIN:
+#if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
+		case EWOULDBLOCK:
+#endif
+#if HAVE_DECL_ENOBUFS
 		case ENOBUFS:
+#endif
 		    currLen = 0;
 		    break;
-		default:   
-		    perror ("write");
-		    exit(1);
+		default:
+		    FAIL_errno( errno != 0, "write", mSettings);
 		    break;
 		} 
 	    }
@@ -222,7 +236,8 @@ void Client::RunRateLimitedTCP ( void ) {
 	    delay_loop(4);
 	}
     } while ( ! (sInterupted  || 
-                   (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
+                 (mMode_Time   &&  mEndTime.before( reportstruct->packetTime ))  || 
+		 (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
 
     // stop timing
     gettimeofday( &(reportstruct->packetTime), NULL );
@@ -240,10 +255,7 @@ void Client::RunRateLimitedTCP ( void ) {
 
 void Client::RunTCP( void ) {
     int currLen = 0;
-    struct itimerval it;
     max_size_t totLen = 0;
-
-    int err;
 
     char* readAt = mBuf;
 
@@ -261,15 +273,18 @@ void Client::RunTCP( void ) {
 
     lastPacketTime.setnow();
     if ( mMode_Time ) {
+#ifdef HAVE_SETITIMER
+        int err;
+        struct itimerval it;
 	memset (&it, 0, sizeof (it));
 	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
 	it.it_value.tv_usec = (int) 10000 * (mSettings->mAmount -
 	    it.it_value.tv_sec * 100.0);
 	err = setitimer( ITIMER_REAL, &it, NULL );
-	if ( err != 0 ) {
-	    perror("setitimer");
-	    exit(1);
-	}
+	FAIL_errno( err != 0, "setitimer", mSettings ); 
+#endif
+        mEndTime.setnow();
+        mEndTime.add( mSettings->mAmount / 100.0 );
     }
     do {
         // Read the next data block from 
@@ -289,12 +304,16 @@ void Client::RunTCP( void ) {
 		  currLen = mSettings->mBufLen;
 		  break;
 	      case EAGAIN:
+#if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
+	      case EWOULDBLOCK:
+#endif
+#if HAVE_DECL_ENOBUFS
 	      case ENOBUFS:
+#endif
 		  currLen = 0;
 		  break;
 	      default:   
-		  perror ("write");
-		  exit(1);
+		  FAIL_errno( errno != 0, "write", mSettings);
 		  break;
 	    } 
         }
@@ -316,7 +335,8 @@ void Client::RunTCP( void ) {
             }
         }
     } while ( ! (sInterupted  || 
-                   (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
+                 (mMode_Time   &&  mEndTime.before( reportstruct->packetTime ))  || 
+		 (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
 
     // stop timing
     gettimeofday( &(reportstruct->packetTime), NULL );
@@ -376,11 +396,13 @@ void Client::Run( void ) {
 	    struct sched_param sp;
 	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
 
-	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0) { 
-		perror("Client set scheduler");
+	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0) {
+                WARN_errno( 1, "Client set scheduler" );
+#ifdef HAVE_MLOCKALL
 	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
 		// lock the threads memory
-		perror ("mlockall");
+		WARN_errno( 1, "mlockall");
+#endif
 	    }
 	}
 #endif
@@ -487,12 +509,11 @@ void Client::Run( void ) {
 		  currLen = mSettings->mBufLen;
 		  break;
 	      case EAGAIN:
-	      case ENOBUFS:
+		//case ENOBUFS:
 		  currLen = 0;
 		  break;
 	      default: 
-		  perror ("write");  
-		  exit(1);
+		  FAIL_errno( errno, "write", mSettings );
                   break;
 	    } 
         }

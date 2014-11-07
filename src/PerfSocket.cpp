@@ -111,14 +111,14 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 #ifdef HAVE_MULTICAST
 	if ( !SockAddr_isIPv6( &inSettings->local ) ) {
 	    int rc = setsockopt( inSettings->mSock, IPPROTO_IP, IP_MULTICAST_TTL,
-		    (const void*) &val, (Socklen_t) sizeof(val));
+		    (char*) &val, (Socklen_t) sizeof(val));
 
 	    WARN_errno( rc == SOCKET_ERROR, "multicast ttl" );
 	}
 #ifdef HAVE_IPV6_MULTICAST
 	else {
 	    int rc = setsockopt( inSettings->mSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-		    (const void*) &val, (Socklen_t) sizeof(val));
+		    (char*) &val, (Socklen_t) sizeof(val));
 	    WARN_errno( rc == SOCKET_ERROR, "multicast ttl" );
 	}
 #endif

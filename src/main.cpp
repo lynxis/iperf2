@@ -124,9 +124,9 @@ int main( int argc, char **argv ) {
     // Set SIGTERM and SIGINT to call our user interrupt function
     my_signal( SIGTERM, Sig_Interupt );
     my_signal( SIGINT,  Sig_Interupt );
+#ifndef WIN32
     my_signal( SIGALRM,  Sig_Interupt );
 
-#ifndef WIN32
     // Ignore broken pipes
     signal(SIGPIPE,SIG_IGN);
 #else
@@ -272,6 +272,87 @@ void Sig_Interupt( int inSigno ) {
     sig_exit( inSigno );
 #endif
 }
+
+#ifdef WIN32
+/*--------------------------------------------------------------------
+ * ServiceStart
+ *
+ * each time starting the service, this is the entry point of the service.
+ * Start the service, certainly it is on server-mode
+ * 
+ *-------------------------------------------------------------------- */
+VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
+    thread_Settings* ext_gSettings;
+ 
+    // report the status to the service control manager.
+    //
+    if ( !ReportStatusToSCMgr(
+                             SERVICE_START_PENDING, // service state
+                             NO_ERROR,              // exit code
+                             3000) )                 // wait hint
+        goto clean;
+
+    ext_gSettings = new thread_Settings;
+
+    // Initialize settings to defaults
+    Settings_Initialize( ext_gSettings );
+    // read settings from environment variables
+    Settings_ParseEnvironment( ext_gSettings );
+    // read settings from command-line parameters
+    Settings_ParseCommandLine( dwArgc, lpszArgv, ext_gSettings );
+
+    // report the status to the service control manager.
+    //
+    if ( !ReportStatusToSCMgr(
+                             SERVICE_START_PENDING, // service state
+                             NO_ERROR,              // exit code
+                             3000) )                 // wait hint
+        goto clean;
+
+    // if needed, redirect the output into a specified file
+    if ( !isSTDOUT( ext_gSettings ) ) {
+        redirect( ext_gSettings->mOutputFileName );
+    }
+
+    // report the status to the service control manager.
+    //
+    if ( !ReportStatusToSCMgr(
+                             SERVICE_START_PENDING, // service state
+                             NO_ERROR,              // exit code
+                             3000) )                 // wait hint
+        goto clean;
+    
+    // initialize client(s)
+    if ( ext_gSettings->mThreadMode == kMode_Client ) {
+        client_init( ext_gSettings );
+    }
+
+    // start up the reporter and client(s) or listener
+    {
+        thread_Settings *into = NULL;
+#ifdef HAVE_THREAD
+        Settings_Copy( ext_gSettings, &into );
+        into->mThreadMode = kMode_Reporter;
+        into->runNow = ext_gSettings;
+#else
+        into = ext_gSettings;
+#endif
+        thread_start( into );
+    }
+    
+    // report the status to the service control manager.
+    //
+    if ( !ReportStatusToSCMgr(
+                             SERVICE_RUNNING,       // service state
+                             NO_ERROR,              // exit code
+                             0) )                    // wait hint
+        goto clean;
+
+    clean:
+    // wait for other (client, server) threads to complete
+    thread_joinall();
+}
+#endif
 
 /* -------------------------------------------------------------------
  * Any necesary cleanup before Iperf quits. Called at program exit,

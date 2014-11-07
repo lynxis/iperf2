@@ -13,7 +13,6 @@ m4_include([m4/ax_create_stdint_h.m4])
 m4_include([m4/dast.m4])
 m4_include([m4/acx_pthread.m4])
 
-
 AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--disable-ipv6],
 	    [disable ipv6 support (default is autodetect)]), 
 	ac_cv_have_ipv6=$enable_ipv6,)
@@ -65,8 +64,14 @@ if test "$enable_threads" != no; then
 fi
 
 dnl check for -lnsl, -lsocket
-AC_CHECK_FUNC(gethostbyname,,AC_CHECK_LIB(nsl, gethostbyname))
-AC_CHECK_FUNC(socket,,AC_CHECK_LIB(socket, socket))
+AC_SEARCH_LIBS([gethostbyname], [nsl])
+AC_SEARCH_LIBS([socket], [socket], [],
+  [AC_CHECK_HEADER([winsock2.h],
+  [AC_DEFINE([HAVE_LIBWS2_32], [1], [Define if libws2_32 exists.])
+  LIBS="-lws2_32 $LIBS"],
+  [],
+  [#include <windows.h>])])
+ 
 
 dnl Checks for header files.
 AC_HEADER_STDC
@@ -110,14 +115,16 @@ AC_DEFINE_UNQUOTED([Socklen_t], $ac_cv_accept_arg, [Define 3rd arg of accept])
 
 dnl Checks for library functions.
 AC_FUNC_FORK
-dnl AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit gettimeofday memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler])
+AC_CHECK_FUNCS([atexit gettimeofday memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler mlockall setitimer nanosleep])
 AC_REPLACE_FUNCS(snprintf inet_pton inet_ntop gettimeofday)
+AC_CHECK_DECLS([ENOBUFS, EWOULDBLOCK],[],[],[#include <errno.h>])
+AC_CHECK_DECLS([SO_TIMESTAMP, SO_SNDTIMEO],[],[],[#include <sys/socket.h>])
+
 
 dnl             Gotten from some NetBSD configure.in
 dnl		We assume that if sprintf() supports %lld or %qd,
@@ -244,6 +251,12 @@ if test "$web100_success" = yes; then
 AC_DEFINE([HAVE_WEB100], 1, [Define if Web100 is desired and available])
 fi fi fi fi fi fi
 fi
+
+dnl Static link on MINGW for standalone DOS executable
+case "$ac_cv_host" in
+*-pc-mingw32) LIBS="$LIBS -static-libstdc++ -static-libgcc" ;;
+esac
+
 
 dnl GNU make allows us to use the $(strip ...) builtin which eliminates a
 dnl large amount of extra whitespace in compile lines.

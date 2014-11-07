@@ -90,7 +90,7 @@
     #include "config.win32.h"
 
 /* Windows headers */
-    #define _WIN32_WINNT 0x0400 /* use (at least) WinNT 4.0 API */
+    #define _WIN32_WINNT 0x0501 /* use (at least) WinXP API */
     #define WIN32_LEAN_AND_MEAN /* exclude unnecesary headers */
     #include <windows.h>
     #include <winsock2.h>
