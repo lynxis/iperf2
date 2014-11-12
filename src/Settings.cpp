@@ -323,17 +323,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             setSingleClient( mExtSettings );
             break;
         case 'b': // UDP bandwidth
-#ifndef HAVE_CLOCK_GETTIME
-            if ( !isUDP( mExtSettings ) ) {
-                fprintf( stderr, warn_implied_udp, option );
-            }
-
-            if ( mExtSettings->mThreadMode != kMode_Client ) {
-                fprintf( stderr, warn_invalid_server_option, option );
-                break;
-            }
-            setUDP( mExtSettings );
-#endif
             Settings_GetLowerCaseArg(optarg,outarg);
 	    // scan for PPS units, just look for 'p' as that's good enough
 	    sscanf(outarg, "%lf%c", &theNum, &suffix );

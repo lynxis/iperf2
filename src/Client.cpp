@@ -131,7 +131,7 @@ void Client::RunRateLimitedTCP ( void ) {
     struct itimerval it;
 #endif
     max_size_t totLen = 0;
-    double time1, time2, tokens;
+    double time1, time2 = 0, tokens;
     tokens=0;
 
 #ifdef HAVE_CLOCK_GETTIME
@@ -168,11 +168,12 @@ void Client::RunRateLimitedTCP ( void ) {
 	    it.it_value.tv_sec * 100.0);
 	err = setitimer( ITIMER_REAL, &it, NULL );
 	FAIL_errno( err != 0, "setitimer", mSettings);
-#endif
+#else 
         mEndTime.setnow();
 	mEndTime.add( mSettings->mAmount / 100.0 );
+#endif 
     }
-    do {
+    while (1) {
         // Read the next data block from 
         // the file if it's file input 
         if ( isFileInput( mSettings ) ) {
@@ -181,15 +182,21 @@ void Client::RunRateLimitedTCP ( void ) {
         } else
             canRead = true; 
 	// Add tokens per the loop time
+	// clock_gettime is much cheaper than gettimeofday() so 
+	// use it if possible. 
 #ifdef HAVE_CLOCK_GETTIME
 	clock_gettime(CLOCK_REALTIME, &t1);
 	time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-#else 
-	gettimeofday( &t1, NULL );
-	time2 = t1.tv_sec + (t1.tv_usec / 1000000.0);
-#endif    
 	tokens += (time2 - time1) * (mSettings->mUDPRate / 8.0);
 	time1 = time2;
+#else 
+	if (!time2) 
+	    gettimeofday( &t1, NULL );
+	time2 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+	tokens += (time2 - time1) * (mSettings->mUDPRate / 8.0);
+	time1 = time2;
+	time2 = 0;
+#endif    
 	if (tokens >= 0) { 
 	    // perform write 
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
@@ -207,6 +214,12 @@ void Client::RunRateLimitedTCP ( void ) {
 		case ENOBUFS:
 #endif
 		    currLen = 0;
+		    gettimeofday( &(reportstruct->packetTime), NULL );
+#ifndef HAVE_CLOCK_GETTIME
+		    // leverage the packet gettimeofday reducing
+		    // these sys calls (which can be expensive)
+		    time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
+#endif
 		    break;
 		default:
 		    FAIL_errno( errno != 0, "write", mSettings);
@@ -217,8 +230,26 @@ void Client::RunRateLimitedTCP ( void ) {
 	    tokens -= currLen;
 	    totLen += currLen;
 
+#ifndef HAVE_SETITIMER
+	    // Get the time for so the loop can 
+	    // end if the running time exceeds the requested
+	    gettimeofday( &(reportstruct->packetTime), NULL );
+# ifndef HAVE_CLOCK_GETTIME
+	    // leverage the packet gettimeofday reducing
+	    // these sys calls (which can be expensive)
+	    // time2 is used for the token bucket adjust
+	    time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
+# endif
+#endif
 	    if(mSettings->mInterval > 0) {
+#ifdef HAVE_SETITIMER
 		gettimeofday( &(reportstruct->packetTime), NULL );
+# ifndef HAVE_CLOCK_GETTIME
+		// leverage the packet gettimeofday reducing
+		// these sys calls (which can be expensive)
+		time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
+# endif
+#endif
 		reportstruct->packetLen = currLen;
 		ReportPacket( mSettings->reporthdr, reportstruct );
 	    }	
@@ -235,9 +266,17 @@ void Client::RunRateLimitedTCP ( void ) {
 	    // Use a 4 usec delay to fill tokens
 	    delay_loop(4);
 	}
-    } while ( ! (sInterupted  || 
-                 (mMode_Time   &&  mEndTime.before( reportstruct->packetTime ))  || 
-		 (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
+#ifdef HAVE_SETITIMER
+	if (sInterupted || 
+	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    break;
+#else 
+	if (sInterupted || 
+	    (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))  || 
+	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    break;
+#endif	
+    }
 
     // stop timing
     gettimeofday( &(reportstruct->packetTime), NULL );
@@ -272,6 +311,24 @@ void Client::RunTCP( void ) {
     reportstruct->errwrite=0;
 
     lastPacketTime.setnow();
+
+    /*
+     * Terminate the thread by setitimer's alarm (if possible)
+     * as the alarm will break a blocked syscall (i.e. the write)
+     * and provide for accurate timing. Otherwise the thread cannot 
+     * terminate until the write completes and since this is 
+     * a blocking write the time may not be exact to the request. 
+     *
+     * In this case of no setitimer we're just using the gettimeofday
+     * calls to determine if the loop time exceeds the request time
+     * and the blocking writes will affect timing.  The socket has set 
+     * SO_SNDTIMEO to 1/2 the overall time (which should help limit 
+     * gross error) or 1/2 the report interval time (better precision)
+     *
+     * Side note: The advantage of not using interval reports is that
+     * the code path won't make any gettimeofday calls in the main loop
+     * which are expensive syscalls.
+     */ 
     if ( mMode_Time ) {
 #ifdef HAVE_SETITIMER
         int err;
@@ -279,18 +336,19 @@ void Client::RunTCP( void ) {
 	memset (&it, 0, sizeof (it));
 	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
 	it.it_value.tv_usec = (int) 10000 * (mSettings->mAmount -
-	    it.it_value.tv_sec * 100.0);
+					     it.it_value.tv_sec * 100.0);
 	err = setitimer( ITIMER_REAL, &it, NULL );
 	FAIL_errno( err != 0, "setitimer", mSettings ); 
-#endif
+#else
         mEndTime.setnow();
         mEndTime.add( mSettings->mAmount / 100.0 );
+#endif
     }
-    do {
+    while (1) {
         // Read the next data block from 
         // the file if it's file input 
         if ( isFileInput( mSettings ) ) {
-            Extractor_getNextDataBlock( readAt, mSettings ); 
+	    Extractor_getNextDataBlock( readAt, mSettings ); 
             canRead = Extractor_canRead( mSettings ) != 0; 
         } else
             canRead = true; 
@@ -300,28 +358,32 @@ void Client::RunTCP( void ) {
         if ( currLen < 0 ) {
 	    reportstruct->errwrite=1; 
 	    switch (errno) {
-	      case EINTR:
-		  currLen = mSettings->mBufLen;
-		  break;
-	      case EAGAIN:
+	    case EINTR:
+		currLen = mSettings->mBufLen;
+		break;
+	    case EAGAIN:
 #if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
-	      case EWOULDBLOCK:
+	    case EWOULDBLOCK:
 #endif
 #if HAVE_DECL_ENOBUFS
-	      case ENOBUFS:
+	    case ENOBUFS:
 #endif
-		  currLen = 0;
-		  break;
-	      default:   
-		  FAIL_errno( errno != 0, "write", mSettings);
-		  break;
+		currLen = 0;
+		break;
+	    default:   
+		FAIL_errno( errno != 0, "write", mSettings);
+		break;
 	    } 
         }
 
 	totLen += currLen;
-
+#ifndef HAVE_SETITIMER
+	gettimeofday( &(reportstruct->packetTime), NULL );
+#endif
 	if(mSettings->mInterval > 0) {
+#ifdef HAVE_SETITIMER
     	    gettimeofday( &(reportstruct->packetTime), NULL );
+#endif
             reportstruct->packetLen = currLen;
             ReportPacket( mSettings->reporthdr, reportstruct );
         }	
@@ -334,9 +396,18 @@ void Client::RunTCP( void ) {
                 mSettings->mAmount = 0;
             }
         }
-    } while ( ! (sInterupted  || 
-                 (mMode_Time   &&  mEndTime.before( reportstruct->packetTime ))  || 
-		 (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead ); 
+#ifdef HAVE_SETITIMER
+	if (sInterupted || 
+	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    break;
+#else 
+	if (sInterupted || 
+	    (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))  || 
+	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    break;
+#endif	
+    }
+		  
 
     // stop timing
     gettimeofday( &(reportstruct->packetTime), NULL );
@@ -616,7 +687,6 @@ void Client::Connect( ) {
 
     SetSocketOptions( mSettings );
 
-
     SockAddr_localAddr( mSettings );
     if ( mSettings->mLocalhost != NULL ) {
         // bind socket to local address
@@ -624,7 +694,25 @@ void Client::Connect( ) {
                    SockAddr_get_sizeof_sockaddr( &mSettings->local ) );
         WARN_errno( rc == SOCKET_ERROR, "bind" );
     }
-
+    //  Enable socket write timeouts for responsive reporting
+    {
+	struct timeval timeout;
+	double intpart, fractpart, sosndtimer;
+	sosndtimer = 0;    
+	if (mSettings->mInterval) {
+	    sosndtimer = mSettings->mInterval / 2;
+	} else if (isModeTime(mSettings)) {
+	    sosndtimer = (mSettings->mAmount / 100.0) / 2;
+	} 
+	if (sosndtimer) {
+	    fractpart = modf(sosndtimer, &intpart);
+	    timeout.tv_sec = (int) (intpart);
+	    timeout.tv_usec = (int) (fractpart * 1e6);
+	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		WARN_errno( mSettings->mSock == SO_SNDTIMEO, "socket" );
+	    }
+	}
+    }
     // connect socket
     rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer, 
                   SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
