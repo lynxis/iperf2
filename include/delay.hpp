@@ -68,7 +68,6 @@ typedef struct kalman_state {
     double k; //kalman gain
 } kalman_state;
 void delay_kalman(unsigned long usecs);
-inline void delay_nanosleep_kalman(unsigned long usecs);
 inline void kalman_update (kalman_state, double);
 #endif    
 #ifdef __cplusplus
