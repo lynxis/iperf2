@@ -90,24 +90,20 @@
  * ------------------------------------------------------------------- */
 void delay_loop(unsigned long usec)
 {
-#ifdef HAVE_CLOCK_GETTIME
-    delay_nanosleep_kalman(usec);
+#ifdef HAVE_KALMAN
+    delay_kalman(usec);
 #else
 #ifdef HAVE_NANOSLEEP
-    // Context switching greatly affects accuracy of nanosleep
-    // Use nanosleep syscall for values of 1 ms or greater
-    // otherwise use a busy loop
-    if (usec >= 1000)
-      delay_nanosleep(usec);
-    else
+    delay_nanosleep(usec);
+#else
+    delay_busyloop(usec);
 #endif
-      delay_busyloop(usec);
 #endif
 }
 
-#ifdef HAVE_CLOCK_GETTIME
 // A cpu busy loop
 void delay_busyloop (unsigned long usec) {
+#ifdef HAVE_CLOCK_GETTIME
     struct timespec t1, t2; 
     double time1, time2, sec;
 
@@ -121,9 +117,7 @@ void delay_busyloop (unsigned long usec) {
 	    break;
 	}
     }
-}
 #else
-void delay_busyloop (unsigned long usec) {
     struct timeval t1, t2;
     double time1, time2, sec;
 
@@ -136,26 +130,33 @@ void delay_busyloop (unsigned long usec) {
 	if ((time2 - time1) >= sec) 
 	    break;
     }
-}
 #endif
+}
+
 #ifdef HAVE_NANOSLEEP
 // Use the nanosleep syscall
 void delay_nanosleep (unsigned long usec) {
-    struct timespec requested, remaining;
+    if (usec < 1000) {
+        // Don't call nanosleep for values less than 1 microsecond
+        // the syscall is too expensive.  Let the busy loop
+        // provide the delay.
+        delay_busyloop(usec);
+    } else {
+        struct timespec requested, remaining;
 
-    requested.tv_sec  = 0;
-    requested.tv_nsec = usec * 1000L;
+        requested.tv_sec  = 0;
+        requested.tv_nsec = usec * 1000L;
 
-    if (nanosleep(&requested, &remaining) < 0) {
-	fprintf(stderr,"Nanosleep failed\n");
-	exit(-1);
+	if (nanosleep(&requested, &remaining) < 0) {
+	    fprintf(stderr,"Nanosleep failed\n");
+	    exit(-1);
+	}
     }
 }
 #endif
 // Kalman versions below that should support accuracy
 // over a minimum guaranteed delay.  The preferred function
 // to use for accurate delay is delay_nanosleep_kalman()
-#ifdef HAVE_CLOCK_GETTIME
 void kalman_update (kalman_state *state, double measurement) {
     //prediction update
     state->p = state->p + state->q;
@@ -164,9 +165,16 @@ void kalman_update (kalman_state *state, double measurement) {
     state->x = state->x + (state->k * (measurement - state->x));
     state->p = (1 - state->k) * state->p; 
 }
-void delay_nanosleep_kalman (unsigned long usec) {
+
+void delay_kalman (unsigned long usec) {
+#ifdef HAVE_NANOSLEEP
     struct timespec requested, remaining;
-    struct timespec t1, t2; 
+#endif
+#ifdef HAVE_CLOCK_GETTIME
+    struct timespec t1, t2;
+#else
+    struct timeval t1, t2;
+#endif
     double time1, time2, sec, err;
     static kalman_state kalmanerr={
 	0.00001, //q process noise covariance
@@ -176,26 +184,40 @@ void delay_nanosleep_kalman (unsigned long usec) {
 	1 //k kalman gain
     };
     sec = (usec / MILLION) - kalmanerr.x;
+#ifdef HAVE_NANOSLEEP
     if (sec > 0) {
 	requested.tv_sec  = (long) sec;
 	requested.tv_nsec = (sec - requested.tv_sec) * 1e9;
     } else {
 	sec = 0.0;
     }
+#endif
+#ifdef HAVE_CLOCK_GETTIME
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = t1.tv_sec + (t1.tv_nsec / BILLION);
+#else
+    gettimeofday( &t1, NULL );
+    time1 = t1.tv_sec + (t1.tv_usec / MILLION);
+#endif
     // Don't call nanosleep for values less than 1 microsecond
     // the syscall is too expensive.  Let the busy loop
     // provide the delay.
+#ifdef HAVE_NANOSLEEP
     if (sec > (1 / MILLION)) {
 	if (nanosleep(&requested, &remaining) < 0) {
 	    fprintf(stderr,"Nanosleep failed\n");
 	    exit(-1);
 	}
     }
+#endif
     while (1) {
+#ifdef HAVE_CLOCK_GETTIME
 	clock_gettime(CLOCK_REALTIME, &t2);
 	time2 = t2.tv_sec + (t2.tv_nsec / BILLION);
+#else
+	gettimeofday( &t2, NULL );
+	time2 = t2.tv_sec + (t2.tv_usec / MILLION);
+#endif
 	if ((time2 - time1) >= sec) {
 	    break;
 	}
@@ -204,27 +226,3 @@ void delay_nanosleep_kalman (unsigned long usec) {
     kalman_update(&kalmanerr, err);
 }
 
-void delay_busyloop_kalman (unsigned long usec) {
-    struct timespec t1, t2;
-    double time1, time2, sec, err;
-    static kalman_state kalmanerr={
-	0.00001, //q process noise covariance
-	0.1, //r measurement noise covariance
-	0.0, //x value
-	1, //p estimation error covariance
-	1 //k kalman gain
-    };
-    sec = (usec / MILLION) - kalmanerr.x;
-    clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / BILLION);
-    while (1) {
-	clock_gettime(CLOCK_REALTIME, &t2);
-	time2 = t2.tv_sec + (t2.tv_nsec / BILLION);
-	if ((time2 - time1) >= sec) {
-	    err = (time2 - time1) - sec;
-	    kalman_update(&kalmanerr, err);
-	    break;
-	}
-    }
-}
-#endif

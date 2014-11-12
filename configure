@@ -741,6 +741,7 @@ enable_multicast
 enable_threads
 enable_debuginfo
 enable_web100
+enable_kalman
 enable_dependency_tracking
 '
       ac_precious_vars='build_alias
@@ -1380,6 +1381,7 @@ Optional Features:
   --disable-threads       disable thread support (default is autodetect)
   --enable-debuginfo      enable debugging info for sockets (default is no)
   --disable-web100        disable web100 support (default is autodetect)
+  --disable-kalman        disable kalman delay tuning (default is enable)
   --enable-dependency-tracking
                           do not reject slow dependency extractors
   --disable-dependency-tracking
@@ -3129,6 +3131,12 @@ fi
 # Check whether --enable-web100 was given.
 if test "${enable_web100+set}" = set; then :
   enableval=$enable_web100;
+fi
+
+
+# Check whether --enable-kalman was given.
+if test "${enable_kalman+set}" = set; then :
+  enableval=$enable_kalman;
 fi
 
 
@@ -7005,7 +7013,7 @@ fi
 done
 
 
-for ac_func in atexit gettimeofday memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler mlockall setitimer nanosleep
+for ac_func in atexit memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler mlockall setitimer nanosleep
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -7776,6 +7784,12 @@ if test "$web100_success" = yes; then
 $as_echo "#define HAVE_WEB100 1" >>confdefs.h
 
 fi fi fi fi fi fi
+fi
+
+if test "$enable_kalman" != no; then
+
+$as_echo "#define HAVE_KALMAN 1" >>confdefs.h
+
 fi
 
 case "$ac_cv_host" in

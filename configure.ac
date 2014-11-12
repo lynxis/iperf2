@@ -32,6 +32,9 @@ AC_ARG_ENABLE(debuginfo, AC_HELP_STRING([--enable-debuginfo],
 AC_ARG_ENABLE(web100, AC_HELP_STRING([--disable-web100],
 	    [disable web100 support (default is autodetect)]))
 
+AC_ARG_ENABLE(kalman, AC_HELP_STRING([--disable-kalman],
+	    [disable kalman delay tuning (default is enable)]))
+
 
 dnl ===================================================================
 dnl Checks for programs
@@ -120,7 +123,7 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit gettimeofday memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler mlockall setitimer nanosleep])
+AC_CHECK_FUNCS([atexit memset pthread_cancel select strchr strerror strtol usleep clock_gettime sched_setscheduler mlockall setitimer nanosleep])
 AC_REPLACE_FUNCS(snprintf inet_pton inet_ntop gettimeofday)
 AC_CHECK_DECLS([ENOBUFS, EWOULDBLOCK],[],[],[#include <errno.h>])
 AC_CHECK_DECLS([SO_TIMESTAMP, SO_SNDTIMEO],[],[],[#include <sys/socket.h>])
@@ -250,6 +253,10 @@ AM_PATH_WEB100()
 if test "$web100_success" = yes; then 
 AC_DEFINE([HAVE_WEB100], 1, [Define if Web100 is desired and available])
 fi fi fi fi fi fi
+fi
+
+if test "$enable_kalman" != no; then
+AC_DEFINE([HAVE_KALMAN], 1, [Define if Kalman tuning is desired and available])
 fi
 
 dnl Static link on MINGW for standalone DOS executable

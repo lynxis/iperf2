@@ -46,38 +46,51 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sched.h>
-#include <error.h>
 #include <time.h>
-#include <sys/mman.h>
 #include <ctype.h>
 #include <unistd.h>
+#include "headers.h"
+#include "util.h"
 #include "delay.hpp"
+#ifdef HAVE_SCHED_SETSCHEDULER
+#include <sched.h>
+#ifdef HAVE_MLOCKALL
+#include <sys/mman.h>
+#endif
+#endif
+
+
 
 #define BILLION 1000000000
 #define MILLION 1000000
 
 int main (int argc, char **argv) {
-    struct timespec tsp0, tsp1;
     double sum=0;
-    long delta, max=0, min=-1;
-    int ix, jx=0, delay=1,loopcount=1000;
+    double time1, time2;
+    double delta, max=0, min=-1;
+    int ix, delay=1,loopcount=1000;
     int c;
+    int clockgettime = 0, kalman = 0;
+#ifdef HAVE_SCHED_SETSCHEDULER
     int realtime = 0;
     int affinity = 0;
-    int clockgettime = 0;
     struct sched_param sp;
+#endif
+#ifdef HAVE_CLOCK_GETTIME
+    struct timespec t1; 
+#else 
+    struct timeval t1;
+#endif    
     
-    while ((c=getopt(argc, argv, "a:bd:i:r")) != -1) 
+    while ((c=getopt(argc, argv, "a:bkd:i:r")) != -1) 
 	switch (c) {
-	case 'a':
-	    affinity=atoi(optarg);
-	    break;
 	case 'b':
 	    clockgettime = 1;
+	    break;
+	case 'k':
+	    kalman = 1;
 	    break;
 	case 'd':
 	    delay = atoi(optarg);
@@ -85,64 +98,98 @@ int main (int argc, char **argv) {
 	case 'i':
 	    loopcount = atoi(optarg);
 	    break;
+#ifdef HAVE_SCHED_SETSCHEDULER
+	case 'a':
+	    affinity=atoi(optarg);
+	    break;
 	case 'r':
 	    realtime = 1;
 	    break;
+#endif
 	case '?':
-	    fprintf(stderr,"Usage -a affinity, -b busyloop, -d usec delay, -i iterations, -r realtime\n");
+	    fprintf(stderr,"Usage -b busyloop, -d usec delay, -i iterations"
+#ifdef HAVE_SCHED_SETSCHEDULER
+		    ", -a affinity, -r realtime"
+#endif
+		    "\n");
 	    return 1;
 	default:
 	    abort();
 	}
-    
+
+#ifndef HAVE_NANOSLEEP
+    clockgettime = 1;
+#endif
+
+#ifdef HAVE_SCHED_SETSCHEDULER
     if (realtime) {
 	fprintf(stdout,"Setting scheduler to realtime via SCHED_RR\n");
 	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	sp.sched_priority = sched_get_priority_max(SCHED_RR); 
-	if (sched_setscheduler(0, SCHED_RR, &sp) < 0) 
-	    perror("Client set scheduler");
+	WARN_errno(sched_setscheduler(0, SCHED_RR, &sp) < 0,
+		   "Client set scheduler");
+#ifdef HAVE_MLOCKALL
 	// lock the threads memory
-	if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0)
-	    perror ("mlockall");
+	WARN_errno(mlockall(MCL_CURRENT | MCL_FUTURE) != 0, "mlockall");
+#endif
     }
+
     if (affinity) {
 	fprintf(stdout,"CPU affinity set to %d\n", affinity);
 	cpu_set_t myset;
 	CPU_ZERO(&myset);
 	CPU_SET(affinity,&myset);
     }
-    if (clockgettime) 
-	if (loopcount > 1000) 
-	    fprintf(stdout,"Measuring clock_gettime syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
-	else 
-	    fprintf(stdout,"Measuring clock_gettime syscall over %d iterations using %d usec delay\n", loopcount, delay);
+#endif
+    if (loopcount > 1000) 
+        fprintf(stdout,"Measuring %s over %.0e iterations using %d usec delay\n",
+		kalman ? "kalman" :
+		clockgettime ? "clock_gettime" : "nanosleep",
+		(double) loopcount, delay);
     else 
-	if (loopcount > 1000) 
-	    fprintf(stdout,"Measuring nanosleep syscall over %.0e iterations using %d usec delay\n", (double) loopcount, delay);
-	else 
-	    fprintf(stdout,"Measuring nanosleep syscall over %d iterations using %d usec delay\n", loopcount, delay);
+        fprintf(stdout,"Measuring %s over %d iterations using %d usec delay\n",
+		kalman ? "kalman" :
+		clockgettime ? "clock_gettime" : "nanosleep",
+		loopcount, delay);
     fflush(stdout);
     for (ix=0; ix < loopcount; ix++) {
 	// Find the max jitter for delay call
-	clock_gettime(CLOCK_REALTIME, &tsp0);
+#ifdef HAVE_CLOCK_GETTIME
+        clock_gettime(CLOCK_REALTIME, &t1);
+	time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+#else 
+	gettimeofday( &t1, NULL );
+	time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+#endif
+#ifdef HAVE_KALMAN
+	if (kalman) {
+	    delay_kalman(delay);
+	} else
+#endif
 	if (clockgettime) {
 	    delay_busyloop(delay);
 	} else { 
+#ifdef HAVE_NANOSLEEP
 	    delay_nanosleep(delay);
-	} 
-	clock_gettime(CLOCK_REALTIME, &tsp1);
-	if (tsp0.tv_sec == tsp1.tv_sec) {
-	    delta = (tsp1.tv_nsec - tsp0.tv_nsec);
-	    if (delta > max) {
-		max = delta;
-	    }
-	    if (delta < min || min == -1) {
-		min = delta;
-	    }
-	    sum += (double) delta;
-	    jx++;
+#endif
 	}
+#ifdef HAVE_CLOCK_GETTIME
+	clock_gettime(CLOCK_REALTIME, &t1);
+	time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
+#else 
+	gettimeofday( &t1, NULL );
+	time2 = t1.tv_sec + (t1.tv_usec / 1000000.0);
+#endif    
+	delta = (time2 - time1) * 1e6;
+	if (delta > max) {
+	  max = delta;
+	}
+	if (delta < min || min < 0) {
+	  min = delta;
+	}
+	sum += (double) delta;
     }
-    fprintf(stdout,"delay=%.0f/%ld/%ld ns (mean/min/max)\n", (sum / jx), min, max);
+    fprintf(stdout,"delay=%.03f/%.03f/%.03f usec (mean/min/max)\n",
+	    (sum / loopcount), min, max);
     return(0);
 }

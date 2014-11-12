@@ -203,7 +203,7 @@ void reporter_reportsettings( ReporterData *data ) {
 	    } else {
 		delay_target = (1e6 / data->mUDPRate);
 	    }
-#ifdef HAVE_CLOCK_GETTIME
+#ifdef HAVE_KALMAN
 	    printf(client_datagram_size_kalman, data->mBufLen, delay_target);
 #else 	
 	    printf(client_datagram_size, data->mBufLen, delay_target);

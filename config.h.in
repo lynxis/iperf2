@@ -71,6 +71,9 @@
 /* Define to enable IPv6 multicast support */
 #undef HAVE_IPV6_MULTICAST
 
+/* Define if Kalman tuning is desired and available */
+#undef HAVE_KALMAN
+
 /* Define to 1 if you have the <libintl.h> header file. */
 #undef HAVE_LIBINTL_H
 

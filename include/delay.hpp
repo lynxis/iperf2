@@ -55,6 +55,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+void delay_loop( unsigned long usecs );
+void delay_busyloop(unsigned long usecs);
+void delay_nanosleep(unsigned long usecs);
+#ifdef HAVE_KALMAN
 // Kalman filter states
 typedef struct kalman_state {
     double q; //process noise covariance
@@ -63,12 +67,7 @@ typedef struct kalman_state {
     double p; //estimation error covariance
     double k; //kalman gain
 } kalman_state;
-
-void delay_loop( unsigned long usecs );
-void delay_busyloop(unsigned long usecs);
-void delay_nanosleep(unsigned long usecs);
-#ifdef HAVE_CLOCK_GETTIME
-void delay_busyloop_kalman(unsigned long usecs);
+void delay_kalman(unsigned long usecs);
 inline void delay_nanosleep_kalman(unsigned long usecs);
 inline void kalman_update (kalman_state, double);
 #endif    
