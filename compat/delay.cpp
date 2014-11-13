@@ -114,7 +114,7 @@ void delay_nanosleep (unsigned long usec) {
 #endif
 
 #if defined (HAVE_NANOSLEEP) || defined (HAVE_CLOCK_GETTIME)
-static void timespec_add_ulong (struct timespec *tv0, ulong value) {
+static void timespec_add_ulong (struct timespec *tv0, unsigned long value) {
     tv0->tv_nsec += value;
     if (tv0->tv_nsec >= BILLION) {
 	tv0->tv_sec++;
@@ -142,7 +142,7 @@ void kalman_update (kalman_state *state, double measurement) {
 // Delay calls for systems with clock_gettime
 // Working units are nanoseconds and structures are timespec
 static void timespec_add_double (struct timespec *tv0, double value) {
-    tv0->tv_nsec += (ulong) value;
+    tv0->tv_nsec += (unsigned long) value;
     if (tv0->tv_nsec >= BILLION) {
 	tv0->tv_sec++;
 	tv0->tv_nsec -= BILLION;
@@ -234,7 +234,7 @@ void delay_kalman (unsigned long usec) {
 #else
 // Sadly, these systems must use the not so efficient gettimeofday()
 // and working units are microseconds, struct is timeval
-static void timeval_add_ulong (struct timeval *tv0, ulong value) {
+static void timeval_add_ulong (struct timeval *tv0, unsigned long value) {
     tv0->tv_usec += value;
     if (tv0->tv_usec >= MILLION) {
 	tv0->tv_sec++;
