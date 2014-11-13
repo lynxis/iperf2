@@ -114,8 +114,7 @@ void delay_nanosleep (unsigned long usec) {
 #endif
 
 #if defined (HAVE_NANOSLEEP) || defined (HAVE_CLOCK_GETTIME)
-static inline
-void timespec_add_ulong (struct timespec *tv0, ulong value) {
+static void timespec_add_ulong (struct timespec *tv0, ulong value) {
     tv0->tv_nsec += value;
     if (tv0->tv_nsec >= BILLION) {
 	tv0->tv_sec++;
@@ -142,8 +141,7 @@ void kalman_update (kalman_state *state, double measurement) {
 #ifdef HAVE_CLOCK_GETTIME
 // Delay calls for systems with clock_gettime
 // Working units are nanoseconds and structures are timespec
-static inline
-void timespec_add_double (struct timespec *tv0, double value) {
+static void timespec_add_double (struct timespec *tv0, double value) {
     tv0->tv_nsec += (ulong) value;
     if (tv0->tv_nsec >= BILLION) {
 	tv0->tv_sec++;
@@ -151,8 +149,7 @@ void timespec_add_double (struct timespec *tv0, double value) {
     }
 }
 // tv1 assumed greater than tv0
-static inline
-double timespec_diff (struct timespec tv1, struct timespec tv0) {
+static double timespec_diff (struct timespec tv1, struct timespec tv0) {
     double result;
     if (tv1.tv_nsec < tv0.tv_nsec) {
 	tv1.tv_nsec += BILLION;
@@ -237,8 +234,7 @@ void delay_kalman (unsigned long usec) {
 #else
 // Sadly, these systems must use the not so efficient gettimeofday()
 // and working units are microseconds, struct is timeval
-static inline
-void timeval_add_ulong (struct timeval *tv0, ulong value) {
+static void timeval_add_ulong (struct timeval *tv0, ulong value) {
     tv0->tv_usec += value;
     if (tv0->tv_usec >= MILLION) {
 	tv0->tv_sec++;
@@ -255,8 +251,7 @@ int timeval_greaterthan(struct timeval tv1, struct timeval tv0) {
     }
 }
 // tv1 assumed greater than tv0
-static inline
-double timeval_diff (struct timeval tv1, struct timeval tv0) {
+static double timeval_diff (struct timeval tv1, struct timeval tv0) {
     double result;
     if (tv1.tv_usec < tv0.tv_usec) {
 	tv1.tv_usec += MILLION;
