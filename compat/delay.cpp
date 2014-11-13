@@ -65,12 +65,13 @@
  * 
  * Some notes:
  * o clock_gettime() (if available) is preferred over gettimeofday() 
- *   because there are no time adjustments (e.g. ntp) and clock_getttime() 
- *   supports nanosecond resolution vs microsecond for gettimeofday()
- * o Not using Timestamp object here as the goal of these functions is
- *   accurate delays (vs accurate timestamps.)
+ *   as it give nanosecond resolution and should be more efficient.
+ *   It also supports CLOCK_MONOTONIC and CLOCK_MONOTONIC_RAW
+ *   though CLOCK_REALTIME is being used by the code.  
+ * o This code does not use Timestamp object, as the goal of these 
+ *   functions is accurate delays (vs accurate timestamps.)
  * o The syscalls such as nanosleep guarantee at least the request time
- *   and can delay longer, particularly due to things like context 
+ *   and can and will delay longer, particularly due to things like context 
  *   switching, causing the delay to lose accuracy
  * o Kalman filtering is used to predict delay error which in turn
  *   is used to adjust the delay, hopefully mitigating the above.  
