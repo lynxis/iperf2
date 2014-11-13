@@ -287,10 +287,13 @@ void delay_kalman (unsigned long usec) {
     // Get the current clock
     gettimeofday( &t1, NULL );
     // Perform the kalman adjust per the predicted delay error
-    if (kalmanerr.x > 0) 
-	usec_adjusted = usec - (ulong) abs(kalmanerr.x);
+    if (kalmanerr.x > 0) {
+	usec_adjusted = usec - (long) floor(kalmanerr.x);
+	if (usec_adjusted < 0) 
+	    usec_adjusted = 0;
+    }
     else 
-	usec_adjusted = usec + (ulong) abs(kalmanerr.x);
+	usec_adjusted = usec + (long) floor(kalmanerr.x);
     // Set the finishtime
     finishtime = t1;
     timeval_add_ulong(&finishtime, usec_adjusted);
