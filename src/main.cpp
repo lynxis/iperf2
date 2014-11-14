@@ -221,15 +221,13 @@ int main( int argc, char **argv ) {
         // you must call iperf with "iperf -D" or using the environment variable
         SERVICE_TABLE_ENTRY dispatchTable[] =
         {
-            { TEXT(SZSERVICENAME), (LPSERVICE_MAIN_FUNCTION)service_main},
+            { (LPSTR)TEXT(SZSERVICENAME), (LPSERVICE_MAIN_FUNCTION)service_main},
             { NULL, NULL}
         };
 
-        // Only attempt to start the service if "-D" was specified
-        if ( !isDaemon(ext_gSettings) ||
-             // starting the service by SCM, there is no arguments will be passed in.
-             // the arguments will pass into Service_Main entry.
-             !StartServiceCtrlDispatcher(dispatchTable) )
+	// starting the service by SCM, there is no arguments will be passed in.
+	// the arguments will pass into Service_Main entry.
+        if (!StartServiceCtrlDispatcher(dispatchTable) )
             // If the service failed to start then print usage
 #endif
         fprintf( stderr, usage_short, argv[0], argv[0] );
@@ -301,6 +299,10 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
     // read settings from command-line parameters
     Settings_ParseCommandLine( dwArgc, lpszArgv, ext_gSettings );
 
+    // Arguments will be lost when the service is started by SCM, but
+    // we need to be at least a listener
+    ext_gSettings->mThreadMode = kMode_Listener;
+
     // report the status to the service control manager.
     //
     if ( !ReportStatusToSCMgr(
@@ -352,7 +354,6 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
     // wait for other (client, server) threads to complete
     thread_joinall();
 }
-#endif
 
 /* -------------------------------------------------------------------
  * Any necesary cleanup before Iperf quits. Called at program exit,
@@ -370,6 +371,36 @@ void cleanup( void ) {
     // shutdown the thread subsystem
     thread_destroy( );
 } // end cleanup
+
+
+//
+//  FUNCTION: ServiceStop
+//
+//  PURPOSE: Stops the service
+//
+//  PARAMETERS:
+//    none
+//
+//  RETURN VALUE:
+//    none
+//
+//  COMMENTS:
+//    If a ServiceStop procedure is going to
+//    take longer than 3 seconds to execute,
+//    it should spawn a thread to execute the
+//    stop code, and return.  Otherwise, the
+//    ServiceControlManager will believe that
+//    the service has stopped responding.
+//    
+VOID ServiceStop() {
+#ifdef HAVE_THREAD
+    Sig_Interupt( 1 );
+#else
+    sig_exit(1);
+#endif
+}
+
+#endif
 
 
 
