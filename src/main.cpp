@@ -271,6 +271,23 @@ void Sig_Interupt( int inSigno ) {
 #endif
 }
 
+/* -------------------------------------------------------------------
+ * Any necesary cleanup before Iperf quits. Called at program exit,
+ * either by exit() or terminating main().
+ * ------------------------------------------------------------------- */
+
+void cleanup( void ) {
+#ifdef WIN32
+    // Shutdown Winsock
+    WSACleanup();
+#endif
+    // clean up the list of clients
+    Iperf_destroy ( &clients );
+
+    // shutdown the thread subsystem
+    thread_destroy( );
+} // end cleanup
+
 #ifdef WIN32
 /*--------------------------------------------------------------------
  * ServiceStart
@@ -354,23 +371,6 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
     // wait for other (client, server) threads to complete
     thread_joinall();
 }
-
-/* -------------------------------------------------------------------
- * Any necesary cleanup before Iperf quits. Called at program exit,
- * either by exit() or terminating main().
- * ------------------------------------------------------------------- */
-
-void cleanup( void ) {
-#ifdef WIN32
-    // Shutdown Winsock
-    WSACleanup();
-#endif
-    // clean up the list of clients
-    Iperf_destroy ( &clients );
-
-    // shutdown the thread subsystem
-    thread_destroy( );
-} // end cleanup
 
 
 //
