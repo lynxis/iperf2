@@ -453,6 +453,7 @@ void ReportSettings( thread_Settings *agent ) {
             data->connection.local = agent->local;
             data->connection.size_local = agent->size_local;
             data->mUDPRate = agent->mUDPRate;
+            data->mUDPRateUnits = agent->mUDPRateUnits;
     #ifdef HAVE_THREAD
             /*
              * Update the ReportRoot to include this report.

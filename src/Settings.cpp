@@ -198,6 +198,7 @@ void Settings_Initialize( thread_Settings *main ) {
     // option, defaults
     main->flags         = FLAG_MODETIME | FLAG_STDOUT; // Default time and stdout
     //main->mUDPRate      = 0;           // -b,  ie. TCP mode
+    main->mUDPRateUnits = kRate_BW;
     //main->mHost         = NULL;        // -c,  none, required for client
     main->mMode         = kTest_Normal;  // -d,  mMode == kTest_DualTest
     main->mFormat       = 'a';           // -f,  adaptive bits
