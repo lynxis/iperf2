@@ -74,7 +74,6 @@ extern "C" {
  *
  */
 typedef struct TransitStats {
-    int  reset;
     double maxTransit;
     double minTransit;
     double sumTransit;

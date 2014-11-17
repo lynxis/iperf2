@@ -707,44 +707,40 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
             // from RFC 1889, Real Time Protocol (RTP) 
             // J = J + ( | D(i-1,i) | - J ) / 16 
             transit = TimeDifference( packet->packetTime, packet->sentTime );
-	    if (stats->transit.lastTransit !=0) {
+	    if (stats->transit.totcntTransit == 0) {
+		// Very first packet
+		stats->transit.minTransit = transit;
+		stats->transit.maxTransit = transit;
+		stats->transit.sumTransit = transit;
+		stats->transit.cntTransit = 0;
+		stats->transit.totminTransit = transit;
+		stats->transit.totmaxTransit = transit;
+		stats->transit.totsumTransit = transit;
+		stats->transit.totcntTransit = 1;
+	    } else {
+		// Compute jitter
                 deltaTransit = transit - stats->transit.lastTransit;
                 if ( deltaTransit < 0.0 ) {
                     deltaTransit = -deltaTransit;
                 }
                 stats->jitter += (deltaTransit - stats->jitter) / (16.0);
-	    } else {
-		// Very first packet
-		stats->transit.totminTransit=transit;
-		stats->transit.totmaxTransit=transit;
-		stats->transit.totsumTransit = 0;
-		stats->transit.totcntTransit = 0;
-		stats->transit.reset = 1;
-	    }
-	    // End/end latency statistics updates
-	    // Reset the mean/min/max after each report
-	    if (stats->transit.reset) {
-	        stats->transit.minTransit=transit;
-		stats->transit.maxTransit=transit;
-		stats->transit.sumTransit = 0;
-		stats->transit.cntTransit = 0;
-		stats->transit.reset = 0;
-	    }
-	    stats->transit.sumTransit += transit;
-	    stats->transit.cntTransit++;
-	    stats->transit.totsumTransit += transit;
-	    stats->transit.totcntTransit++;
-	    if (transit < stats->transit.minTransit) {
-		stats->transit.minTransit=transit;
-	    }
-	    if (transit < stats->transit.totminTransit) {
-		stats->transit.totminTransit=transit;
-	    }
-	    if (transit > stats->transit.maxTransit) {
-		stats->transit.maxTransit=transit;
-	    }
-	    if (transit > stats->transit.totmaxTransit) {
+		// Compute end/end delay stats
+		stats->transit.sumTransit += transit;
+		stats->transit.cntTransit++;
+		stats->transit.totsumTransit += transit;
+		stats->transit.totcntTransit++;
+		if (transit < stats->transit.minTransit) {
+		    stats->transit.minTransit=transit;
+		}
+		if (transit < stats->transit.totminTransit) {
+		    stats->transit.totminTransit=transit;
+		}
+		if (transit > stats->transit.maxTransit) {
+		    stats->transit.maxTransit=transit;
+		}
+		if (transit > stats->transit.totmaxTransit) {
 		    stats->transit.totmaxTransit=transit;
+		}
 	    }
             stats->transit.lastTransit = transit;
             // packet loss occured if the datagram numbers aren't sequential 
@@ -842,7 +838,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
 	stats->info.transit.minTransit = stats->info.transit.totminTransit;
 	stats->info.transit.maxTransit = stats->info.transit.totmaxTransit;
-	stats->info.transit.cntTransit = stats->info.transit.totcntTransit;
+	stats->info.transit.cntTransit = --stats->info.transit.totcntTransit;
 	stats->info.transit.sumTransit = stats->info.transit.totsumTransit;
         stats->info.free = 1;
 

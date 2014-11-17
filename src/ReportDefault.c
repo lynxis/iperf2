@@ -116,7 +116,10 @@ void reporter_printstats( Transfer_Info *stats ) {
                     stats->endTime, stats->cntOutofOrder );
         }
 	// Reset the transit stats for the next report interval 
-	stats->transit.reset= 1;
+	stats->transit.minTransit=stats->transit.lastTransit;
+	stats->transit.maxTransit=stats->transit.lastTransit;
+	stats->transit.sumTransit = stats->transit.lastTransit;
+	stats->transit.cntTransit = 0;
     }
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
         printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 
