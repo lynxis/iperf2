@@ -759,6 +759,10 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	    }
 	} else if ((stats->mUDP == kMode_Server) && \
 		   (stats->transit.cntTransit == 0)) {
+	    // This is the case when a empty reports
+	    // cross the report interval boundary
+	    // Hence, set the per interval min to infinity
+	    // and the per intreval max and sum to zero
 	    stats->transit.minTransit = 1.0/0.0;
 	    stats->transit.maxTransit = 0;
 	    stats->transit.sumTransit = 0;

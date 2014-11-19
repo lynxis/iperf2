@@ -120,10 +120,9 @@ void reporter_printstats( Transfer_Info *stats ) {
 	stats->transit.sumTransit = stats->transit.lastTransit;
 	stats->transit.cntTransit = 0;
     }
-    if (stats->IPGcnt) {
-	stats->IPGcnt = 0;
-	stats->IPGsum = 0;
-    }
+    stats->IPGcnt = 0;
+    stats->IPGsum = 0;
+
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
         printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 
     }
