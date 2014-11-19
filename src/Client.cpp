@@ -696,8 +696,7 @@ void Client::Connect( ) {
     }
     //  Enable socket write timeouts for responsive reporting
     {
-	struct timeval timeout;
-	double intpart, fractpart, sosndtimer;
+	double sosndtimer;
 	sosndtimer = 0;    
 	if (mSettings->mInterval) {
 	    sosndtimer = mSettings->mInterval / 2;
@@ -705,9 +704,16 @@ void Client::Connect( ) {
 	    sosndtimer = (mSettings->mAmount / 100.0) / 2;
 	} 
 	if (sosndtimer) {
+#ifdef WIN32
+            // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout = (sosndtimer) * 1e3;
+#else
+	    struct timeval timeout;
+	    double intpart, fractpart;
 	    fractpart = modf(sosndtimer, &intpart);
 	    timeout.tv_sec = (int) (intpart);
 	    timeout.tv_usec = (int) (fractpart * 1e6);
+#endif
 	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
 		WARN_errno( mSettings->mSock == SO_SNDTIMEO, "socket" );
 	    }
