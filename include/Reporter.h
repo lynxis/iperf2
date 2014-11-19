@@ -185,6 +185,7 @@ typedef struct ReporterData {
     struct timeval packetTime;
     struct timeval nextTime;
     struct timeval intervalTime;
+    struct timeval IPGstart;
 } ReporterData;
 
 typedef struct MultiHeader {
