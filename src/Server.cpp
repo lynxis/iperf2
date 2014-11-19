@@ -180,6 +180,7 @@ void Server::Run( void ) {
 		    // Socket read timeout
 		    // o  let ReportPacket know via an "empty" report
 		    reportstruct->emptyreport=1;
+		    gettimeofday( &(reportstruct->packetTime), NULL );
 		    currLen=0;
 		}
 	    }
