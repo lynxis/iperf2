@@ -116,12 +116,14 @@ typedef struct Transfer_Info {
     int cntError;
     int cntOutofOrder;
     int cntDatagrams;
+    int IPGcnt;
     TransitStats transit;
     // Hopefully int64_t's
     max_size_t TotalLen;
     double jitter;
     double startTime;
     double endTime;
+    double IPGsum;
     // chars
     char   mFormat;                 // -f
     u_char mTTL;                    // -T
