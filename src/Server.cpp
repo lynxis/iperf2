@@ -133,12 +133,19 @@ void Server::Run( void ) {
 	running=1;
 	// Set the socket timeout to 1/2 the report interval
 	if (mSettings->mInterval) {
+#ifdef WIN32
+	  // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout;
+	    timeout = (mSettings->mInterval / 2.0) * 1e3;
+#else
+	  // Linux SO_RCVTIMEO uses timeval
 	    struct timeval timeout;
 	    double intpart, fractpart, half;
 	    half = mSettings->mInterval / 2;
 	    fractpart = modf(half, &intpart);
 	    timeout.tv_sec = (int) (intpart);
 	    timeout.tv_usec = (int) (fractpart * 1e6);
+#endif
 	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
 		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
 	    }
