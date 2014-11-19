@@ -327,6 +327,8 @@ void Server::write_UDP_AckFIN( ) {
             hdr->sumTransit2  = htonl( (long) ((stats->transit.totsumTransit - (long)stats->transit.totsumTransit) 
                                                * rMillion) );
             hdr->cntTransit   = htonl( stats->transit.totcntTransit );
+	    hdr->IPGcnt = htonl( (long) (stats->cntDatagrams / (stats->endTime - stats->startTime)));
+	    hdr->IPGsum = htonl(1);
         }
 
         // write data 

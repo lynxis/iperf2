@@ -92,8 +92,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	printf( report_bw_pps_format, stats->transferID, 
 		stats->startTime, stats->endTime, 
 		buffer, &buffer[sizeof(buffer)/2],
-	        ((stats->cntDatagrams - stats->cntError) / \
-		 (stats->endTime - stats->startTime)) + 0.5);
+	        (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
     } else {
         // UDP Server Reporting
         if( !header_printed ) {
@@ -108,18 +107,22 @@ void reporter_printstats( Transfer_Info *stats ) {
 		(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
 		stats->transit.minTransit*1000.0,
 		stats->transit.maxTransit*1000.0,
-	        ((stats->cntDatagrams - stats->cntError) / \
-		 (stats->endTime - stats->startTime)) + 0.5);
+	        (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
         if ( stats->cntOutofOrder > 0 ) {
             printf( report_outoforder,
                     stats->transferID, stats->startTime, 
                     stats->endTime, stats->cntOutofOrder );
         }
+	
 	// Reset the transit stats for the next report interval 
 	stats->transit.minTransit=stats->transit.lastTransit;
 	stats->transit.maxTransit=stats->transit.lastTransit;
 	stats->transit.sumTransit = stats->transit.lastTransit;
 	stats->transit.cntTransit = 0;
+    }
+    if (stats->IPGcnt) {
+	stats->IPGcnt = 0;
+	stats->IPGsum = 0;
     }
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
         printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 

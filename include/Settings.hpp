@@ -393,6 +393,8 @@ typedef struct server_hdr {
     int32_t sumTransit1;
     int32_t sumTransit2;
     int32_t cntTransit;
+    int32_t IPGcnt;
+    int32_t IPGsum;
 #else
     signed int flags        : 32;
     signed int total_len1   : 32;
@@ -411,6 +413,8 @@ typedef struct server_hdr {
     signed int sumTransit1  : 32;
     signed int sumTransit2  : 32;
     signed int cntTransit   : 32;
+    signed int IPGcnt       : 32;
+    signed int IPGsum       : 32;
 
 #endif
 

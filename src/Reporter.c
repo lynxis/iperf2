@@ -244,6 +244,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->info.mFormat = agent->mFormat;
             data->info.mTTL = agent->mTTL;
             if ( isUDP( agent ) ) {
+		gettimeofday(&data->IPGstart, NULL);
                 reporthdr->report.info.mUDP = (char)agent->mThreadMode;
             }
         } else {
@@ -517,6 +518,8 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
             stats->transit.sumTransit = ntohl( server->sumTransit1 );
             stats->transit.sumTransit += ntohl( server->sumTransit2 ) / (double)rMillion;
             stats->transit.cntTransit = ntohl( server->cntTransit );
+            stats->IPGcnt = ntohl( server->IPGcnt );
+            stats->IPGsum = ntohl( server->IPGsum );
 
             stats->mUDP = (char)kMode_Server;
             reporthdr->report.connection.peer = agent->local;
@@ -681,83 +684,86 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
     Transfer_Info *stats = &reporthdr->report.info;
     int finished = 0;
 
-    // If this is the last packet set the endTime
+    data->packetTime = packet->packetTime;
     if ( packet->packetID < 0 ) {
-        data->packetTime = packet->packetTime;
         finished = 1;
         if ( reporthdr->report.mThreadMode != kMode_Client ) {
             data->TotalLen += packet->packetLen;
         }
     } else {
-	// update fields common to client and server
 	if (!packet->emptyreport) {
+	    // update fields common to client and server
 	    data->cntDatagrams++;
 	    if (packet->errwrite) 
 		data->cntError++;
-	} 
-        data->packetTime = packet->packetTime;
-        reporter_condprintstats( &reporthdr->report, reporthdr->multireport, finished );
-        data->TotalLen += packet->packetLen;
-        // UDP server per packet code below 
-        if ( stats->mUDP == kMode_Server && packet->packetID != 0  && !packet->emptyreport) {
-            // UDP packet
-            double transit;
-            double deltaTransit;
-            
-            // from RFC 1889, Real Time Protocol (RTP) 
-            // J = J + ( | D(i-1,i) | - J ) / 16 
-            transit = TimeDifference( packet->packetTime, packet->sentTime );
-	    if (stats->transit.totcntTransit == 0) {
-		// Very first packet
-		stats->transit.minTransit = transit;
-		stats->transit.maxTransit = transit;
-		stats->transit.sumTransit = transit;
-		stats->transit.cntTransit = 0;
-		stats->transit.totminTransit = transit;
-		stats->transit.totmaxTransit = transit;
-		stats->transit.totsumTransit = transit;
-		stats->transit.totcntTransit = 1;
-	    } else {
-		// Compute jitter
-                deltaTransit = transit - stats->transit.lastTransit;
-                if ( deltaTransit < 0.0 ) {
-                    deltaTransit = -deltaTransit;
-                }
-                stats->jitter += (deltaTransit - stats->jitter) / (16.0);
-		// Compute end/end delay stats
-		stats->transit.sumTransit += transit;
-		stats->transit.cntTransit++;
-		stats->transit.totsumTransit += transit;
-		stats->transit.totcntTransit++;
-		if (transit < stats->transit.minTransit) {
-		    stats->transit.minTransit=transit;
+	    stats->IPGsum += TimeDifference(data->packetTime, data->IPGstart );
+	    stats->IPGcnt++;
+	    data->TotalLen += packet->packetLen;
+	    data->IPGstart = data->packetTime;
+	    // update UDP server fields
+	    if (stats->mUDP == kMode_Server) {
+		//subsequent packets
+		double transit;
+		double deltaTransit;            
+		transit = TimeDifference( packet->packetTime, packet->sentTime );
+		// packet loss occured if the datagram numbers aren't sequentia 
+		if ( packet->packetID != data->PacketID + 1 ) {
+		    if ( packet->packetID < data->PacketID + 1 ) {
+			data->cntOutofOrder++;
+		    } else {
+			data->cntError += packet->packetID - data->PacketID - 1;
+		    }
 		}
-		if (transit < stats->transit.totminTransit) {
-		    stats->transit.totminTransit=transit;
+		// never decrease datagramID (e.g. if we get an out-of-order packet)
+		if ( packet->packetID > data->PacketID ) {
+		    data->PacketID = packet->packetID;
 		}
-		if (transit > stats->transit.maxTransit) {
-		    stats->transit.maxTransit=transit;
+		if (stats->transit.totcntTransit == 0) {
+		    // Very first packet
+		    stats->transit.minTransit = transit;
+		    stats->transit.maxTransit = transit;
+		    stats->transit.sumTransit = transit;
+		    stats->transit.cntTransit = 1;
+		    stats->transit.totminTransit = transit;
+		    stats->transit.totmaxTransit = transit;
+		    stats->transit.totsumTransit = transit;
+		    stats->transit.totcntTransit = 1;
+		} else {
+		    // from RFC 1889, Real Time Protocol (RTP) 
+		    // J = J + ( | D(i-1,i) | - J ) / 
+		    // Compute jitter
+		    deltaTransit = transit - stats->transit.lastTransit;
+		    if ( deltaTransit < 0.0 ) {
+			deltaTransit = -deltaTransit;
+		    }
+		    stats->jitter += (deltaTransit - stats->jitter) / (16.0);
+		    // Compute end/end delay stats
+		    stats->transit.sumTransit += transit;
+		    stats->transit.cntTransit++;
+		    stats->transit.totsumTransit += transit;
+		    stats->transit.totcntTransit++;
+		    if (transit < stats->transit.minTransit) {
+			stats->transit.minTransit=transit;
+		    }
+		    if (transit < stats->transit.totminTransit) {
+			stats->transit.totminTransit=transit;
+		    }
+		    if (transit > stats->transit.maxTransit) {
+			stats->transit.maxTransit=transit;
+		    }
+		    if (transit > stats->transit.totmaxTransit) {
+			stats->transit.totmaxTransit=transit;
+		    }
 		}
-		if (transit > stats->transit.totmaxTransit) {
-		    stats->transit.totmaxTransit=transit;
-		}
+		stats->transit.lastTransit = transit;
 	    }
-            stats->transit.lastTransit = transit;
-            // packet loss occured if the datagram numbers aren't sequential 
-            if ( packet->packetID != data->PacketID + 1 ) {
-                if ( packet->packetID < data->PacketID + 1 ) {
-                    data->cntOutofOrder++;
-                } else {
-                    data->cntError += packet->packetID - data->PacketID - 1;
-                }
-            }
-            // never decrease datagramID (e.g. if we get an out-of-order packet)
-            if ( packet->packetID > data->PacketID ) {
-                data->PacketID = packet->packetID;
-            }
-        }
+	} else if ((stats->mUDP == kMode_Server) && \
+		   (stats->transit.cntTransit == 0)) {
+	    stats->transit.minTransit = 1.0/0.0;
+	    stats->transit.maxTransit = 0;
+	    stats->transit.sumTransit = 0;
+	}
     }
-
     // Print a report if appropriate
     return reporter_condprintstats( &reporthdr->report, reporthdr->multireport, finished );
 }
@@ -838,8 +844,10 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
 	stats->info.transit.minTransit = stats->info.transit.totminTransit;
 	stats->info.transit.maxTransit = stats->info.transit.totmaxTransit;
-	stats->info.transit.cntTransit = --stats->info.transit.totcntTransit;
+	stats->info.transit.cntTransit = stats->info.transit.totcntTransit;
 	stats->info.transit.sumTransit = stats->info.transit.totsumTransit;
+	stats->info.IPGcnt = (int) ( stats->cntDatagrams / TimeDifference( stats->packetTime, stats->startTime ));
+	stats->info.IPGsum = 1;
         stats->info.free = 1;
 
         reporter_print( stats, TRANSFER_REPORT, force );
