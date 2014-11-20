@@ -129,7 +129,7 @@ static void timespec_add_ulong (struct timespec *tv0, unsigned long value) {
 // accuracy over a minimum guaranteed delay by
 // prediciting the delay error. This is
 // the basic recursive algorithm. 
-void kalman_update (kalman_state *state, double measurement) {
+static void kalman_update (kalman_state *state, double measurement) {
     //prediction update
     state->p = state->p + state->q;
     //measurement update
@@ -200,7 +200,7 @@ void delay_kalman (unsigned long usec) {
 	0.1, //r measurement noise covariance
 	0.0, //x value, error predictio (units nanoseconds)
 	1, //p estimation error covariance
-	1 //k kalman gain
+	0.75 //k kalman gain
     };
     // Get the current clock
     clock_gettime(CLOCK_REALTIME, &t1);
@@ -228,7 +228,7 @@ void delay_kalman (unsigned long usec) {
     // Compute the delay error in units of nanoseconds
     // and cast to type double
     err = (double) (timespec_diff(t2, t1) - (usec * 1000));
-    // printf("req: %ld adj: %f err: %.5f (ns)\n", usec, nsec_adjusted, kalmanerr.x);  
+    printf("req: %ld adj: %f err: %.5f (ns)\n", usec, nsec_adjusted, kalmanerr.x);  
     kalman_update(&kalmanerr, err);
 }
 #endif // HAVE_KALMAN
@@ -283,7 +283,7 @@ void delay_kalman (unsigned long usec) {
 	0.1, //r measurement noise covariance
 	0.0, //x value, error predictio (units nanoseconds)
 	1, //p estimation error covariance
-	1 //k kalman gain
+	0.25 //k kalman gain
     };
     // Get the current clock
     gettimeofday( &t1, NULL );
