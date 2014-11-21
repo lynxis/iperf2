@@ -118,7 +118,7 @@ Listener::~Listener() {
  *          spawn a new Server thread. 
  * ------------------------------------------------------------------- */ 
 void Listener::Run( void ) {
-#ifdef WIN32
+#if 0 // ifdef WIN32 removed to allow Windows to use multi-threaded UDP server 
     if ( isUDP( mSettings ) && !isSingleUDP( mSettings ) ) {
         UDPSingleServer();
     } else
