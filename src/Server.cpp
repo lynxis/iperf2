@@ -174,9 +174,9 @@ void Server::Run( void ) {
 	}
 #endif
         do {
+	    reportstruct->emptyreport=0;
 #if HAVE_DECL_SO_TIMESTAMP
             // perform read 
-	    reportstruct->emptyreport=0;
             currLen = recvmsg( mSettings->mSock, &message, 0 );
 	    if (currLen <= 0) {
                 // End loop on 0 read or socket error
