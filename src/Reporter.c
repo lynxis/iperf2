@@ -706,7 +706,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    double transit;
 		    double deltaTransit;            
 		    transit = TimeDifference( packet->packetTime, packet->sentTime );
-		    // packet loss occured if the datagram numbers aren't sequentia 
+		    // packet loss occured if the datagram numbers aren't sequential 
 		    if ( packet->packetID != data->PacketID + 1 ) {
 			if ( packet->packetID < data->PacketID + 1 ) {
 			    data->cntOutofOrder++;
@@ -763,9 +763,9 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	    // This is the case when empty reports
 	    // cross the report interval boundary
 	    // Hence, set the per interval min to infinity
-	    // and the per intreval max and sum to zero
-	    stats->transit.minTransit = 1.0/0.0;
-	    stats->transit.maxTransit = 0;
+	    // and the per interval max and sum to zero
+	    stats->transit.minTransit = FLT_MAX;
+	    stats->transit.maxTransit = FLT_MIN;
 	    stats->transit.sumTransit = 0;
 	}
     }

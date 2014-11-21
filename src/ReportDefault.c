@@ -99,15 +99,22 @@ void reporter_printstats( Transfer_Info *stats ) {
             printf( report_bw_jitter_loss_header);
             header_printed = 1;
         }
-        printf( report_bw_jitter_loss_format, stats->transferID, 
-                stats->startTime, stats->endTime, 
-                buffer, &buffer[sizeof(buffer)/2],
-                stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-                (100.0 * stats->cntError) / stats->cntDatagrams,
-		(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
-		stats->transit.minTransit*1000.0,
-		stats->transit.maxTransit*1000.0,
-	        (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+	if (stats->IPGcnt) {
+	    printf( report_bw_jitter_loss_format, stats->transferID, 
+		    stats->startTime, stats->endTime, 
+		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+		    (100.0 * stats->cntError) / stats->cntDatagrams,
+		    (stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
+		    stats->transit.minTransit*1000.0,
+		    stats->transit.maxTransit*1000.0,
+		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+	} else {
+	    printf( report_bw_jitter_loss_empty_format, stats->transferID, 
+		    stats->startTime, stats->endTime, 
+		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams);
+	}
         if ( stats->cntOutofOrder > 0 ) {
             printf( report_outoforder,
                     stats->transferID, stats->startTime, 
