@@ -214,6 +214,7 @@ void Server::Run( void ) {
 		if (currLen != -1 || errno != EAGAIN) {
 		    running = 0;
 		}
+		currLen = 0;
 	    }
 	    gettimeofday( &(reportstruct->packetTime), NULL );
 	    reportstruct->packetLen = currLen;
