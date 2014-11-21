@@ -851,7 +851,11 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.maxTransit = stats->info.transit.totmaxTransit;
 	stats->info.transit.cntTransit = stats->info.transit.totcntTransit;
 	stats->info.transit.sumTransit = stats->info.transit.totsumTransit;
-	stats->info.IPGcnt = (int) ( stats->cntDatagrams / TimeDifference( stats->packetTime, stats->startTime ));
+	if (stats->info.endTime == 0) {
+	  stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
+	} else {
+	  stats->info.IPGcnt = 0;
+	}
 	stats->info.IPGsum = 1;
         stats->info.free = 1;
 
