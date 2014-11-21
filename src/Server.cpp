@@ -216,14 +216,13 @@ void Server::Run( void ) {
 		}
 		currLen = 0;
 	    }
-	    gettimeofday( &(reportstruct->packetTime), NULL );
-	    reportstruct->packetLen = currLen;
-            if ( isUDP( mSettings ) ) {
-                // read the datagram ID and sentTime out of the buffer 
-                reportstruct->packetID = ntohl( mBuf_UDP->id ); 
-                reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
-                reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
+            if (!reportstruct->emptyreport && isUDP( mSettings ) ) {
+		gettimeofday( &(reportstruct->packetTime), NULL );
 		reportstruct->packetLen = currLen;
+                // read the datagram ID and sentTime out of the buffer 
+		reportstruct->packetID = ntohl( mBuf_UDP->id ); 
+		reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
+		reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
             }
 #endif
 	    totLen += currLen;
@@ -237,7 +236,8 @@ void Server::Run( void ) {
 
 	    if ( isUDP (mSettings)) {
 		ReportPacket( mSettings->reporthdr, reportstruct );
-            } else if ( !isUDP (mSettings) && mSettings->mInterval > 0) {
+            } else {
+		// TCP case
                 reportstruct->packetLen = currLen;
                 gettimeofday( &(reportstruct->packetTime), NULL );
                 ReportPacket( mSettings->reporthdr, reportstruct );

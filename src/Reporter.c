@@ -692,74 +692,77 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
         }
     } else {
 	if (!packet->emptyreport) {
-	    // update fields common to client and server
-	    data->cntDatagrams++;
+	    // update fields common to TCP and UDP, client and server
+	    data->TotalLen += packet->packetLen;
 	    if (packet->errwrite) 
 		data->cntError++;
-	    stats->IPGsum += TimeDifference(data->packetTime, data->IPGstart );
-	    stats->IPGcnt++;
-	    data->TotalLen += packet->packetLen;
-	    data->IPGstart = data->packetTime;
-	    // update UDP server fields
-	    if (stats->mUDP == kMode_Server) {
-		//subsequent packets
-		double transit;
-		double deltaTransit;            
-		transit = TimeDifference( packet->packetTime, packet->sentTime );
-		// packet loss occured if the datagram numbers aren't sequentia 
-		if ( packet->packetID != data->PacketID + 1 ) {
-		    if ( packet->packetID < data->PacketID + 1 ) {
-			data->cntOutofOrder++;
+	    // update fields common to UDP client and server
+            if ( isUDP( data ) ) {
+		data->cntDatagrams++;
+		stats->IPGsum += TimeDifference(data->packetTime, data->IPGstart );
+		stats->IPGcnt++;
+		data->IPGstart = data->packetTime;
+		// Finnally, update UDP server fields
+		if (stats->mUDP == kMode_Server) {
+		    //subsequent packets
+		    double transit;
+		    double deltaTransit;            
+		    transit = TimeDifference( packet->packetTime, packet->sentTime );
+		    // packet loss occured if the datagram numbers aren't sequentia 
+		    if ( packet->packetID != data->PacketID + 1 ) {
+			if ( packet->packetID < data->PacketID + 1 ) {
+			    data->cntOutofOrder++;
+			} else {
+			    data->cntError += packet->packetID - data->PacketID - 1;
+			}
+		    }
+		    // never decrease datagramID (e.g. if we get an out-of-order packet)
+		    if ( packet->packetID > data->PacketID ) {
+			data->PacketID = packet->packetID;
+		    }
+		    if (stats->transit.totcntTransit == 0) {
+			// Very first packet
+			stats->transit.minTransit = transit;
+			stats->transit.maxTransit = transit;
+			stats->transit.sumTransit = transit;
+			stats->transit.cntTransit = 1;
+			stats->transit.totminTransit = transit;
+			stats->transit.totmaxTransit = transit;
+			stats->transit.totsumTransit = transit;
+			stats->transit.totcntTransit = 1;
 		    } else {
-			data->cntError += packet->packetID - data->PacketID - 1;
+			// from RFC 1889, Real Time Protocol (RTP) 
+			// J = J + ( | D(i-1,i) | - J ) / 
+			// Compute jitter
+			deltaTransit = transit - stats->transit.lastTransit;
+			if ( deltaTransit < 0.0 ) {
+			    deltaTransit = -deltaTransit;
+			}
+			stats->jitter += (deltaTransit - stats->jitter) / (16.0);
+			// Compute end/end delay stats
+			stats->transit.sumTransit += transit;
+			stats->transit.cntTransit++;
+			stats->transit.totsumTransit += transit;
+			stats->transit.totcntTransit++;
+			if (transit < stats->transit.minTransit) {
+			    stats->transit.minTransit=transit;
+			}
+			if (transit < stats->transit.totminTransit) {
+			    stats->transit.totminTransit=transit;
+			}
+			if (transit > stats->transit.maxTransit) {
+			    stats->transit.maxTransit=transit;
+			}
+			if (transit > stats->transit.totmaxTransit) {
+			    stats->transit.totmaxTransit=transit;
+			}
 		    }
+		    stats->transit.lastTransit = transit;
 		}
-		// never decrease datagramID (e.g. if we get an out-of-order packet)
-		if ( packet->packetID > data->PacketID ) {
-		    data->PacketID = packet->packetID;
-		}
-		if (stats->transit.totcntTransit == 0) {
-		    // Very first packet
-		    stats->transit.minTransit = transit;
-		    stats->transit.maxTransit = transit;
-		    stats->transit.sumTransit = transit;
-		    stats->transit.cntTransit = 1;
-		    stats->transit.totminTransit = transit;
-		    stats->transit.totmaxTransit = transit;
-		    stats->transit.totsumTransit = transit;
-		    stats->transit.totcntTransit = 1;
-		} else {
-		    // from RFC 1889, Real Time Protocol (RTP) 
-		    // J = J + ( | D(i-1,i) | - J ) / 
-		    // Compute jitter
-		    deltaTransit = transit - stats->transit.lastTransit;
-		    if ( deltaTransit < 0.0 ) {
-			deltaTransit = -deltaTransit;
-		    }
-		    stats->jitter += (deltaTransit - stats->jitter) / (16.0);
-		    // Compute end/end delay stats
-		    stats->transit.sumTransit += transit;
-		    stats->transit.cntTransit++;
-		    stats->transit.totsumTransit += transit;
-		    stats->transit.totcntTransit++;
-		    if (transit < stats->transit.minTransit) {
-			stats->transit.minTransit=transit;
-		    }
-		    if (transit < stats->transit.totminTransit) {
-			stats->transit.totminTransit=transit;
-		    }
-		    if (transit > stats->transit.maxTransit) {
-			stats->transit.maxTransit=transit;
-		    }
-		    if (transit > stats->transit.totmaxTransit) {
-			stats->transit.totmaxTransit=transit;
-		    }
-		}
-		stats->transit.lastTransit = transit;
 	    }
-	} else if ((stats->mUDP == kMode_Server) && \
+	} else if ((stats->mUDP == kMode_Server) &&	\
 		   (stats->transit.cntTransit == 0)) {
-	    // This is the case when a empty reports
+	    // This is the case when empty reports
 	    // cross the report interval boundary
 	    // Hence, set the per interval min to infinity
 	    // and the per intreval max and sum to zero
