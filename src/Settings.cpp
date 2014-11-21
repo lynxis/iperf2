@@ -334,7 +334,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		mExtSettings->mUDPRateUnits = kRate_BW;
 		mExtSettings->mUDPRate = byte_atoi(outarg);
 	    }
-
+            setBWSet( mExtSettings );
             // if -l has already been processed, mBufLenSet is true
             // so don't overwrite that value.
             if ( !isBuflenSet( mExtSettings ) ) {
@@ -471,7 +471,8 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             // already be non-zero, so don't overwrite that value
             if ( !isUDP( mExtSettings ) ) {
                 setUDP( mExtSettings );
-                mExtSettings->mUDPRate = kDefault_UDPRate;
+		if ( !isBWSet( mExtSettings ) )
+		    mExtSettings->mUDPRate = kDefault_UDPRate;
             }
 
             // if -l has already been processed, mBufLenSet is true

@@ -108,7 +108,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 		    (stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
 		    stats->transit.minTransit*1000.0,
 		    stats->transit.maxTransit*1000.0,
-		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+		    (stats->IPGcnt / stats->IPGsum));
 	} else {
 	    printf( report_bw_jitter_loss_empty_format, stats->transferID, 
 		    stats->startTime, stats->endTime, 

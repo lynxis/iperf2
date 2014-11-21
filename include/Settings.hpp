@@ -222,6 +222,7 @@ typedef struct thread_Settings {
 #define FLAG_SINGLEUDP      0x00200000
 #define FLAG_CONGESTION     0x00400000
 #define FLAG_REALTIME       0x00800000
+#define FLAG_BWSET          0x01000000
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -249,6 +250,7 @@ typedef struct thread_Settings {
 #define isSingleUDP(settings)      ((settings->flags & FLAG_SINGLEUDP) != 0)
 #define isCongestionControl(settings) ((settings->flags & FLAG_CONGESTION) != 0)
 #define isRealtime(settings)       ((settings->flags & FLAG_REALTIME) != 0)
+#define isBWSet(settings)          ((settings->flags & FLAG_BWSET) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -274,6 +276,7 @@ typedef struct thread_Settings {
 #define setSingleUDP(settings)     settings->flags |= FLAG_SINGLEUDP
 #define setCongestionControl(settings) settings->flags |= FLAG_CONGESTION
 #define setRealtime(settings)      settings->flags |= FLAG_REALTIME
+#define setBWSet(settings)         settings->flags |= FLAG_BWSET
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -299,6 +302,7 @@ typedef struct thread_Settings {
 #define unsetSingleUDP(settings)      settings->flags &= ~FLAG_SINGLEUDP
 #define unsetCongestionControl(settings) settings->flags &= ~FLAG_CONGESTION
 #define unsetRealtime(settings)    settings->flags &= ~FLAG_REALTIME
+#define unsetBWSet(settings)       settings->flags &= ~FLAG_BWSET
 
 
 #define HEADER_VERSION1 0x80000000
