@@ -179,17 +179,15 @@ void Server::Run( void ) {
             // perform read 
             currLen = recvmsg( mSettings->mSock, &message, 0 );
 	    if (currLen <= 0) {
+		// Socket read timeout or read error
+		reportstruct->emptyreport=1;
+		gettimeofday( &(reportstruct->packetTime), NULL );
                 // End loop on 0 read or socket error
 		// except for socket read timeout
 		if (currLen != -1 || errno != EAGAIN) {
 		    running = 0;
-		} else {
-		    // Socket read timeout
-		    // o  let ReportPacket know via an "empty" report
-		    reportstruct->emptyreport=1;
-		    gettimeofday( &(reportstruct->packetTime), NULL );
-		    currLen=0;
 		}
+		currLen=0;
 	    }
 
             if (!reportstruct->emptyreport && isUDP( mSettings ) ) {
@@ -205,13 +203,12 @@ void Server::Run( void ) {
 		} else {
 		    gettimeofday( &(reportstruct->packetTime), NULL );
 		}
-            } else {
-		totLen += currLen;
-	    }
+            }
 #else
             // perform read 
             currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
 	    if (currLen <= 0) {
+		reportstruct->emptyreport=1;
                 // End loop on 0 read or socket error
 		// except for socket read timeout
 		if (currLen != -1 || errno != EAGAIN) {
@@ -220,7 +217,6 @@ void Server::Run( void ) {
 	    }
 	    gettimeofday( &(reportstruct->packetTime), NULL );
 	    reportstruct->packetLen = currLen;
-	    totLen += currLen;
             if ( isUDP( mSettings ) ) {
                 // read the datagram ID and sentTime out of the buffer 
                 reportstruct->packetID = ntohl( mBuf_UDP->id ); 
@@ -229,6 +225,7 @@ void Server::Run( void ) {
 		reportstruct->packetLen = currLen;
             }
 #endif
+	    totLen += currLen;
             // terminate when datagram begins with negative index 
             // the datagram ID should be correct, just negated 
             if ( reportstruct->packetID < 0 ) {
