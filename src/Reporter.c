@@ -694,15 +694,13 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	if (!packet->emptyreport) {
 	    // update fields common to TCP and UDP, client and server
 	    data->TotalLen += packet->packetLen;
-	    if (packet->errwrite) 
-		data->cntError++;
 	    // update fields common to UDP client and server
             if ( isUDP( data ) ) {
 		data->cntDatagrams++;
 		stats->IPGsum += TimeDifference(data->packetTime, data->IPGstart );
 		stats->IPGcnt++;
 		data->IPGstart = data->packetTime;
-		// Finnally, update UDP server fields
+		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
 		    //subsequent packets
 		    double transit;
