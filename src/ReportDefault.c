@@ -121,14 +121,15 @@ void reporter_printstats( Transfer_Info *stats ) {
 			stats->transit.minTransit*1000.0,
 			stats->transit.maxTransit*1000.0,
 			(stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
-			(stats->IPGcnt / stats->IPGsum));
+			0);
 	    }
 	} else {
 	    printf( report_bw_jitter_loss_suppress_format, stats->transferID, 
 		    stats->startTime, stats->endTime, 
 		    buffer, &buffer[sizeof(buffer)/2],
 		    stats->jitter*1000.0, stats->cntError, 
-		    stats->cntDatagrams, 0, 0);
+		    stats->cntDatagrams, 
+		    0,0,0,0,0,0);
 	}
 	if ( stats->cntOutofOrder > 0 ) {
 	    printf( report_outoforder,
