@@ -212,13 +212,13 @@ const char report_sum_bw_format[] =
 
 const char report_bw_jitter_loss_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
-Datagrams Latency avg/min/max PPS\n";
+Datagrams Latency avg/min/max/stdev PPS\n";
 
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f ms %4.0f pps\n";
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
 
-const char report_bw_jitter_loss_empty_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (0%) -/-/- ms    0 pps\n";
+const char report_bw_jitter_loss_suppress_format[] =
+"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) -/-/-/- ms %4.0f pps\n";
 
 const char report_sum_bw_jitter_loss_format[] =
 "[SUM] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";

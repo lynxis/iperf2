@@ -396,6 +396,12 @@ typedef struct server_hdr {
     int32_t maxTransit2;
     int32_t sumTransit1;
     int32_t sumTransit2;
+    int32_t meanTransit1;
+    int32_t meanTransit2;
+    int32_t m2Transit1;
+    int32_t m2Transit2;
+    int32_t vdTransit1;
+    int32_t vdTransit2;
     int32_t cntTransit;
     int32_t IPGcnt;
     int32_t IPGsum;
@@ -416,10 +422,15 @@ typedef struct server_hdr {
     signed int maxTransit2  : 32;
     signed int sumTransit1  : 32;
     signed int sumTransit2  : 32;
+    signed int meanTransit1  : 32;
+    signed int meanTransit2  : 32;
+    signed int m2Transit1  : 32;
+    signed int m2Transit2  : 32;
+    signed int vdTransit1  : 32;
+    signed int vdTransit2  : 32;
     signed int cntTransit   : 32;
     signed int IPGcnt       : 32;
     signed int IPGsum       : 32;
-
 #endif
 
 } server_hdr;

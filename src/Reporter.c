@@ -517,6 +517,12 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
             stats->transit.maxTransit += ntohl( server->maxTransit2 ) / (double)rMillion;
             stats->transit.sumTransit = ntohl( server->sumTransit1 );
             stats->transit.sumTransit += ntohl( server->sumTransit2 ) / (double)rMillion;
+            stats->transit.meanTransit = ntohl( server->meanTransit1 );
+            stats->transit.meanTransit += ntohl( server->meanTransit2 ) / (double)rMillion;
+            stats->transit.m2Transit = ntohl( server->m2Transit1 );
+            stats->transit.m2Transit += ntohl( server->m2Transit2 ) / (double)rMillion;
+            stats->transit.vdTransit = ntohl( server->vdTransit1 );
+            stats->transit.vdTransit += ntohl( server->vdTransit2 ) / (double)rMillion;
             stats->transit.cntTransit = ntohl( server->cntTransit );
             stats->IPGcnt = ntohl( server->IPGcnt );
             stats->IPGsum = ntohl( server->IPGsum );
@@ -683,6 +689,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
     ReporterData *data = &reporthdr->report;
     Transfer_Info *stats = &reporthdr->report.info;
     int finished = 0;
+    double usec_transit;
 
     data->packetTime = packet->packetTime;
     if ( packet->packetID < 0 ) {
@@ -728,6 +735,14 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			stats->transit.totmaxTransit = transit;
 			stats->transit.totsumTransit = transit;
 			stats->transit.totcntTransit = 1;
+			// For variance, working units is microseconds
+			usec_transit = transit * 1e6;
+			stats->transit.vdTransit = usec_transit;
+			stats->transit.meanTransit = usec_transit;
+			stats->transit.m2Transit = usec_transit * usec_transit;
+			stats->transit.totvdTransit = usec_transit;
+			stats->transit.totmeanTransit = usec_transit;
+			stats->transit.totm2Transit = usec_transit * usec_transit;
 		    } else {
 			// from RFC 1889, Real Time Protocol (RTP) 
 			// J = J + ( | D(i-1,i) | - J ) / 
@@ -742,6 +757,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			stats->transit.cntTransit++;
 			stats->transit.totsumTransit += transit;
 			stats->transit.totcntTransit++;
+			// mean min max tests
 			if (transit < stats->transit.minTransit) {
 			    stats->transit.minTransit=transit;
 			}
@@ -754,6 +770,16 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			if (transit > stats->transit.totmaxTransit) {
 			    stats->transit.totmaxTransit=transit;
 			}
+			// For variance, working units is microseconds
+			// variance interval
+			usec_transit = transit * 1e6;
+			stats->transit.vdTransit = usec_transit - stats->transit.meanTransit;
+			stats->transit.meanTransit = stats->transit.meanTransit + (stats->transit.vdTransit / stats->transit.cntTransit);
+			stats->transit.m2Transit = stats->transit.m2Transit + (stats->transit.vdTransit * (usec_transit - stats->transit.meanTransit));
+			// variance total
+			stats->transit.totvdTransit = usec_transit - stats->transit.totmeanTransit;
+			stats->transit.totmeanTransit = stats->transit.totmeanTransit + (stats->transit.totvdTransit / stats->transit.totcntTransit);
+			stats->transit.totm2Transit = stats->transit.totm2Transit + (stats->transit.totvdTransit * (usec_transit - stats->transit.totmeanTransit));
 		    }
 		    stats->transit.lastTransit = transit;
 		}
@@ -767,6 +793,9 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	    stats->transit.minTransit = FLT_MAX;
 	    stats->transit.maxTransit = FLT_MIN;
 	    stats->transit.sumTransit = 0;
+	    stats->transit.vdTransit = 0;
+	    stats->transit.meanTransit = 0;
+	    stats->transit.m2Transit = 0;
 	}
     }
     // Print a report if appropriate
@@ -851,7 +880,10 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.maxTransit = stats->info.transit.totmaxTransit;
 	stats->info.transit.cntTransit = stats->info.transit.totcntTransit;
 	stats->info.transit.sumTransit = stats->info.transit.totsumTransit;
-	if (stats->info.endTime == 0) {
+	stats->info.transit.meanTransit = stats->info.transit.totmeanTransit;
+	stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
+	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
+	if (stats->info.endTime > 0) {
 	  stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
 	} else {
 	  stats->info.IPGcnt = 0;

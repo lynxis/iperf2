@@ -63,6 +63,11 @@ struct server_hdr;
 
 #define NUM_REPORT_STRUCTS 10000
 #define NUM_MULTI_SLOTS    5
+// If the minimum latency exceeds the boundaries below
+// assume the clocks are not synched and suppress the
+// latency output. Units are seconds
+#define UNREALISTIC_LATENCYMINMIN -1
+#define UNREALISTIC_LATENCYMINMAX 60
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,11 +83,17 @@ typedef struct TransitStats {
     double minTransit;
     double sumTransit;
     double lastTransit;
+    double meanTransit;
+    double m2Transit;
+    double vdTransit;
     int cntTransit;
     double totmaxTransit;
     double totminTransit;
     double totsumTransit;
     int totcntTransit;
+    double totmeanTransit;
+    double totm2Transit;
+    double totvdTransit;
 } TransitStats;    
 
 /*

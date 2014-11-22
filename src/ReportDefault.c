@@ -100,32 +100,49 @@ void reporter_printstats( Transfer_Info *stats ) {
             header_printed = 1;
         }
 	if (stats->IPGcnt) {
-	    printf( report_bw_jitter_loss_format, stats->transferID, 
-		    stats->startTime, stats->endTime, 
-		    buffer, &buffer[sizeof(buffer)/2],
-		    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-		    (100.0 * stats->cntError) / stats->cntDatagrams,
-		    (stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
-		    stats->transit.minTransit*1000.0,
-		    stats->transit.maxTransit*1000.0,
-		    (stats->IPGcnt / stats->IPGsum));
+	    // If the min latency is out of bounds of a realistic value 
+	    // assume the clocks are not synched and suppress the 
+	    // latency output
+	    if ((stats->transit.minTransit > UNREALISTIC_LATENCYMINMAX) ||
+		(stats->transit.minTransit < UNREALISTIC_LATENCYMINMIN)) {
+		printf( report_bw_jitter_loss_suppress_format, stats->transferID,
+			stats->startTime, stats->endTime, 
+			buffer, &buffer[sizeof(buffer)/2],
+			stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+			(100.0 * stats->cntError) / stats->cntDatagrams,
+			(stats->IPGcnt / stats->IPGsum));
+	    } else { 
+		printf( report_bw_jitter_loss_format, stats->transferID, 
+			stats->startTime, stats->endTime, 
+			buffer, &buffer[sizeof(buffer)/2],
+			stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+			(100.0 * stats->cntError) / stats->cntDatagrams,
+			(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
+			stats->transit.minTransit*1000.0,
+			stats->transit.maxTransit*1000.0,
+			(stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
+			(stats->IPGcnt / stats->IPGsum));
+	    }
 	} else {
-	    printf( report_bw_jitter_loss_empty_format, stats->transferID, 
+	    printf( report_bw_jitter_loss_suppress_format, stats->transferID, 
 		    stats->startTime, stats->endTime, 
 		    buffer, &buffer[sizeof(buffer)/2],
-		    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams);
+		    stats->jitter*1000.0, stats->cntError, 
+		    stats->cntDatagrams, 0, 0);
 	}
-        if ( stats->cntOutofOrder > 0 ) {
-            printf( report_outoforder,
-                    stats->transferID, stats->startTime, 
-                    stats->endTime, stats->cntOutofOrder );
-        }
-	
+	if ( stats->cntOutofOrder > 0 ) {
+	    printf( report_outoforder,
+		    stats->transferID, stats->startTime, 
+		    stats->endTime, stats->cntOutofOrder );
+	}
 	// Reset the transit stats for the next report interval 
 	stats->transit.minTransit=stats->transit.lastTransit;
 	stats->transit.maxTransit=stats->transit.lastTransit;
 	stats->transit.sumTransit = stats->transit.lastTransit;
 	stats->transit.cntTransit = 0;
+	stats->transit.vdTransit = 0;
+	stats->transit.meanTransit = 0;
+	stats->transit.m2Transit = 0;
     }
     stats->IPGcnt = 0;
     stats->IPGsum = 0;

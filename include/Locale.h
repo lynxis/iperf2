@@ -120,7 +120,7 @@ extern const char report_bw_jitter_loss_header[];
 
 extern const char report_bw_jitter_loss_format[];
 
-extern const char report_bw_jitter_loss_empty_format[];
+extern const char report_bw_jitter_loss_suppress_format[];
 
 extern const char report_sum_bw_jitter_loss_format[];
 
