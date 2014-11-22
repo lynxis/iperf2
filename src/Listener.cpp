@@ -453,9 +453,15 @@ void Listener::Accept( thread_Settings *server ) {
             // accept a connection
             server->mSock = accept( mSettings->mSock, 
                                     (sockaddr*) &server->peer, &server->size_peer );
-            if ( server->mSock == INVALID_SOCKET &&  errno == EINTR ) {
-                continue;
-            }
+            if ( server->mSock == INVALID_SOCKET && 
+#if WIN32
+		 WSAGetLastError() == WSAEINTR
+#else
+		 errno == EINTR
+#endif
+	     ) {
+		 continue;
+		 }
         }
     }
     server->size_local = sizeof(iperf_sockaddr); 

@@ -202,18 +202,20 @@ void Client::RunRateLimitedTCP ( void ) {
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite=1; 
+		currLen = 0;
+#ifdef WIN32
+		errno=WSAGetLastError();
+#endif
 		switch (errno) {
+#ifdef WIN32
+		case WSAETIMEDOUT:
+#else
 		case EINTR:
-		    currLen = mSettings->mBufLen;
-		    break;
 		case EAGAIN:
-#if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
+# if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
 		case EWOULDBLOCK:
+# endif
 #endif
-#if HAVE_DECL_ENOBUFS
-		case ENOBUFS:
-#endif
-		    currLen = 0;
 		    gettimeofday( &(reportstruct->packetTime), NULL );
 #ifndef HAVE_CLOCK_GETTIME
 		    // leverage the packet gettimeofday reducing
@@ -357,23 +359,13 @@ void Client::RunTCP( void ) {
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
 	    reportstruct->errwrite=1; 
-	    switch (errno) {
-	    case EINTR:
-		currLen = mSettings->mBufLen;
-		break;
-	    case EAGAIN:
-#if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
-	    case EWOULDBLOCK:
+	    currLen = 0;
+#ifdef WIN32
+	    FAIL_errno( (WSAGetLastError() != WSAETIMEDOUT), "write", mSettings);
+#else
+	    FAIL_errno( (errno != EAGAIN && errno != EWOULDBLOCK &&
+			 errno != EINTR), "write", mSettings);
 #endif
-#if HAVE_DECL_ENOBUFS
-	    case ENOBUFS:
-#endif
-		currLen = 0;
-		break;
-	    default:   
-		FAIL_errno( errno != 0, "write", mSettings);
-		break;
-	    } 
         }
 
 	totLen += currLen;
@@ -575,20 +567,14 @@ void Client::Run( void ) {
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
 	    reportstruct->errwrite = 1; 
-	    switch (errno) {
-	      case EINTR:
-		  currLen = mSettings->mBufLen;
-		  break;
-	      case EAGAIN:
-		//case ENOBUFS:
-		  currLen = 0;
-		  break;
-	      default: 
-		  FAIL_errno( errno, "write", mSettings );
-                  break;
-	    } 
-        }
-
+	    currLen = 0;
+#ifdef WIN32
+	    FAIL_errno( (WSAGetLastError() != WSAETIMEDOUT), "write", mSettings);
+#else
+	    FAIL_errno( (errno != EAGAIN && errno != EWOULDBLOCK &&
+			 errno != EINTR), "write", mSettings);
+#endif
+	}
         // report packets 
         reportstruct->packetLen = (unsigned long) currLen;
         ReportPacket( mSettings->reporthdr, reportstruct );

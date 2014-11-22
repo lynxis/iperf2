@@ -184,7 +184,13 @@ void Server::Run( void ) {
 		gettimeofday( &(reportstruct->packetTime), NULL );
                 // End loop on 0 read or socket error
 		// except for socket read timeout
-		if (currLen != -1 || errno != EAGAIN) {
+		if (currLen == 0 ||
+#ifdef WIN32
+		    (WSAGetLastError() != WSAEWOULDBLOCK)
+#else
+		    (errno != EAGAIN && errno != EWOULDBLOCK)
+#endif		     
+		    ) {
 		    running = 0;
 		}
 		currLen=0;
@@ -211,7 +217,13 @@ void Server::Run( void ) {
 		reportstruct->emptyreport=1;
                 // End loop on 0 read or socket error
 		// except for socket read timeout
-		if (currLen != -1 || errno != EAGAIN) {
+		if (currLen == 0 ||
+#ifdef WIN32
+		    (WSAGetLastError() != WSAEWOULDBLOCK)
+#else
+		    (errno != EAGAIN && errno != EWOULDBLOCK)
+#endif		     
+		    ) {
 		    running = 0;
 		}
 		currLen = 0;
