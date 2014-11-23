@@ -521,8 +521,14 @@ void Client::Run( void ) {
         //  case 55: datagramID = 71; break; 
         //  default: break; 
         //} 
+#ifdef HAVE_CLOCK_GETTIME
+	struct timespec t1; 
+	clock_gettime(CLOCK_REALTIME, &t1);
+	reportstruct->packetTime.tv_sec = t1.tv_sec;
+	reportstruct->packetTime.tv_usec = (t1.tv_nsec + 500) / 1000L;
+#else 
         gettimeofday( &(reportstruct->packetTime), NULL );
-
+#endif    
         if ( isUDP( mSettings ) ) {
             // store datagram ID into buffer 
             mBuf_UDP->id      = htonl( (reportstruct->packetID)++ ); 
