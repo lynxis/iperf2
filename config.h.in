@@ -19,6 +19,10 @@
    don't. */
 #undef HAVE_DECL_AF_INET6
 
+/* Define to 1 if you have the declaration of `CPU_SET', and to 0 if you
+   don't. */
+#undef HAVE_DECL_CPU_SET
+
 /* Define to 1 if you have the declaration of `ENOBUFS', and to 0 if you
    don't. */
 #undef HAVE_DECL_ENOBUFS
