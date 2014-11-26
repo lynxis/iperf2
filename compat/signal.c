@@ -95,9 +95,9 @@ BOOL WINAPI sig_dispatcher( DWORD type ) {
     if ( h != NULL ) {
         // call the signal handler
         h( signo );
-        return true;
+        return 1;
     } else {
-        return false;
+        return 0;
     }
 }
 
