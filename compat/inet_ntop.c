@@ -39,8 +39,8 @@ extern "C" {
  * author:
  *      Paul Vixie, 1996.
  */
-int
-inet_ntop(int af, const void *src, char *dst, size_t size) {
+const char* 
+inet_ntop(int af, const void *src, char *dst, socklen_t size) {
     switch ( af ) {
         case AF_INET:
             return(inet_ntop4(src, dst, size));
@@ -49,7 +49,7 @@ inet_ntop(int af, const void *src, char *dst, size_t size) {
             return(inet_ntop6(src, dst, size));
 #endif
         default:
-            return 0;
+            return NULL;
     }
     /* NOTREACHED */
 }
@@ -65,17 +65,17 @@ inet_ntop(int af, const void *src, char *dst, size_t size) {
  * author:
  *      Paul Vixie, 1996.
  */
-int
-inet_ntop4(const unsigned char *src, char *dst, size_t size) {
+const char*
+inet_ntop4(const unsigned char *src, char *dst, socklen_t size) {
     static const char *fmt = "%u.%u.%u.%u";
     char tmp[sizeof "255.255.255.255"];
 
     if ( (size_t)sprintf(tmp, fmt, src[0], src[1], src[2], src[3]) >= size ) {
-        return 0;
+        return NULL;
     }
     strcpy(dst, tmp);
 
-    return 1;
+    return dst;
 }
 
 /* const char *
@@ -85,8 +85,8 @@ inet_ntop4(const unsigned char *src, char *dst, size_t size) {
  *      Paul Vixie, 1996.
  */
 #ifdef HAVE_IPV6
-int
-inet_ntop6(const unsigned char *src, char *dst, size_t size) {
+const char*
+inet_ntop6(const unsigned char *src, char *dst, socklen_t size) {
     /*
      * Note that int32_t and int16_t need only be "at least" large enough
      * to contain a value of the specified size.  On some systems, like
@@ -152,7 +152,7 @@ inet_ntop6(const unsigned char *src, char *dst, size_t size) {
              (best.len == 6 || (best.len == 5 && words[5] == 0xffff)) ) {
             if ( !inet_ntop4(src+12, tp,
                              sizeof tmp - (tp - tmp)) )
-                return 0;
+                return NULL;
             tp += strlen(tp);
             break;
         }
@@ -169,10 +169,10 @@ inet_ntop6(const unsigned char *src, char *dst, size_t size) {
      */
     if ( (size_t)(tp - tmp) > size ) {
         errno = ENOSPC;
-        return 0;
+        return NULL;
     }
     strcpy(dst, tmp);
-    return 1;
+    return dst;
 }
 #endif /* HAVE_IPV6 */
 #endif /* HAVE_INET_NTOP */

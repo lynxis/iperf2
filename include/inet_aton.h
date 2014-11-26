@@ -72,12 +72,12 @@
     #ifdef __cplusplus
 extern "C" {
 #endif
-int inet_ntop(int af, const void *src, char *dst, size_t size);
-int inet_ntop4(const unsigned char *src, char *dst,
-                      size_t size);
+const char* inet_ntop(int af, const void *src, char *dst, socklen_t size);
+const char* inet_ntop4(const unsigned char *src, char *dst,
+                      socklen_t size);
 #ifdef HAVE_IPV6
-int inet_ntop6(const unsigned char *src, char *dst,
-                      size_t size);
+const char* inet_ntop6(const unsigned char *src, char *dst,
+                      socklen_t size);
 #endif
 
 
