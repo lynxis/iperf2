@@ -73,9 +73,11 @@ int main (int argc, char **argv) {
     int ix, delay=1,loopcount=1000;
     int c;
     int clockgettime = 0, kalman = 0;
+#if HAVE_DECL_CPU_SET
+    int affinity = 0;
+#endif
 #ifdef HAVE_SCHED_SETSCHEDULER
     int realtime = 0;
-    int affinity = 0;
     struct sched_param sp;
 #endif
 #ifdef HAVE_CLOCK_GETTIME
@@ -98,18 +100,23 @@ int main (int argc, char **argv) {
 	case 'i':
 	    loopcount = atoi(optarg);
 	    break;
-#ifdef HAVE_SCHED_SETSCHEDULER
+#if HAVE_DECL_CPU_SET
 	case 'a':
 	    affinity=atoi(optarg);
 	    break;
+#endif
+#ifdef HAVE_SCHED_SETSCHEDULER
 	case 'r':
 	    realtime = 1;
 	    break;
 #endif
 	case '?':
 	    fprintf(stderr,"Usage -b busyloop, -d usec delay, -i iterations"
+#if HAVE_DECL_CPU_SET
+		    ", -a affinity"
+#endif
 #ifdef HAVE_SCHED_SETSCHEDULER
-		    ", -a affinity, -r realtime"
+		    ", -r realtime"
 #endif
 		    "\n");
 	    return 1;
@@ -133,13 +140,14 @@ int main (int argc, char **argv) {
 	WARN_errno(mlockall(MCL_CURRENT | MCL_FUTURE) != 0, "mlockall");
 #endif
     }
-
+#if HAVE_DECL_CPU_SET
     if (affinity) {
 	fprintf(stdout,"CPU affinity set to %d\n", affinity);
 	cpu_set_t myset;
 	CPU_ZERO(&myset);
 	CPU_SET(affinity,&myset);
     }
+#endif
 #endif
     if (loopcount > 1000) 
         fprintf(stdout,"Measuring %s over %.0e iterations using %d usec delay\n",
