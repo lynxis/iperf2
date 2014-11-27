@@ -1,4 +1,3 @@
-
 /*--------------------------------------------------------------- 
  * Copyright (c) 1999,2000,2001,2002,2003                              
  * The Board of Trustees of the University of Illinois            
@@ -76,6 +75,7 @@ Usage: iperf [-s|-c host] [options]\n\
        iperf [-h|--help] [-v|--version]\n\
 \n\
 Client/Server:\n\
+  -b, --bandwidth #[KMG | pps]  bandwidth to send at in bits/sec or packets per second\n\
   -f, --format    [kmKM]   format to report: Kbits, Mbits, KBytes, MBytes\n\
   -i, --interval  #        seconds between periodic bandwidth reports\n\
   -l, --len       #[KM]    length of buffer to read or write (default 8 KB)\n\
@@ -83,8 +83,11 @@ Client/Server:\n\
   -o, --output    <filename> output the report or error message to this specified file\n\
   -p, --port      #        server port to listen on/connect to\n\
   -u, --udp                use UDP rather than TCP\n\
-  -w, --window    #[KM]    TCP window size (socket buffer size)\n\
-  -B, --bind      <host>   bind to <host>, an interface or multicast address\n\
+  -w, --window    #[KM]    TCP window size (socket buffer size)\n"
+#ifdef HAVE_SCHED_SETSCHEDULER
+"  -z, --realtime           request realtime scheduler\n"
+#endif
+"  -B, --bind      <host>   bind to <host>, an interface or multicast address\n\
   -C, --compatibility      for use with older versions does not sent extra msgs\n\
   -M, --mss       #        set TCP maximum segment size (MTU - 40 bytes)\n\
   -N, --nodelay            set TCP no delay, disabling Nagle's Algorithm\n\
@@ -102,13 +105,12 @@ Server specific:\n\
 const char usage_long2[] = "\
 \n\
 Client specific:\n\
-  -b, --bandwidth #[KM]    for UDP, bandwidth to send at in bits/sec\n\
-                           (default 1 Mbit/sec, implies -u)\n\
   -c, --client    <host>   run in client mode, connecting to <host>\n\
   -d, --dualtest           Do a bidirectional test simultaneously\n\
   -n, --num       #[KM]    number of bytes to transmit (instead of -t)\n\
   -r, --tradeoff           Do a bidirectional test individually\n\
   -t, --time      #        time in seconds to transmit for (default 10 secs)\n\
+  -B, --bind [<ip> | <ip:port>] bind src addr(s) from which to originate traffic\n\
   -F, --fileinput <name>   input the data to be transmitted from a file\n\
   -I, --stdin              input the data to be transmitted from stdin\n\
   -L, --listenport #       port to receive bidirectional tests back on\n\
@@ -128,6 +130,7 @@ The TCP window size option can be set by the environment variable\n\
 TCP_WINDOW_SIZE. Most other options can be set by an environment variable\n\
 IPERF_<long option name>, such as IPERF_BANDWIDTH.\n\
 \n\
+Source at <http://sourceforge.net/projects/iperf2/>\n\
 Report bugs to <iperf-users@lists.sourceforge.net>\n";
 
 // include a description of the threading in the version

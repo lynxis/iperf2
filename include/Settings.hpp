@@ -307,6 +307,7 @@ typedef struct thread_Settings {
 
 #define HEADER_VERSION1 0x80000000
 #define RUN_NOW         0x00000001
+#define UNITS_PPS       0x00000002
 
 // used to reference the 4 byte ID number we place in UDP datagrams
 // use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90) 
@@ -349,15 +350,21 @@ typedef struct client_hdr {
     int32_t numThreads;
     int32_t mPort;
     int32_t bufferlen;
-    int32_t mWinBand;
+    int32_t mWindowSize;
     int32_t mAmount;
+    int32_t mRate;
+    int32_t mUDPRateUnits;
+    int32_t mRealtime;
 #else
     signed int flags      : 32;
     signed int numThreads : 32;
     signed int mPort      : 32;
     signed int bufferlen  : 32;
-    signed int mWinBand   : 32;
+    signed int mWindowSize : 32;
     signed int mAmount    : 32;
+    signed int mRate      : 32;
+    signed int mUDPRateUnits : 32;
+    signed int mRealtime  : 32;
 #endif
 } client_hdr;
 

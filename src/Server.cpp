@@ -107,6 +107,7 @@ void Server::Run( void ) {
     struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf; 
     ReportStruct *reportstruct = NULL;
     int running;
+    static struct timeval watchdog;
 
 #if HAVE_DECL_SO_TIMESTAMP
     // Structures needed for recvmsg
@@ -173,6 +174,7 @@ void Server::Run( void ) {
 	    }
 	}
 #endif
+	gettimeofday( &watchdog, NULL );
         do {
 	    reportstruct->emptyreport=0;
 #if HAVE_DECL_SO_TIMESTAMP
@@ -184,7 +186,7 @@ void Server::Run( void ) {
 		gettimeofday( &(reportstruct->packetTime), NULL );
                 // End loop on 0 read or socket error
 		// except for socket read timeout
-		if (currLen == 0 ||
+		if (currLen == 0 || (TimeDifference(reportstruct->packetTime, watchdog) > (mSettings->mAmount / 100)) ||
 #ifdef WIN32
 		    (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
@@ -237,7 +239,10 @@ void Server::Run( void ) {
 		reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
             }
 #endif
-	    totLen += currLen;
+	    if (currLen) {
+		watchdog = reportstruct->packetTime;
+		totLen += currLen;
+	    }
             // terminate when datagram begins with negative index 
             // the datagram ID should be correct, just negated 
             if ( reportstruct->packetID < 0 ) {
