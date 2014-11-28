@@ -330,7 +330,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    if (suffix == 'p') {
 		mExtSettings->mUDPRateUnits = kRate_PPS;
 		mExtSettings->mUDPRate = theNum;
-	    } else {
+	    } else {		
 		mExtSettings->mUDPRateUnits = kRate_BW;
 		mExtSettings->mUDPRate = byte_atoi(outarg);
 	    }
@@ -530,9 +530,11 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
                 optarg++;
             }
             break;
+#ifdef HAVE_SCHED_SETSCHEDULER
         case 'z': // Use realtime scheduling
 	    setRealtime( mExtSettings );
             break;
+#endif
 
         case 'y': // Reporting Style
             switch ( *optarg ) {
@@ -780,14 +782,16 @@ void Settings_GenerateClientSettings( thread_Settings *server,
         if ( hdr->bufferlen != 0 ) {
             (*client)->mBufLen = ntohl(hdr->bufferlen);
         }
-        if ( hdr->mWinBand != 0 ) {
-            if ( isUDP( server ) ) {
-                (*client)->mUDPRate = ntohl(hdr->mWinBand);
-            } else {
-                (*client)->mTCPWin = ntohl(hdr->mWinBand);
-            }
-        }
-        (*client)->mAmount     = ntohl(hdr->mAmount);
+        (*client)->mTCPWin = ntohl(hdr->mWindowSize);
+	if ( !isBWSet(server) ) {
+	    (*client)->mUDPRate = ntohl(hdr->mRate); 
+	    if ((flags & UNITS_PPS) == UNITS_PPS) {
+		(*client)->mUDPRateUnits = kRate_PPS;
+	    } else {
+		(*client)->mUDPRateUnits = kRate_BW;
+	    }
+	}
+	(*client)->mAmount     = ntohl(hdr->mAmount);
         if ( ((*client)->mAmount & 0x80000000) > 0 ) {
             setModeTime( (*client) );
 #ifndef WIN32
@@ -841,11 +845,8 @@ void Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
     } else {
         hdr->bufferlen = 0;
     }
-    if ( isUDP( client ) ) {
-        hdr->mWinBand  = htonl(client->mUDPRate);
-    } else {
-        hdr->mWinBand  = htonl(client->mTCPWin);
-    }
+    hdr->mWindowSize  = htonl(client->mTCPWin);
+    hdr->mRate = htonl(client->mUDPRate);
     if ( client->mListenPort != 0 ) {
         hdr->mPort  = htonl(client->mListenPort);
     } else {
@@ -858,7 +859,8 @@ void Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
         hdr->mAmount    = htonl((long)client->mAmount);
         hdr->mAmount &= htonl( 0x7FFFFFFF );
     }
-    if ( client->mMode == kTest_DualTest ) {
-        hdr->flags |= htonl(RUN_NOW);
-    }
+    if (client->mUDPRateUnits == kRate_PPS)
+	hdr->flags |= htonl(UNITS_PPS);
+    if ( client->mMode == kTest_DualTest )
+	hdr->flags |= htonl(RUN_NOW);
 }

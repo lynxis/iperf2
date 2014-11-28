@@ -257,13 +257,12 @@ void Sig_Interupt( int inSigno ) {
     } else if ( thread_equalid( sThread, thread_getid() ) ) {
         sig_exit( inSigno );
     }
-
     // global variable used by threads to see if they were interrupted
-    sInterupted = 1;
+    sInterupted = inSigno;
 
     // with threads, stop waiting for non-terminating threads
     // (ie Listener Thread)
-    thread_release_nonterm( 1 );
+    thread_release_nonterm( inSigno );
 
 #else
     // without threads, just exit quietly, same as sig_exit()

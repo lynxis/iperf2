@@ -163,8 +163,13 @@ void Listener::Run( void ) {
                 break;
             }
             if ( sInterupted != 0 ) {
-                close( server->mSock );
-                break;
+		// In the case of -r, ignore the clients alarm
+		if (sInterupted == SIGALRM ) {
+		    sInterupted = 0;
+		} else {
+		    close( server->mSock );
+		    break;
+		}
             }
             // Reset Single Client Stuff
             if ( isSingleClient( mSettings ) && clients == NULL ) {
