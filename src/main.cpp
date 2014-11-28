@@ -260,9 +260,11 @@ void Sig_Interupt( int inSigno ) {
     // global variable used by threads to see if they were interrupted
     sInterupted = inSigno;
 
-    // with threads, stop waiting for non-terminating threads
-    // (ie Listener Thread)
-    thread_release_nonterm( inSigno );
+    // Note:  ignore alarms per setitimer
+    if (interrupt != SIGALRM) 
+	// with threads, stop waiting for non-terminating threads
+	// (ie Listener Thread) 
+	thread_release_nonterm( inSigno );
 
 #else
     // without threads, just exit quietly, same as sig_exit()
