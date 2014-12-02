@@ -70,7 +70,7 @@ void reporter_printstats( Transfer_Info *stats ) {
     static char header_printed = 0;
 
     byte_snprintf( buffer, sizeof(buffer)/2, (double) stats->TotalLen,
-                   toupper( stats->mFormat));
+                   toupper( (int)stats->mFormat));
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
                    stats->TotalLen / (stats->endTime - stats->startTime), 
                    stats->mFormat);
@@ -160,7 +160,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 void reporter_multistats( Transfer_Info *stats ) {
 
     byte_snprintf( buffer, sizeof(buffer)/2, (double) stats->TotalLen,
-                   toupper( stats->mFormat));
+                   toupper( (int)stats->mFormat));
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
                    stats->TotalLen / (stats->endTime - stats->startTime), 
                    stats->mFormat);
@@ -246,7 +246,7 @@ void reporter_reportsettings( ReporterData *data ) {
         }
     }
     byte_snprintf( buffer, sizeof(buffer), win,
-                   toupper( data->info.mFormat));
+                   toupper( (int)data->info.mFormat));
     printf( "%s: %s", (isUDP( data ) ? 
                                 udp_buffer_size : tcp_window_size), buffer );
 
@@ -254,7 +254,7 @@ void reporter_reportsettings( ReporterData *data ) {
         printf( " %s", window_default );
     } else if ( win != win_requested ) {
         byte_snprintf( buffer, sizeof(buffer), win_requested,
-                       toupper( data->info.mFormat));
+                       toupper( (int)data->info.mFormat));
         printf( warn_window_requested, buffer );
     }
     printf( "\n" );

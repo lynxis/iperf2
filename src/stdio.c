@@ -198,7 +198,7 @@ void byte_snprintf( char* outString, int inLen,
         inNum *= 8;
     }
 
-    switch ( toupper(inFormat) ) {
+    switch ( toupper( (int)inFormat) ) {
         case 'B': conv = kConv_Unit; break;
         case 'K': conv = kConv_Kilo; break;
         case 'M': conv = kConv_Mega; break;
