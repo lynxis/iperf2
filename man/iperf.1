@@ -43,7 +43,7 @@ set length read/write buffer to \fIn\fR (default 8 KB)
 .BR -m ", " --print_mss " "
 print TCP maximum segment size (MTU - TCP/IP header)
 .TP
-.BR -o ", " --output " <filename>"
+.BR -o ", " --output " \fIfilename\fR"
 output the report or error message to this specified file
 .TP
 .BR -p ", " --port " \fIn\fR"
@@ -55,8 +55,11 @@ use UDP rather than TCP
 .BR -w ", " --window " \fIn\fR[KM]"
 TCP window size (socket buffer size)
 .TP
-.BR -B ", " --bind " <host>"
-bind to <host>, an interface or multicast address
+.BR -z ", " --realtime " "
+Request realtime scheduler, if supported.
+.TP
+.BR -B ", " --bind " \fIhost\fR"
+bind to \fIhost\fR, an interface or multicast address
 .TP
 .BR -C ", " --compatibility " "
 for use with older versions does not sent extra msgs
@@ -73,8 +76,8 @@ print version information and quit
 .BR -V ", " --IPv6Version " "
 Set the domain to IPv6
 .TP
-.BR -x ", " --reportexclude " "
-[CDMSV]   exclude C(connection) D(data) M(multicast) S(settings) V(server) reports
+.BR -x ", " --reportexclude " [CDMSV]"
+exclude C(connection) D(data) M(multicast) S(settings) V(server) reports
 .TP
 .BR -y ", " --reportstyle " C|c"
 if set to C or c report results as CSV (comma separated values)
@@ -87,15 +90,18 @@ run in server mode
 run in single threaded UDP mode
 .TP
 .BR -D ", " --daemon " "
-run the server as a daemon
+run the server as a daemon.  On Windows this will also install the IPerfService.
+.TP
+.BR -R ", " --remove " "
+remove the IPerfService (Windows only).
 .SH "CLIENT SPECIFIC OPTIONS"
 .TP
-.BR -b ", " --bandwidth " \fIn\fR[KM]"
-set target bandwidth to \fIn\fR bits/sec (default 1 Mbit/sec).
-This setting requires UDP (-u).
+.BR -b ", " --bandwidth " \fIn\fR[KMG] | \fIn\fRpps"
+set target bandwidth to \fIn\fR bits/sec (default 1 Mbit/sec) or
+\fIn\fR packets per sec.  This may be used with TCP or UDP.
 .TP
-.BR -c ", " --client " <host>"
-run in client mode, connecting to <host>
+.BR -c ", " --client " \fIhost\fR"
+run in client mode, connecting to \fIhost\fR
 .TP
 .BR -d ", " --dualtest " "
 Do a bidirectional test simultaneously
@@ -109,7 +115,10 @@ Do a bidirectional test individually
 .BR -t ", " --time " \fIn\fR"
 time in seconds to transmit for (default 10 secs)
 .TP
-.BR -F ", " --fileinput " <name>"
+.BR -B ", " --bind " \fIip\fR | \fIip\fR:\fIport\fR"
+bind src addr(s) from which to originate traffic
+.TP
+.BR -F ", " --fileinput " \fIname\fR"
 input the data to be transmitted from a file
 .TP
 .BR -I ", " --stdin " "
@@ -124,7 +133,7 @@ number of parallel client threads to run
 .BR -T ", " --ttl " \fIn\fR"
 time-to-live, for multicast (default 1)
 .TP
-.BR -Z ", " --linux-congestion " <algo>"
+.BR -Z ", " --linux-congestion " \fIalgo\fR"
 set TCP congestion control algorithm (Linux only)
 .SH ENVIRONMENT
 .TP
