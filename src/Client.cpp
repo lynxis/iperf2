@@ -270,12 +270,12 @@ void Client::RunRateLimitedTCP ( void ) {
 	}
 #ifdef HAVE_SETITIMER
 	if (sInterupted || 
-	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
 	    break;
 #else 
 	if (sInterupted || 
 	    (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))  || 
-	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
 	    break;
 #endif	
     }
@@ -390,12 +390,12 @@ void Client::RunTCP( void ) {
         }
 #ifdef HAVE_SETITIMER
 	if (sInterupted || 
-	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
 	    break;
 #else 
 	if (sInterupted || 
 	    (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))  || 
-	    (!mMode_Time  && (mSettings->mAmount < 0 || !canRead)))
+	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
 	    break;
 #endif	
     }
