@@ -261,7 +261,9 @@ void Sig_Interupt( int inSigno ) {
     sInterupted = inSigno;
 
     // Note:  ignore alarms per setitimer
+#if HAVE_DECL_SIGALRM
     if (inSigno != SIGALRM) 
+#endif
 	// with threads, stop waiting for non-terminating threads
 	// (ie Listener Thread) 
 	thread_release_nonterm( inSigno );

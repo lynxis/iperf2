@@ -43,6 +43,10 @@
    you don't. */
 #undef HAVE_DECL_IP_ADD_MEMBERSHIP
 
+/* Define to 1 if you have the declaration of `SIGALRM', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SIGALRM
+
 /* Define to 1 if you have the declaration of `SO_SNDTIMEO', and to 0 if you
    don't. */
 #undef HAVE_DECL_SO_SNDTIMEO
@@ -132,6 +136,9 @@
 /* Define to 1 if you have the `setitimer' function. */
 #undef HAVE_SETITIMER
 
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
+
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
 
@@ -209,6 +216,9 @@
 
 /* Define if Web100 is desired and available */
 #undef HAVE_WEB100
+
+/* Define if using WIN32 threads */
+#undef HAVE_WIN32_THREAD
 
 /* Define to 1 if `fork' works. */
 #undef HAVE_WORKING_FORK

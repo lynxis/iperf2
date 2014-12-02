@@ -71,14 +71,16 @@ AC_SEARCH_LIBS([gethostbyname], [nsl])
 AC_SEARCH_LIBS([socket], [socket], [],
   [AC_CHECK_HEADER([winsock2.h],
   [AC_DEFINE([HAVE_LIBWS2_32], [1], [Define if libws2_32 exists.])
+  if test "$acx_pthread_ok" != yes; then
+  AC_DEFINE([HAVE_WIN32_THREAD], [1], [Define if using WIN32 threads])
+  fi
   LIBS="-lws2_32 $LIBS"],
   [],
   [#include <windows.h>])])
  
-
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h libintl.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h libintl.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h signal.h])
 
 dnl ===================================================================
 dnl Checks for typedefs, structures
@@ -131,6 +133,7 @@ AC_CHECK_DECLS([CPU_SET],[],[],[
 	#define _GNU_SOURCE
 	#include <sched.h>
 	])
+AC_CHECK_DECLS([SIGALRM],[],[],[#include <signal.h>])
 
 
 dnl             Gotten from some NetBSD configure.in
@@ -265,7 +268,8 @@ fi
 
 dnl Static link on MINGW for standalone DOS executable
 case "$ac_cv_host" in
-*-pc-mingw32) LIBS="$LIBS -static-libstdc++ -static-libgcc" ;;
+*-mingw32) 
+    LIBS="$LIBS -static-libstdc++ -static";;
 esac
 
 

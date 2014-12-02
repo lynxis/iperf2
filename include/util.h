@@ -84,6 +84,9 @@ SigfuncPtr my_signal( int inSigno, SigfuncPtr inFunc );
 
 #ifdef WIN32
 
+#ifdef HAVE_SIGNAL_H
+  #define _NSIG NSIG
+#else
 /* under windows, emulate unix signals */
 enum {
     SIGINT,
@@ -91,6 +94,7 @@ enum {
     SIGPIPE,
     _NSIG
 };
+#endif
 
 BOOL WINAPI sig_dispatcher( DWORD type );
 

@@ -84,13 +84,17 @@
 #include <time.h>
 #include <math.h>
 #include <float.h>
+#include <sys/types.h>
 
 #ifdef WIN32
 
 /* Windows config file */
-    #include "config.win32.h"
+//    #include "config.win32.h"
 
 /* Windows headers */
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
     #define _WIN32_WINNT 0x0501 /* use (at least) WinXP API */
     #define WIN32_LEAN_AND_MEAN /* exclude unnecesary headers */
     #include <windows.h>
@@ -121,7 +125,20 @@
     #define read( s, b, l )  recv( s, (char*) b, l, 0 )
     #define write( s, b, l ) send( s, (char*) b, l, 0 )
 
+/* usleep is in unistd.h, but that would conflict with the
+close/read/write redefinitin above */
+int usleep(useconds_t usec);
+
 #else /* not defined WIN32 */
+
+/* used in Win32 for error checking,
+ * rather than checking rc < 0 as unix usually does */
+#define SOCKET_ERROR   -1
+#define INVALID_SOCKET -1
+
+#include <unistd.h>
+
+#endif /* not defined WIN32 */
 
 /* required on AIX for FD_SET (requires bzero).
  * often this is the same as <string.h> */
@@ -130,35 +147,37 @@
     #endif // HAVE_STRINGS_H
 
 /* unix headers */
-    #include <sys/types.h>
+#ifdef HAVE_SYS_SOCKET_H
     #include <sys/socket.h>
+#endif
     #include <sys/time.h>
+#ifdef HAVE_SIGNAL_H
     #include <signal.h>
-    #include <unistd.h>
+#endif
 
+#ifdef HAVE_SYSLOG_H
 /** Added for daemonizing the process */
     #include <syslog.h>
+#endif
 
+#ifdef HAVE_NETDB_H
 SPECIAL_OSF1_EXTERN_C_START
     #include <netdb.h>
 SPECIAL_OSF1_EXTERN_C_STOP
-    #include <netinet/in.h>
-    #include <netinet/tcp.h>
-
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 SPECIAL_OSF1_EXTERN_C_START
     #include <arpa/inet.h>   /* netinet/in.h must be before this on SunOS */
 SPECIAL_OSF1_EXTERN_C_STOP
+#endif
 
-    #ifdef HAVE_POSIX_THREAD
-        #include <pthread.h>
-    #endif // HAVE_POSIX_THREAD
 
-/* used in Win32 for error checking,
- * rather than checking rc < 0 as unix usually does */
-    #define SOCKET_ERROR   -1
-    #define INVALID_SOCKET -1
 
-#endif /* not defined WIN32 */
+#ifdef HAVE_POSIX_THREAD
+#include <pthread.h>
+#endif // HAVE_POSIX_THREAD
 
 #ifndef INET6_ADDRSTRLEN
     #define INET6_ADDRSTRLEN 40

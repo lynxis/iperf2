@@ -164,7 +164,13 @@ void Listener::Run( void ) {
             }
             if ( sInterupted != 0 ) {
 		// In the case of -r, ignore the clients alarm
-		if (sInterupted == SIGALRM ) {
+		if (
+#if HAVE_DECL_SIGALRM
+sInterupted == SIGALRM
+#else
+0
+#endif
+		    ) {
 		    sInterupted = 0;
 		} else {
 		    close( server->mSock );

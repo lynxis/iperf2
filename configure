@@ -5299,12 +5299,16 @@ if test "x$ac_cv_header_winsock2_h" = xyes; then :
 
 $as_echo "#define HAVE_LIBWS2_32 1" >>confdefs.h
 
+  if test "$acx_pthread_ok" != yes; then
+
+$as_echo "#define HAVE_WIN32_THREAD 1" >>confdefs.h
+
+  fi
   LIBS="-lws2_32 $LIBS"
 fi
 
 
 fi
-
 
 
 ac_ext=c
@@ -5704,7 +5708,7 @@ fi
 done
 
 
-for ac_header in arpa/inet.h libintl.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h
+for ac_header in arpa/inet.h libintl.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h signal.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -7139,6 +7143,18 @@ cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_CPU_SET $ac_have_decl
 _ACEOF
 
+ac_fn_c_check_decl "$LINENO" "SIGALRM" "ac_cv_have_decl_SIGALRM" "#include <signal.h>
+"
+if test "x$ac_cv_have_decl_SIGALRM" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_SIGALRM $ac_have_decl
+_ACEOF
+
 
 
 
@@ -7808,7 +7824,8 @@ $as_echo "#define HAVE_KALMAN 1" >>confdefs.h
 fi
 
 case "$ac_cv_host" in
-*-pc-mingw32) LIBS="$LIBS -static-libstdc++ -static-libgcc" ;;
+*-mingw32)
+    LIBS="$LIBS -static-libstdc++ -static";;
 esac
 
 
