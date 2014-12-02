@@ -71,7 +71,7 @@ public:*/
 #if   defined( HAVE_POSIX_THREAD )
     #define Mutex_Initialize( MutexPtr ) pthread_mutex_init( MutexPtr, NULL )
 #elif defined( HAVE_WIN32_THREAD )
-    #define Mutex_Initialize( MutexPtr ) *MutexPtr = CreateMutex( NULL, false, NULL )
+    #define Mutex_Initialize( MutexPtr ) *MutexPtr = CreateMutex( NULL, 0, NULL )
 #else
     #define Mutex_Initialize( MutexPtr )
 #endif

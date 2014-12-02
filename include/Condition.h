@@ -91,7 +91,7 @@ typedef struct Condition {
     // whether the signal is broadcast or not.
     #define Condition_Initialize( Cond ) do {                         \
         Mutex_Initialize( &(Cond)->mMutex );                          \
-        (Cond)->mCondition = CreateEvent( NULL, true, false, NULL );  \
+        (Cond)->mCondition = CreateEvent( NULL, 1, 0, NULL );  \
     } while ( 0 )
 #else
     #define Condition_Initialize( Cond )
@@ -119,7 +119,7 @@ typedef struct Condition {
     // atomically release mutex and wait on condition,                      
     // then re-acquire the mutex
     #define Condition_Wait( Cond ) do {                                         \
-        SignalObjectAndWait( (Cond)->mMutex, (Cond)->mCondition, INFINITE, false ); \
+        SignalObjectAndWait( (Cond)->mMutex, (Cond)->mCondition, INFINITE, 0 ); \
         Mutex_Lock( &(Cond)->mMutex );                          \
     } while ( 0 )
 #else
