@@ -380,8 +380,8 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'h': // print help and exit
-            fprintf(stderr, usage_long1);
-            fprintf(stderr, usage_long2);
+	    fprintf(stderr, "%s", usage_long1);
+            fprintf(stderr, "%s", usage_long2);
             exit(1);
             break;
 
@@ -488,7 +488,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'v': // print version and exit
-            fprintf( stderr, version );
+	    fprintf( stderr, "%s", version );
             exit(1);
             break;
 
