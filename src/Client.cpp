@@ -204,29 +204,25 @@ void Client::RunRateLimitedTCP ( void ) {
 		reportstruct->errwrite=1; 
 		currLen = 0;
 #ifdef WIN32
-		errno=WSAGetLastError();
+		errno = WSAGetLastError()
 #endif
-		switch (errno) {
+		if (
 #ifdef WIN32
-		case WSAETIMEDOUT:
+                    errno == WSAETIMEDOUT
 #else
-		case EINTR:
-		case EAGAIN:
-# if HAVE_DECL_EWOULDBLOCK && (EAGAIN) != (EWOULDBLOCK)
-		case EWOULDBLOCK:
-# endif
+		    errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK
 #endif
-		    gettimeofday( &(reportstruct->packetTime), NULL );
+		    ) {
 #ifndef HAVE_CLOCK_GETTIME
 		    // leverage the packet gettimeofday reducing
 		    // these sys calls (which can be expensive)
 		    time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
 #endif
 		    break;
-		default:
-		    FAIL_errno( errno != 0, "write", mSettings);
+		} else if (errno != 0) {
+		    WARN_errno( 1 , "write");
 		    break;
-		} 
+		}
 	    }
 	    // Consume tokens per the transmit
 	    tokens -= currLen;
@@ -264,7 +260,7 @@ void Client::RunRateLimitedTCP ( void ) {
 		    mSettings->mAmount = 0;
 		}
 	    }
-	} else {
+        } else {
 	    // Use a 4 usec delay to fill tokens
 	    delay_loop(4);
 	}
@@ -360,12 +356,16 @@ void Client::RunTCP( void ) {
         if ( currLen < 0 ) {
 	    reportstruct->errwrite=1; 
 	    currLen = 0;
+	    if (
 #ifdef WIN32
-	    FAIL_errno( (WSAGetLastError() != WSAETIMEDOUT), "write", mSettings);
+		WSAGetLastError() != WSAETIMEDOUT
 #else
-	    FAIL_errno( (errno != EAGAIN && errno != EWOULDBLOCK &&
-			 errno != EINTR), "write", mSettings);
+		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
 #endif
+		) {
+	        WARN_errno( 1, "write" );
+	        break;
+	    }
         }
 
 	totLen += currLen;
@@ -574,13 +574,18 @@ void Client::Run( void ) {
         if ( currLen < 0 ) {
 	    reportstruct->errwrite = 1; 
 	    currLen = 0;
+	    if (
 #ifdef WIN32
-	    FAIL_errno( (WSAGetLastError() != WSAETIMEDOUT), "write", mSettings);
+		WSAGetLastError() != WSAETIMEDOUT
 #else
-	    FAIL_errno( (errno != EAGAIN && errno != EWOULDBLOCK &&
-			 errno != EINTR), "write", mSettings);
+		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
 #endif
+		) {
+	        WARN_errno( 1, "write" );
+	        break;
+	    }
 	}
+
         // report packets 
         reportstruct->packetLen = (unsigned long) currLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
