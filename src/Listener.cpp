@@ -696,11 +696,14 @@ void Listener::runAsDaemon(const char *pname, int facility) {
     pid_t pid; 
 
     /* Create a child process & if successful, exit from the parent process */ 
+    /* use _exit() instead of exit() to avoid locking up in the atexit
+       cleanup since we may have already started some useless
+       threads */
     if ( (pid = fork()) == -1 ) {
         fprintf( stderr, "error in first child create\n");     
-        exit(0); 
+        _exit(0); 
     } else if ( pid != 0 ) {
-        exit(0); 
+        _exit(0); 
     }
 
     /* Try becoming the session leader, once the parent exits */
