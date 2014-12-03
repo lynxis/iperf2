@@ -171,8 +171,6 @@ int main( int argc, char **argv ) {
          || ext_gSettings->mThreadMode == kMode_Listener ) {
 #ifdef WIN32
         // Start the server as a daemon
-        // Daemon mode for non-windows in handled
-        // in the listener_spawn function
         if ( isDaemon( ext_gSettings ) ) {
             CmdInstallService(argc, argv);
             return 0;
@@ -187,6 +185,18 @@ int main( int argc, char **argv ) {
                 return 0;
             }
         }
+#else
+	if ( isDaemon( ext_gSettings ) ) {
+	    if (daemon(1, 1) < 0) {
+	        perror("daemon");
+	    }
+	    fprintf( stderr, "Running Iperf Server as a daemon\n"); 
+	    fprintf( stderr, "The Iperf daemon process ID : %d\n",((int)getpid())); 
+	    fclose(stdout);
+	    fclose(stderr); 
+	    fclose(stdin); 
+
+	}
 #endif
         // initialize client(s)
         if ( ext_gSettings->mThreadMode == kMode_Client ) {
