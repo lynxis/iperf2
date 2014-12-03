@@ -691,7 +691,14 @@ void Client::Connect( ) {
                    SockAddr_get_sizeof_sockaddr( &mSettings->local ) );
         WARN_errno( rc == SOCKET_ERROR, "bind" );
     }
+    // connect socket
+    rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer, 
+                  SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
+    FAIL_errno( rc == SOCKET_ERROR, "connect", mSettings );
+
     //  Enable socket write timeouts for responsive reporting
+    //  Do this after the connection establishment 
+    //  as that during handshake "normal" TCP timeouts are preferred.
     {
 	double sosndtimer;
 	sosndtimer = 0;    
@@ -716,11 +723,6 @@ void Client::Connect( ) {
 	    }
 	}
     }
-    // connect socket
-    rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer, 
-                  SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
-    FAIL_errno( rc == SOCKET_ERROR, "connect", mSettings );
-
     getsockname( mSettings->mSock, (sockaddr*) &mSettings->local, 
                  &mSettings->size_local );
     getpeername( mSettings->mSock, (sockaddr*) &mSettings->peer,
