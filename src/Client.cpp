@@ -164,8 +164,8 @@ void Client::RunRateLimitedTCP ( void ) {
         int err;
 	memset (&it, 0, sizeof (it));
 	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
-	it.it_value.tv_usec = (int) 10000 * (mSettings->mAmount -
-	    it.it_value.tv_sec * 100.0);
+	it.it_value.tv_usec = (int) (10000 * (mSettings->mAmount -
+                                     it.it_value.tv_sec * 100.0));
 	err = setitimer( ITIMER_REAL, &it, NULL );
 	FAIL_errno( err != 0, "setitimer", mSettings);
 #else 
@@ -333,8 +333,8 @@ void Client::RunTCP( void ) {
         struct itimerval it;
 	memset (&it, 0, sizeof (it));
 	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
-	it.it_value.tv_usec = (int) 10000 * (mSettings->mAmount -
-					     it.it_value.tv_sec * 100.0);
+	it.it_value.tv_usec = (int) (10000 * (mSettings->mAmount -
+					      it.it_value.tv_sec * 100.0));
 	err = setitimer( ITIMER_REAL, &it, NULL );
 	FAIL_errno( err != 0, "setitimer", mSettings ); 
 #else
