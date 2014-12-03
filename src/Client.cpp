@@ -204,7 +204,7 @@ void Client::RunRateLimitedTCP ( void ) {
 		reportstruct->errwrite=1; 
 		currLen = 0;
 #ifdef WIN32
-		errno = WSAGetLastError()
+		errno = WSAGetLastError();
 #endif
 		if (
 #ifdef WIN32
