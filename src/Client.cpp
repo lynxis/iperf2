@@ -431,6 +431,34 @@ void Client::Run( void ) {
 
     char* readAt = mBuf;
 
+    //  Enable socket write timeouts for responsive reporting
+    //  Do this after the connection establishment
+    //  and after Client::InitiateServer as during thes
+    //  default socket timeouts are preferred.
+    {
+	double sosndtimer;
+	sosndtimer = 0;    
+	if (mSettings->mInterval) {
+	    sosndtimer = mSettings->mInterval / 2;
+	} else if (isModeTime(mSettings)) {
+	    sosndtimer = (mSettings->mAmount / 100.0) / 2;
+	} 
+	if (sosndtimer) {
+#ifdef WIN32
+            // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout = (sosndtimer) * 1e3;
+#else
+	    struct timeval timeout;
+	    double intpart, fractpart;
+	    fractpart = modf(sosndtimer, &intpart);
+	    timeout.tv_sec = (int) (intpart);
+	    timeout.tv_usec = (int) (fractpart * 1e6);
+#endif
+	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		WARN_errno( mSettings->mSock == SO_SNDTIMEO, "socket" );
+	    }
+	}
+    }
 
 #if HAVE_THREAD
     if ( !isUDP( mSettings ) ) {
@@ -696,33 +724,6 @@ void Client::Connect( ) {
                   SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
     FAIL_errno( rc == SOCKET_ERROR, "connect", mSettings );
 
-    //  Enable socket write timeouts for responsive reporting
-    //  Do this after the connection establishment 
-    //  as that during handshake "normal" TCP timeouts are preferred.
-    {
-	double sosndtimer;
-	sosndtimer = 0;    
-	if (mSettings->mInterval) {
-	    sosndtimer = mSettings->mInterval / 2;
-	} else if (isModeTime(mSettings)) {
-	    sosndtimer = (mSettings->mAmount / 100.0) / 2;
-	} 
-	if (sosndtimer) {
-#ifdef WIN32
-            // Windows SO_RCVTIMEO uses ms
-	    DWORD timeout = (sosndtimer) * 1e3;
-#else
-	    struct timeval timeout;
-	    double intpart, fractpart;
-	    fractpart = modf(sosndtimer, &intpart);
-	    timeout.tv_sec = (int) (intpart);
-	    timeout.tv_usec = (int) (fractpart * 1e6);
-#endif
-	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
-		WARN_errno( mSettings->mSock == SO_SNDTIMEO, "socket" );
-	    }
-	}
-    }
     getsockname( mSettings->mSock, (sockaddr*) &mSettings->local, 
                  &mSettings->size_local );
     getpeername( mSettings->mSock, (sockaddr*) &mSettings->peer,
