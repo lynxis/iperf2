@@ -90,6 +90,9 @@ protected:
     thread_Settings *mSettings;
     thread_Settings *server;
 
+private:
+    void PrepareSocket( thread_Settings *server );
+
 }; // end class Listener
 
 #endif // LISTENER_H

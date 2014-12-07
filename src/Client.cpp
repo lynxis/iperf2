@@ -604,9 +604,10 @@ void Client::Run( void ) {
 	    currLen = 0;
 	    if (
 #ifdef WIN32
-		WSAGetLastError() != WSAETIMEDOUT
+		int lasterror = WSAGetLastError();
+		lasterror != WSAETIMEDOUT && lasterror != WSAECONNREFUSED
 #else
-		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
+		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR  && errno != ECONNREFUSED
 #endif
 		) {
 	        WARN_errno( 1, "write" );
