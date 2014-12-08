@@ -203,12 +203,9 @@ void Client::RunRateLimitedTCP ( void ) {
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite=1; 
 		currLen = 0;
-#ifdef WIN32
-		errno = WSAGetLastError();
-#endif
 		if (
 #ifdef WIN32
-                    errno == WSAETIMEDOUT
+                    (errno = WSAGetLastError()) == WSAETIMEDOUT
 #else
 		    errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK
 #endif
@@ -358,7 +355,7 @@ void Client::RunTCP( void ) {
 	    currLen = 0;
 	    if (
 #ifdef WIN32
-		WSAGetLastError() != WSAETIMEDOUT
+		(errno = WSAGetLastError()) != WSAETIMEDOUT
 #else
 		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
 #endif
@@ -604,10 +601,11 @@ void Client::Run( void ) {
 	    currLen = 0;
 	    if (
 #ifdef WIN32
-		errno = WSAGetLastError();
-		errno != WSAETIMEDOUT && errno != WSAECONNREFUSED
+		(errno = WSAGetLastError()) != WSAETIMEDOUT &&
+		errno != WSAECONNREFUSED
 #else
-		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR  && errno != ECONNREFUSED
+		errno != EAGAIN && errno != EWOULDBLOCK &&
+		errno != EINTR  && errno != ECONNREFUSED
 #endif
 		) {
 	        WARN_errno( 1, "write" );
