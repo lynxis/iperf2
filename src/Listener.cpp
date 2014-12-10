@@ -273,6 +273,12 @@ sInterupted == SIGALRM
 #endif
             thread_start( server );
     
+            // create a new socket
+            if ( UDP ) {
+                mSettings->mSock = -1; 
+                Listen( );
+            }
+    
             // Prep for next connection
             if ( !isSingleClient( mSettings ) ) {
                 mClients--;
@@ -286,15 +292,60 @@ sInterupted == SIGALRM
 } // end Run 
 
 /* -------------------------------------------------------------------
- * Setup the listen socket,
- * 
- * This socket is used by the listener.  If this is a UDP
- * listener, don't ever call connect.
+ * Setup a socket listening on a port.
+ * For TCP, this calls bind() and listen().
+ * For UDP, this just calls bind().
+ * If inLocalhost is not null, bind to that address rather than the
+ * wildcard server address, specifying what incoming interface to
+ * accept connections on.
  * ------------------------------------------------------------------- */
 void Listener::Listen( ) {
     int rc;
 
-    PrepareSocket(mSettings);
+    SockAddr_localAddr( mSettings );
+
+    // create an internet TCP socket
+    int type = (isUDP( mSettings )  ?  SOCK_DGRAM  :  SOCK_STREAM);
+    int domain = (SockAddr_isIPv6( &mSettings->local ) ? 
+#ifdef HAVE_IPV6
+                  AF_INET6
+#else
+                  AF_INET
+#endif
+                  : AF_INET);
+
+#ifdef WIN32
+    if ( SockAddr_isMulticast( &mSettings->local ) ) {
+        // Multicast on Win32 requires special handling
+        mSettings->mSock = WSASocket( domain, type, 0, 0, 0, WSA_FLAG_MULTIPOINT_C_LEAF | WSA_FLAG_MULTIPOINT_D_LEAF );
+        WARN_errno( mSettings->mSock == INVALID_SOCKET, "socket" );
+
+    } else
+#endif
+    {
+        mSettings->mSock = socket( domain, type, 0 );
+        WARN_errno( mSettings->mSock == INVALID_SOCKET, "socket" );
+    } 
+
+    SetSocketOptions( mSettings );
+
+    // reuse the address, so we can run if a former server was killed off
+    int boolean = 1;
+    Socklen_t len = sizeof(boolean);
+    setsockopt( mSettings->mSock, SOL_SOCKET, SO_REUSEADDR, (char*) &boolean, len );
+
+    // bind socket to server address
+#ifdef WIN32
+    if ( SockAddr_isMulticast( &mSettings->local ) ) {
+        // Multicast on Win32 requires special handling
+        rc = WSAJoinLeaf( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local,0,0,0,0,JL_BOTH);
+        WARN_errno( rc == SOCKET_ERROR, "WSAJoinLeaf (aka bind)" );
+    } else
+#endif
+    {
+        rc = bind( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local );
+        WARN_errno( rc == SOCKET_ERROR, "bind" );
+    }
     // listen for connections (TCP only).
     // default backlog traditionally 5
     if ( !isUDP( mSettings ) ) {
@@ -309,65 +360,6 @@ void Listener::Listen( ) {
     }
 #endif
 } // end Listen
-
-/* -------------------------------------------------------------------
- * Setup a socket listening on a port.
- * For TCP, this calls bind() and listen().
- * For UDP, this just calls bind().
- * If inLocalhost is not null, bind to that address rather than the
- * wildcard server address, specifying what incoming interface to
- * accept connections on.
- * ------------------------------------------------------------------- */
-
-void Listener::PrepareSocket (thread_Settings *inSettings) {
-    int rc;
-
-    SockAddr_localAddr( inSettings );
-
-    // create an internet TCP socket
-    int type = (isUDP( inSettings )  ?  SOCK_DGRAM  :  SOCK_STREAM);
-    int domain = (SockAddr_isIPv6( &inSettings->local ) ? 
-#ifdef HAVE_IPV6
-                  AF_INET6
-#else
-                  AF_INET
-#endif
-                  : AF_INET);
-
-#ifdef WIN32
-    if ( SockAddr_isMulticast( &inSettings->local ) ) {
-        // Multicast on Win32 requires special handling
-        inSettings->mSock = WSASocket( domain, type, 0, 0, 0, WSA_FLAG_MULTIPOINT_C_LEAF | WSA_FLAG_MULTIPOINT_D_LEAF );
-        WARN_errno( inSettings->mSock == INVALID_SOCKET, "socket" );
-
-    } else
-#endif
-    {
-        inSettings->mSock = socket( domain, type, 0 );
-        WARN_errno( inSettings->mSock == INVALID_SOCKET, "socket" );
-    } 
-
-    SetSocketOptions( inSettings );
-
-    // reuse the address, so we can run if a former server was killed off
-    int boolean = 1;
-    Socklen_t len = sizeof(boolean);
-    setsockopt( inSettings->mSock, SOL_SOCKET, SO_REUSEADDR, (char*) &boolean, len );
-
-    // bind socket to server address
-#ifdef WIN32
-    if ( SockAddr_isMulticast( &inSettings->local ) ) {
-        // Multicast on Win32 requires special handling
-        rc = WSAJoinLeaf( inSettings->mSock, (sockaddr*) &inSettings->local, inSettings->size_local,0,0,0,0,JL_BOTH);
-        WARN_errno( rc == SOCKET_ERROR, "WSAJoinLeaf (aka bind)" );
-    } else
-#endif
-    {
-        rc = bind( inSettings->mSock, (sockaddr*) &inSettings->local, inSettings->size_local );
-        WARN_errno( rc == SOCKET_ERROR, "bind" );
-    }
-} // end PrepareSocket
-
 
 /* -------------------------------------------------------------------
  * Joins the multicast group, with the default interface.
@@ -455,24 +447,10 @@ void Listener::Accept( thread_Settings *server ) {
             exist = Iperf_present( &server->peer, clients);
             datagramID = ntohl( ((UDP_datagram*) mBuf)->id ); 
             if ( exist == NULL && datagramID >= 0 ) {
-		server->mSock = mSettings->mSock;
-		// The server thread requires a connected UDP socket
-		// so connect this socket. 
-		//
-		// Note:  Connecting the listener socket causes a
-		// race between the connect and the next new socket open, 
-		// in turn packet loss and ICMP unreachable port messages 
-		// back to clients that transmit during the race. 
-		//
-                int rc = connect( server->mSock, (struct sockaddr*) &server->peer, server->size_peer );
+                server->mSock = mSettings->mSock;
+                int rc = connect( server->mSock, (struct sockaddr*) &server->peer,
+                                  server->size_peer );
                 FAIL_errno( rc == SOCKET_ERROR, "connect UDP", mSettings );
-		// Create a new unconnected UDP listener socket
-		// (ref Stevens Network Programming) as fast as possible
-		//  For linux, the connect and create (inside the Prepare)
-		//  can be inverted hence there is always an 
-		//  unconnected listener socket but Windows seems not
-		//  to handle this.  
-		PrepareSocket(mSettings);
             } else {
                 server->mSock = INVALID_SOCKET;
             }
