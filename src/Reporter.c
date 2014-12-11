@@ -118,6 +118,9 @@ int reporter_handle_packet( ReportHeader *report );
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force );
 int reporter_print( ReporterData *stats, int type, int end );
 void PrintMSS( ReporterData *stats );
+#ifdef HAVE_NETINET_IN_H
+static void gettcpistats(ReporterData *stats);
+#endif
 
 MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
     MultiHeader *multihdr = NULL;
@@ -917,6 +920,26 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
     }
 }
 
+#ifdef HAVE_NETINET_IN_H
+static void gettcpistats (ReporterData *stats) {
+    struct tcp_info tcp_internal;
+    socklen_t tcp_info_length = sizeof(struct tcp_info);
+    int retry;
+    if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
+	// Read the TCP retry stats for a client.  Do this
+	// on  a report interval period.
+	if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
+	    WARN_errno( 1 , "getsockopt");
+	    retry = 0;
+	} else {
+	    retry = tcp_internal.tcpi_total_retrans - stats->info.tcp.write.lastTCPretry;
+	}
+	stats->info.tcp.write.TCPretry = retry;
+	stats->info.tcp.write.totTCPretry += retry;
+	stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+    } 
+}
+#endif
 /*
  * Prints reports conditionally
  */
@@ -924,22 +947,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 
     if ( force ) {
 #ifdef HAVE_NETINET_IN_H
-	if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
-	    // Read the TCP retry stats for a client.  Do this
-	    // on  a report interval period.
-	    struct tcp_info tcp_internal;
-	    socklen_t tcp_info_length = sizeof(struct tcp_info);
-	    int retry;
-	    if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
-		WARN_errno( 1 , "getsockopt");
-		retry = 0;
-	    } else {
-		retry = tcp_internal.tcpi_total_retrans - stats->info.tcp.write.lastTCPretry;
-	    }
-	    stats->info.tcp.write.TCPretry = retry;
-	    stats->info.tcp.write.totTCPretry += retry;
-	    stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
-	}
+	gettcpistats(stats);
 #endif
         stats->info.cntOutofOrder = stats->cntOutofOrder;
         // assume most of the time out-of-order packets are not
@@ -978,22 +986,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                   TimeDifference( stats->nextTime, 
                                   stats->packetTime ) < 0 ) {
 #ifdef HAVE_NETINET_IN_H
-	    if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
-		// Read the TCP retry stats for a client.  Do this
-		// on  a report interval period.
-		struct tcp_info tcp_internal;
-		socklen_t tcp_info_length = sizeof(struct tcp_info);
-		int retry;
-		if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
-		    WARN_errno( 1 , "getsockopt");
-		    retry = 0;
-		} else {
-		    retry= tcp_internal.tcpi_total_retrans - stats->info.tcp.write.lastTCPretry;
-		}
-		stats->info.tcp.write.TCPretry = retry;
-		stats->info.tcp.write.totTCPretry += retry;
-		stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
-	    }
+	    gettcpistats(stats);
 #endif
 	    stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;
 	    stats->lastOutofOrder = stats->cntOutofOrder;
