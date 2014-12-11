@@ -99,30 +99,60 @@ extern const char window_default[];
 extern const char wait_server_threads[];
 
 /* -------------------------------------------------------------------
- * reports
+ * Legacy reports
  * ------------------------------------------------------------------- */
-
-extern const char report_read_lengths[];
-
-extern const char report_read_length_times[];
 
 extern const char report_bw_header[];
 
 extern const char report_bw_format[];
 
-extern const char report_bw_pps_header[];
-
-extern const char report_bw_pps_format[];
-
 extern const char report_sum_bw_format[];
+
+extern const char report_bw_read_format[];
 
 extern const char report_bw_jitter_loss_header[];
 
 extern const char report_bw_jitter_loss_format[];
 
-extern const char report_bw_jitter_loss_suppress_format[];
-
 extern const char report_sum_bw_jitter_loss_format[];
+
+/* -------------------------------------------------------------------
+ * Enhanced reports (per -e)
+ * ------------------------------------------------------------------- */
+
+extern const char report_bw_enhanced_format[];
+
+extern const char report_sum_bw_enhanced_format[];
+
+extern const char report_bw_read_enhanced_header[];
+
+extern const char report_bw_read_enhanced_format[];
+
+extern const char report_sum_bw_read_enhanced_format[];
+
+extern const char report_bw_write_enhanced_header[];
+
+extern const char report_bw_write_enhanced_format[];
+
+extern const char report_sum_bw_write_enhanced_format[];
+
+extern const char report_bw_pps_enhanced_header[];
+
+extern const char report_bw_pps_enhanced_format[];
+
+extern const char report_sum_bw_pps_enhanced_format[];
+
+extern const char report_bw_jitter_loss_enhanced_header[];
+
+extern const char report_bw_jitter_loss_enhanced_format[];
+
+extern const char report_bw_jitter_loss_suppress_enhanced_format[];
+
+extern const char report_sum_bw_jitter_loss_enhanced_format[];
+
+/* -------------------------------------------------------------------
+ * Misc reports
+ * ------------------------------------------------------------------- */
 
 extern const char report_outoforder[];
 
