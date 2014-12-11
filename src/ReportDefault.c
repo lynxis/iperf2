@@ -93,11 +93,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 		printf(report_bw_read_enhanced_format, 
 		       stats->transferID, stats->startTime, stats->endTime, 
 		       buffer, &buffer[sizeof(buffer)/2],
-		       ((stats->tcp.read.sumRead/stats->tcp.read.cntRead)/1024),
-		       (stats->tcp.read.minRead/1024), 
-		       (stats->tcp.read.maxRead/1024),
-		       (stats->tcp.read.cntRead < 2) ? 0 : 
-		       sqrt(stats->tcp.read.m2Read / (stats->tcp.read.cntRead - 1)) / 1024);
+		       stats->tcp.read.cntRead);
 	    } else {
 		printf(report_bw_write_enhanced_format, 
 		       stats->transferID, stats->startTime, stats->endTime, 
@@ -180,13 +176,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    stats->transit.meanTransit = 0;
 	    stats->transit.m2Transit = 0;
 	} else if (stats->mTCP == (char)kMode_Server) {
-	    stats->tcp.read.minRead=stats->tcp.read.lastRead;
-	    stats->tcp.read.maxRead=stats->tcp.read.lastRead;
-	    stats->tcp.read.sumRead = stats->tcp.read.lastRead;
 	    stats->tcp.read.cntRead = 0;
-	    stats->tcp.read.vdRead = 0;
-	    stats->tcp.read.meanRead = 0;
-	    stats->tcp.read.m2Read = 0;
 	}
     }
  

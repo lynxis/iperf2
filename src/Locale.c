@@ -220,13 +220,13 @@ const char report_sum_bw_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec\n";
 
 const char report_bw_read_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth      Read avg/min/max/stdev\n";
+"[ ID] Interval        Transfer    Bandwidth       Reads\n";
 
 const char report_bw_read_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec %3.3f/%3.3f/%3.3f/%3.3f Kbytes\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d\n";
 
 const char report_sum_bw_read_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec\n";
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  $d\n";
 
 #ifdef HAVE_NETINET_IN_H
 const char report_bw_write_enhanced_header[] =

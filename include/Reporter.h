@@ -97,14 +97,8 @@ typedef struct TransitStats {
 } TransitStats;    
 
 typedef struct ReadStats {
-    double maxRead;
-    double minRead;
-    double sumRead;
-    double lastRead;
-    double meanRead;
-    double m2Read;
-    double vdRead;
     int cntRead;
+    int totcntRead;
 } ReadStats;    
 
 typedef struct WriteStats {

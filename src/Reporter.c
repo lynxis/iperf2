@@ -804,19 +804,8 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		}
 	    } else if (reporthdr->report.mThreadMode == kMode_Server && (packet->packetLen > 0)) {
 		// mean min max tests
-		stats->tcp.read.sumRead += packet->packetLen;
 		stats->tcp.read.cntRead++;
-		if (!stats->tcp.read.minRead) 
-		    stats->tcp.read.minRead = packet->packetLen;
-		if (packet->packetLen < stats->tcp.read.minRead)
-		    stats->tcp.read.minRead=packet->packetLen;
-		stats->tcp.read.vdRead = packet->packetLen - stats->tcp.read.meanRead;
-		stats->tcp.read.meanRead = stats->tcp.read.meanRead + (stats->tcp.read.vdRead / stats->tcp.read.cntRead);
-		stats->tcp.read.m2Read = stats->tcp.read.m2Read + (stats->tcp.read.vdRead * (packet->packetLen - stats->tcp.read.meanRead));
-		if (packet->packetLen > stats->tcp.read.maxRead) {
-		    stats->tcp.read.maxRead=packet->packetLen;
-		}
-		stats->tcp.read.lastRead = packet->packetLen;
+		stats->tcp.read.totcntRead++;
 	    } else if (reporthdr->report.mThreadMode == kMode_Client) {
 		if (packet->errwrite) { 
 		    stats->tcp.write.WriteErr++;
@@ -967,9 +956,14 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.meanTransit = stats->info.transit.totmeanTransit;
 	stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
 	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
-	stats->info.tcp.write.WriteErr = stats->info.tcp.write.totWriteErr;
-	stats->info.tcp.write.WriteCnt = stats->info.tcp.write.totWriteCnt;
-	stats->info.tcp.write.TCPretry = stats->info.tcp.write.totTCPretry;
+	if (stats->info.mTCP == kMode_Client) {
+	    stats->info.tcp.write.WriteErr = stats->info.tcp.write.totWriteErr;
+	    stats->info.tcp.write.WriteCnt = stats->info.tcp.write.totWriteCnt;
+	    stats->info.tcp.write.TCPretry = stats->info.tcp.write.totTCPretry;
+	}
+	if (stats->info.mTCP == kMode_Server) {
+	    stats->info.tcp.read.cntRead = stats->info.tcp.read.totcntRead;
+	}
 	if (stats->info.endTime > 0) {
 	    stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
 	} else {
