@@ -969,6 +969,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
 	stats->info.tcp.write.WriteErr = stats->info.tcp.write.totWriteErr;
 	stats->info.tcp.write.WriteCnt = stats->info.tcp.write.totWriteCnt;
+	stats->info.tcp.write.TCPretry = stats->info.tcp.write.totTCPretry;
 	if (stats->info.endTime > 0) {
 	    stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
 	} else {
