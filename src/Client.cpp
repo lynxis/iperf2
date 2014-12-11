@@ -156,8 +156,8 @@ void Client::RunRateLimitedTCP ( void ) {
     reportstruct = new ReportStruct;
     reportstruct->packetID = 0;
     reportstruct->emptyreport=0;
-    reportstruct->errwrite=0;
-
+    reportstruct->socket = mSettings->mSock;
+    
     lastPacketTime.setnow();
     if ( mMode_Time ) {
 #ifdef HAVE_SETITIMER
@@ -199,6 +199,7 @@ void Client::RunRateLimitedTCP ( void ) {
 #endif    
 	if (tokens >= 0) { 
 	    // perform write 
+	    reportstruct->errwrite=0;
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite=1; 
@@ -303,7 +304,7 @@ void Client::RunTCP( void ) {
     reportstruct = new ReportStruct;
     reportstruct->packetID = 0;
     reportstruct->emptyreport=0;
-    reportstruct->errwrite=0;
+    reportstruct->socket = mSettings->mSock;
 
     lastPacketTime.setnow();
 
@@ -349,6 +350,7 @@ void Client::RunTCP( void ) {
             canRead = true; 
 
         // perform write 
+	reportstruct->errwrite=0;
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
 	    reportstruct->errwrite=1; 
@@ -531,6 +533,7 @@ void Client::Run( void ) {
     reportstruct->packetID = 0;
     reportstruct->emptyreport=0;
     reportstruct->errwrite=0;
+    reportstruct->socket = mSettings->mSock;
 
     lastPacketTime.setnow();
     // Set this to > 0 so first loop iteration will delay the IPG

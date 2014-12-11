@@ -74,57 +74,89 @@ void reporter_printstats( Transfer_Info *stats ) {
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
                    stats->TotalLen / (stats->endTime - stats->startTime), 
                    stats->mFormat);
+    // TCP reports
     if (!stats->mUDP) {
-	// TCP Reporting
-	if( !header_printed ) {
-	    printf( "%s", report_bw_header);
-	    header_printed = 1;
-	}
-	printf( report_bw_format, stats->transferID, 
-		stats->startTime, stats->endTime, 
-		buffer, &buffer[sizeof(buffer)/2] );
+	if (!stats->mEnhanced) {
+	    if( !header_printed ) {
+		printf( "%s", report_bw_header);
+		header_printed = 1;
+	    }
+	    printf(report_bw_format, stats->transferID, 
+		   stats->startTime, stats->endTime, 
+		   buffer, &buffer[sizeof(buffer)/2]);
+	} else {
+	    if( !header_printed ) {
+		printf( "%s", (stats->mTCP == (char)kMode_Server) ? report_bw_read_enhanced_header : report_bw_write_enhanced_header);;
+		header_printed = 1;
+	    }
+	    if (stats->mTCP == (char)kMode_Server) {
+		printf(report_bw_read_enhanced_format, 
+		       stats->transferID, stats->startTime, stats->endTime, 
+		       buffer, &buffer[sizeof(buffer)/2],
+		       ((stats->tcp.read.sumRead/stats->tcp.read.cntRead)/1024),
+		       (stats->tcp.read.minRead/1024), 
+		       (stats->tcp.read.maxRead/1024),
+		       (stats->tcp.read.cntRead < 2) ? 0 : 
+		       sqrt(stats->tcp.read.m2Read / (stats->tcp.read.cntRead - 1)) / 1024);
+	    } else {
+		printf(report_bw_write_enhanced_format, 
+		       stats->transferID, stats->startTime, stats->endTime, 
+		       buffer, &buffer[sizeof(buffer)/2],
+		       stats->tcp.write.WriteCnt,
+		       stats->tcp.write.WriteErr,
+		       stats->tcp.write.TCPretry);
+	    }
+	}	
     } else if ( stats->mUDP == (char)kMode_Client ) {
 	// UDP Client reporting
 	if( !header_printed ) {
-	    printf( "%s", report_bw_pps_header);
+	    printf( "%s", (stats->mEnhanced ? report_bw_pps_enhanced_header : report_bw_header));
 	    header_printed = 1;
 	}
-	printf( report_bw_pps_format, stats->transferID, 
+	printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID, 
 		stats->startTime, stats->endTime, 
 		buffer, &buffer[sizeof(buffer)/2],
-	        (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+		(stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
     } else {
         // UDP Server Reporting
         if( !header_printed ) {
-	    printf( "%s", report_bw_jitter_loss_header);
+	    printf( "%s", (stats->mEnhanced ? report_bw_jitter_loss_enhanced_header : report_bw_jitter_loss_header));
             header_printed = 1;
         }
 	if (stats->IPGcnt) {
-	    // If the min latency is out of bounds of a realistic value 
-	    // assume the clocks are not synched and suppress the 
-	    // latency output
-	    if ((stats->transit.minTransit > UNREALISTIC_LATENCYMINMAX) ||
-		(stats->transit.minTransit < UNREALISTIC_LATENCYMINMIN)) {
-		printf( report_bw_jitter_loss_suppress_format, stats->transferID,
-			stats->startTime, stats->endTime, 
-			buffer, &buffer[sizeof(buffer)/2],
-			stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-			(100.0 * stats->cntError) / stats->cntDatagrams,
-			(stats->IPGcnt / stats->IPGsum));
-	    } else { 
+	    if (stats->mEnhanced) {
+		// If the min latency is out of bounds of a realistic value 
+		// assume the clocks are not synched and suppress the 
+		// latency output
+		if ((stats->transit.minTransit > UNREALISTIC_LATENCYMINMAX) ||
+		    (stats->transit.minTransit < UNREALISTIC_LATENCYMINMIN)) {
+		    printf( report_bw_jitter_loss_suppress_enhanced_format, stats->transferID,
+			    stats->startTime, stats->endTime, 
+			    buffer, &buffer[sizeof(buffer)/2],
+			    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+			    (100.0 * stats->cntError) / stats->cntDatagrams,
+			    (stats->IPGcnt / stats->IPGsum));
+		} else { 
+		    printf( report_bw_jitter_loss_enhanced_format, stats->transferID, 
+			    stats->startTime, stats->endTime, 
+			    buffer, &buffer[sizeof(buffer)/2],
+			    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+			    (100.0 * stats->cntError) / stats->cntDatagrams,
+			    (stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
+			    stats->transit.minTransit*1000.0,
+			    stats->transit.maxTransit*1000.0,
+			    (stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
+			    (stats->IPGcnt / stats->IPGsum));
+		}
+	    } else {
 		printf( report_bw_jitter_loss_format, stats->transferID, 
 			stats->startTime, stats->endTime, 
 			buffer, &buffer[sizeof(buffer)/2],
 			stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-			(100.0 * stats->cntError) / stats->cntDatagrams,
-			(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
-			stats->transit.minTransit*1000.0,
-			stats->transit.maxTransit*1000.0,
-			(stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
-			(stats->IPGcnt / stats->IPGsum));
+			(100.0 * stats->cntError) / stats->cntDatagrams);
 	    }
 	} else {
-	    printf( report_bw_jitter_loss_suppress_format, stats->transferID, 
+	    printf( stats->mEnhanced ? report_bw_jitter_loss_suppress_enhanced_format : report_bw_jitter_loss_format , stats->transferID, 
 		    stats->startTime, stats->endTime, 
 		    buffer, &buffer[sizeof(buffer)/2],
 		    stats->jitter*1000.0, stats->cntError, 
@@ -136,18 +168,28 @@ void reporter_printstats( Transfer_Info *stats ) {
 		    stats->transferID, stats->startTime, 
 		    stats->endTime, stats->cntOutofOrder );
 	}
-	// Reset the transit stats for the next report interval 
-	stats->transit.minTransit=stats->transit.lastTransit;
-	stats->transit.maxTransit=stats->transit.lastTransit;
-	stats->transit.sumTransit = stats->transit.lastTransit;
-	stats->transit.cntTransit = 0;
-	stats->transit.vdTransit = 0;
-	stats->transit.meanTransit = 0;
-	stats->transit.m2Transit = 0;
     }
-    stats->IPGcnt = 0;
-    stats->IPGsum = 0;
-
+    // Reset the enhanced stats for the next report interval 
+    if (stats->mEnhanced) {
+	if (stats->mUDP) {
+	    stats->transit.minTransit=stats->transit.lastTransit;
+	    stats->transit.maxTransit=stats->transit.lastTransit;
+	    stats->transit.sumTransit = stats->transit.lastTransit;
+	    stats->transit.cntTransit = 0;
+	    stats->transit.vdTransit = 0;
+	    stats->transit.meanTransit = 0;
+	    stats->transit.m2Transit = 0;
+	} else if (stats->mTCP == (char)kMode_Server) {
+	    stats->tcp.read.minRead=stats->tcp.read.lastRead;
+	    stats->tcp.read.maxRead=stats->tcp.read.lastRead;
+	    stats->tcp.read.sumRead = stats->tcp.read.lastRead;
+	    stats->tcp.read.cntRead = 0;
+	    stats->tcp.read.vdRead = 0;
+	    stats->tcp.read.meanRead = 0;
+	    stats->tcp.read.m2Read = 0;
+	}
+    }
+ 
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
         printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 
     }
@@ -165,25 +207,43 @@ void reporter_multistats( Transfer_Info *stats ) {
                    stats->TotalLen / (stats->endTime - stats->startTime), 
                    stats->mFormat);
 
-    if ( stats->mUDP != (char)kMode_Server ) {
-        // TCP Reporting
-        printf( report_sum_bw_format, 
-                stats->startTime, stats->endTime, 
-                buffer, &buffer[sizeof(buffer)/2] );
-    } else {
+    if (!stats->mEnhanced) {
+	if (stats->mUDP) {
         // UDP Reporting
-        printf( report_sum_bw_jitter_loss_format, 
+	    printf(report_sum_bw_jitter_loss_format, 
                 stats->startTime, stats->endTime, 
                 buffer, &buffer[sizeof(buffer)/2],
                 stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-                (100.0 * stats->cntError) / stats->cntDatagrams );
-        if ( stats->cntOutofOrder > 0 ) {
+		   (100.0 * stats->cntError) / stats->cntDatagrams);
+	} else {
+        // TCP Reporting
+	    printf(report_sum_bw_format, 
+		    stats->startTime, stats->endTime, 
+		    buffer, &buffer[sizeof(buffer)/2]);
+	}
+    } else {
+	if (stats->mUDP) {
+	    // UDP Enhanced Reporting
+	    printf( report_sum_bw_pps_enhanced_format, 
+		    stats->startTime, stats->endTime, 
+		    buffer, &buffer[sizeof(buffer)/2],
+		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+	} else {
+	    // TCP Enhanced Reporting
+	    printf( (stats->mTCP == (char)kMode_Client) ? report_sum_bw_write_enhanced_format : report_sum_bw_format , 
+		    stats->startTime, stats->endTime, 
+		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->tcp.write.WriteCnt,
+		    stats->tcp.write.WriteErr,
+		    stats->tcp.write.TCPretry);
+	}
+    }
+    if ((stats->mUDP == kMode_Server) && stats->cntOutofOrder > 0 ) {
             printf( report_sum_outoforder,
                     stats->startTime, 
                     stats->endTime, stats->cntOutofOrder );
-        }
     }
-    if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
+    if ((stats->free == 1) && (stats->mUDP == (char)kMode_Client)) {
         printf( report_sum_datagrams, stats->cntDatagrams ); 
     }
 }

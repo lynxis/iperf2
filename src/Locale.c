@@ -189,48 +189,96 @@ const char wait_server_threads[] =
 "Waiting for server threads to complete. Interrupt again to force quit.\n";
 
 /* -------------------------------------------------------------------
- * reports
+ * Legacy reports
  * ------------------------------------------------------------------- */
-
-const char report_read_lengths[] =
-"[%3d] Read lengths occurring in more than 5%% of reads:\n";
-
-const char report_read_length_times[] =
-"[%3d] %5d bytes read %5d times (%.3g%%)\n";
 
 const char report_bw_header[] =
 "[ ID] Interval       Transfer     Bandwidth\n";
 
-const char report_bw_pps_header[] =
-"[ ID] Interval       Transfer     Bandwidth      PPS\n";
-
 const char report_bw_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec\n";
-
-const char report_bw_pps_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec %4.0f pps\n";
+"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec\n";
 
 const char report_sum_bw_format[] =
-"[SUM] %4.3f-%4.3f sec  %ss  %ss/sec\n";
+"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec\n";
 
 const char report_bw_jitter_loss_header[] =
-"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
-Datagrams Latency avg/min/max/stdev PPS\n";
-
+"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams\n";
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
-
-const char report_bw_jitter_loss_suppress_format[] =
-"[%3d] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) -/-/-/- ms %4.0f pps\n";
+"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
 
 const char report_sum_bw_jitter_loss_format[] =
-"[SUM] %4.3f-%4.3f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
+"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
 
+/* -------------------------------------------------------------------
+ * Enhanced reports (per -e)
+ * ------------------------------------------------------------------- */
+
+const char report_bw_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec\n";
+
+const char report_sum_bw_enhanced_format[] =
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec\n";
+
+const char report_bw_read_enhanced_header[] =
+"[ ID] Interval        Transfer    Bandwidth      Read avg/min/max/stdev\n";
+
+const char report_bw_read_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec %3.3f/%3.3f/%3.3f/%3.3f Kbytes\n";
+
+const char report_sum_bw_read_enhanced_format[] =
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec\n";
+
+#ifdef HAVE_NETINET_IN_H
+const char report_bw_write_enhanced_header[] =
+"[ ID] Interval        Transfer    Bandwidth       Write/Err/Retries\n";
+
+const char report_bw_write_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d/ %d\n";
+
+const char report_sum_bw_write_enhanced_format[] =
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d/ %d\n";
+
+#else
+const char report_bw_write_enhanced_header[] =
+"[ ID] Interval        Transfer    Bandwidth       Write/Err\n";
+
+const char report_bw_write_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d/\n";
+
+const char report_sum_bw_write_enhanced_format[] =
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d\n";
+#endif
+
+const char report_bw_pps_enhanced_header[] =
+"[ ID] Interval       Transfer     Bandwidth      PPS\n";
+
+const char report_bw_pps_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec %4.0f pps\n";
+
+const char report_sum_bw_pps_enhanced_format[] =
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec %4.0f pps\n";
+
+const char report_bw_jitter_loss_enhanced_header[] =
+"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
+ Latency avg/min/max/stdev PPS\n";
+
+const char report_bw_jitter_loss_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
+
+const char report_sum_bw_jitter_loss_enhanced_format[] =
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)  %4.0f pps\n";
+
+const char report_bw_jitter_loss_suppress_enhanced_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) -/-/-/- ms %4.0f pps\n";
+
+/* -------------------------------------------------------------------
+ * Misc reports
+ * ------------------------------------------------------------------- */
 const char report_outoforder[] =
-"[%3d] %4.3f-%4.3f sec  %d datagrams received out-of-order\n";
+"[%3d] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
 
 const char report_sum_outoforder[] =
-"[SUM] %4.3f-%4.3f sec  %d datagrams received out-of-order\n";
+"[SUM] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
 
 const char report_peer[] =
 "[%3d] local %s port %u connected with %s port %u\n";

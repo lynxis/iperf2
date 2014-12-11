@@ -96,6 +96,27 @@ typedef struct TransitStats {
     double totvdTransit;
 } TransitStats;    
 
+typedef struct ReadStats {
+    double maxRead;
+    double minRead;
+    double sumRead;
+    double lastRead;
+    double meanRead;
+    double m2Read;
+    double vdRead;
+    int cntRead;
+} ReadStats;    
+
+typedef struct WriteStats {
+    int WriteCnt;
+    int WriteErr;
+    int TCPretry;
+    int totWriteCnt;
+    int totWriteErr;
+    int totTCPretry;
+    int lastTCPretry;
+} WriteStats;    
+
 /*
  * This struct contains all important information from the sending or
  * recieving thread.
@@ -107,6 +128,7 @@ typedef struct ReportStruct {
     struct timeval sentTime;
     int errwrite;
     int emptyreport;
+    int socket;
 } ReportStruct;
 
 
@@ -120,6 +142,11 @@ typedef struct ReportStruct {
 #define    CONNECTION_REPORT    0x00000008
 #define    MULTIPLE_REPORT      0x00000010
 
+typedef union {
+    ReadStats read;
+    WriteStats write;
+} TCPStats;
+
 typedef struct Transfer_Info {
     void *reserved_delay;
     int transferID;
@@ -128,7 +155,9 @@ typedef struct Transfer_Info {
     int cntOutofOrder;
     int cntDatagrams;
     int IPGcnt;
+    int socket;
     TransitStats transit;
+    TCPStats tcp;
     // Hopefully int64_t's
     max_size_t TotalLen;
     double jitter;
@@ -137,8 +166,10 @@ typedef struct Transfer_Info {
     double IPGsum;
     // chars
     char   mFormat;                 // -f
+    char   mEnhanced;               // -e
     u_char mTTL;                    // -T
     char   mUDP;
+    char   mTCP;
     char   free;
 } Transfer_Info;
 

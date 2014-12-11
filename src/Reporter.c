@@ -162,9 +162,17 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
                 data->mode = agent->mReportMode;
                 data->info.mFormat = agent->mFormat;
                 data->info.mTTL = agent->mTTL;
+                if ( isEnhanced( agent ) ) {
+		    data->info.mEnhanced = 1;
+		} else {
+		    data->info.mEnhanced = 0;
+		}
                 if ( isUDP( agent ) ) {
                     multihdr->report->info.mUDP = (char)agent->mThreadMode;
-                }
+                    multihdr->report->info.mUDP = 0;
+                } else {
+                    multihdr->report->info.mTCP = (char)agent->mThreadMode;
+		}
                 if ( isConnectionReport( agent ) ) {
                     data->type |= CONNECTION_REPORT;
                     data->connection.peer = agent->peer;
@@ -225,7 +233,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             reporthdr->reporterindex = NUM_REPORT_STRUCTS - 1;
             data->info.transferID = agent->mSock;
             data->info.groupID = (agent->multihdr != NULL ? agent->multihdr->groupID 
-                                                          : -1);
+				  : -1);
             data->type = TRANSFER_REPORT;
             if ( agent->mInterval != 0.0 ) {
                 struct timeval *interval = &data->intervalTime;
@@ -246,7 +254,14 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             if ( isUDP( agent ) ) {
 		gettimeofday(&data->IPGstart, NULL);
                 reporthdr->report.info.mUDP = (char)agent->mThreadMode;
-            }
+            } else {
+                reporthdr->report.info.mTCP = (char)agent->mThreadMode;
+	    }
+	    if ( isEnhanced( agent ) ) {
+		data->info.mEnhanced = 1;
+	    } else {
+		data->info.mEnhanced = 0;
+	    }
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
@@ -692,6 +707,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
     double usec_transit;
 
     data->packetTime = packet->packetTime;
+    stats->socket = packet->socket;
     if ( packet->packetID < 0 ) {
         finished = 1;
         if ( reporthdr->report.mThreadMode != kMode_Client ) {
@@ -783,6 +799,30 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    }
 		    stats->transit.lastTransit = transit;
 		}
+	    } else if (reporthdr->report.mThreadMode == kMode_Server && (packet->packetLen > 0)) {
+		// mean min max tests
+		stats->tcp.read.sumRead += packet->packetLen;
+		stats->tcp.read.cntRead++;
+		if (!stats->tcp.read.minRead) 
+		    stats->tcp.read.minRead = packet->packetLen;
+		if (packet->packetLen < stats->tcp.read.minRead)
+		    stats->tcp.read.minRead=packet->packetLen;
+		stats->tcp.read.vdRead = packet->packetLen - stats->tcp.read.meanRead;
+		stats->tcp.read.meanRead = stats->tcp.read.meanRead + (stats->tcp.read.vdRead / stats->tcp.read.cntRead);
+		stats->tcp.read.m2Read = stats->tcp.read.m2Read + (stats->tcp.read.vdRead * (packet->packetLen - stats->tcp.read.meanRead));
+		if (packet->packetLen > stats->tcp.read.maxRead) {
+		    stats->tcp.read.maxRead=packet->packetLen;
+		}
+		stats->tcp.read.lastRead = packet->packetLen;
+	    } else if (reporthdr->report.mThreadMode == kMode_Client) {
+		if (packet->errwrite) { 
+		    stats->tcp.write.WriteErr++;
+		    stats->tcp.write.totWriteErr++;
+		}
+		else { 
+		    stats->tcp.write.WriteCnt++;
+		    stats->tcp.write.totWriteCnt++;
+		}
 	    }
 	} else if ((stats->mUDP == kMode_Server) &&	\
 		   (stats->transit.cntTransit == 0)) {
@@ -830,16 +870,33 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
                 current->cntOutofOrder = stats->cntOutofOrder;
                 current->TotalLen = stats->TotalLen;
                 current->mFormat = stats->mFormat;
+                current->mEnhanced = stats->mEnhanced;
                 current->endTime = stats->endTime;
                 current->jitter = stats->jitter;
                 current->startTime = stats->startTime;
+                current->startTime = stats->startTime;
+		current->IPGcnt = stats->IPGcnt;
+                current->startTime = stats->startTime;
+		current->IPGsum = stats->IPGsum;
+		current->mUDP = stats->mUDP;
+		current->mTCP = stats->mTCP;
+		current->tcp.write.WriteErr = stats->tcp.write.WriteErr;
+		current->tcp.write.WriteCnt = stats->tcp.write.WriteCnt;
+#ifdef HAVE_NETINET_IN_H
+		current->tcp.write.TCPretry = stats->tcp.write.TCPretry;
+#endif
                 current->free = 1;
             } else {
                 current->cntDatagrams += stats->cntDatagrams;
                 current->cntError += stats->cntError;
                 current->cntOutofOrder += stats->cntOutofOrder;
                 current->TotalLen += stats->TotalLen;
-                current->mFormat = stats->mFormat;
+		current->IPGcnt += stats->IPGcnt;
+		current->tcp.write.WriteErr += stats->tcp.write.WriteErr;
+		current->tcp.write.WriteCnt += stats->tcp.write.WriteCnt;
+#ifdef HAVE_NETINET_IN_H
+		current->tcp.write.TCPretry += stats->tcp.write.TCPretry;
+#endif
                 if ( current->endTime < stats->endTime ) {
                     current->endTime = stats->endTime;
                 }
@@ -864,7 +921,26 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
  * Prints reports conditionally
  */
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force ) {
+
     if ( force ) {
+#ifdef HAVE_NETINET_IN_H
+	if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
+	    // Read the TCP retry stats for a client.  Do this
+	    // on  a report interval period.
+	    struct tcp_info tcp_internal;
+	    socklen_t tcp_info_length = sizeof(struct tcp_info);
+	    int retry;
+	    if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
+		WARN_errno( 1 , "getsockopt");
+		retry = 0;
+	    } else {
+		retry = tcp_internal.tcpi_total_retrans - stats->info.tcp.write.lastTCPretry;
+	    }
+	    stats->info.tcp.write.TCPretry = retry;
+	    stats->info.tcp.write.totTCPretry += retry;
+	    stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+	}
+#endif
         stats->info.cntOutofOrder = stats->cntOutofOrder;
         // assume most of the time out-of-order packets are not
         // duplicate packets, so conditionally subtract them from the lost packets.
@@ -883,10 +959,12 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.meanTransit = stats->info.transit.totmeanTransit;
 	stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
 	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
+	stats->info.tcp.write.WriteErr = stats->info.tcp.write.totWriteErr;
+	stats->info.tcp.write.WriteCnt = stats->info.tcp.write.totWriteCnt;
 	if (stats->info.endTime > 0) {
-	  stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
+	    stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
 	} else {
-	  stats->info.IPGcnt = 0;
+	    stats->info.IPGcnt = 0;
 	}
 	stats->info.IPGsum = 1;
         stats->info.free = 1;
@@ -899,6 +977,24 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                    stats->intervalTime.tv_usec != 0) && 
                   TimeDifference( stats->nextTime, 
                                   stats->packetTime ) < 0 ) {
+#ifdef HAVE_NETINET_IN_H
+	    if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
+		// Read the TCP retry stats for a client.  Do this
+		// on  a report interval period.
+		struct tcp_info tcp_internal;
+		socklen_t tcp_info_length = sizeof(struct tcp_info);
+		int retry;
+		if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
+		    WARN_errno( 1 , "getsockopt");
+		    retry = 0;
+		} else {
+		    retry= tcp_internal.tcpi_total_retrans - stats->info.tcp.write.lastTCPretry;
+		}
+		stats->info.tcp.write.TCPretry = retry;
+		stats->info.tcp.write.totTCPretry += retry;
+		stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+	    }
+#endif
 	    stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;
 	    stats->lastOutofOrder = stats->cntOutofOrder;
 	    // assume most of the  time out-of-order packets are not
@@ -920,6 +1016,16 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    reporter_print( stats, TRANSFER_REPORT, force );
 	    if ( isMultipleReport(stats) ) {
 		reporter_handle_multiple_reports( multireport, &stats->info, force );
+	    }
+	    // Reset stats used by SUM now that the SUM has been reported
+	    if (stats->info.mEnhanced) {
+		if (stats->info.mUDP) {
+		    stats->info.IPGcnt = 0;
+		    stats->info.IPGsum = 0;
+		} else if (stats->info.mTCP == (char)kMode_Client) {
+		    stats->info.tcp.write.WriteCnt = 0;
+		    stats->info.tcp.write.WriteErr = 0;
+		}
 	    }
 	}
     return force;

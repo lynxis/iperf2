@@ -87,6 +87,7 @@ const struct option long_options[] =
 {"bandwidth",  required_argument, NULL, 'b'},
 {"client",     required_argument, NULL, 'c'},
 {"dualtest",         no_argument, NULL, 'd'},
+{"enhancedreports",   no_argument, NULL, 'e'},
 {"format",     required_argument, NULL, 'f'},
 {"help",             no_argument, NULL, 'h'},
 {"interval",   required_argument, NULL, 'i'},
@@ -133,6 +134,7 @@ const struct option env_options[] =
 {"IPERF_BANDWIDTH",  required_argument, NULL, 'b'},
 {"IPERF_CLIENT",     required_argument, NULL, 'c'},
 {"IPERF_DUALTEST",         no_argument, NULL, 'd'},
+{"IPERF_ENHANCEDREPORTS",  no_argument, NULL, 'e'},
 {"IPERF_FORMAT",     required_argument, NULL, 'f'},
 // skip help
 {"IPERF_INTERVAL",   required_argument, NULL, 'i'},
@@ -170,7 +172,7 @@ const struct option env_options[] =
 
 #define SHORT_OPTIONS()
 
-const char short_options[] = "1b:c:df:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWZ:";
+const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWZ:";
 
 /* -------------------------------------------------------------------
  * defaults
@@ -374,7 +376,9 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             mExtSettings->mMode = kTest_TradeOff;
 #endif
             break;
-
+        case 'e': // Use enhanced reports 
+            setEnhanced( mExtSettings );
+            break;
         case 'f': // format to print in
             mExtSettings->mFormat = (*optarg);
             break;
@@ -391,6 +395,9 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
                 fprintf (stderr, report_interval_small, mExtSettings->mInterval);
                 mExtSettings->mInterval = SMALLEST_INTERVAL;
             }
+            if ( mExtSettings->mInterval < 0.5 ) {
+		setEnhanced( mExtSettings );
+	    }
             break;
 
         case 'l': // length of each buffer
