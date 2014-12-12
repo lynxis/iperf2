@@ -134,6 +134,7 @@ AC_CHECK_DECLS([CPU_SET],[],[],[
 	#include <sched.h>
 	])
 AC_CHECK_DECLS([SIGALRM],[],[],[#include <signal.h>])
+AC_CHECK_DECLS([TCP_INFO],[],[],[#include <linux/tcp.h>])
 
 
 dnl             Gotten from some NetBSD configure.in

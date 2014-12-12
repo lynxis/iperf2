@@ -118,7 +118,7 @@ int reporter_handle_packet( ReportHeader *report );
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force );
 int reporter_print( ReporterData *stats, int type, int end );
 void PrintMSS( ReporterData *stats );
-#ifdef HAVE_NETINET_IN_H
+#if  HAVE_DECL_TCP_INFO
 static void gettcpistats(ReporterData *stats);
 #endif
 
@@ -874,7 +874,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		current->mTCP = stats->mTCP;
 		current->tcp.write.WriteErr = stats->tcp.write.WriteErr;
 		current->tcp.write.WriteCnt = stats->tcp.write.WriteCnt;
-#ifdef HAVE_NETINET_IN_H
+#if  HAVE_DECL_TCP_INFO
 		current->tcp.write.TCPretry = stats->tcp.write.TCPretry;
 #endif
                 current->free = 1;
@@ -886,7 +886,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		current->IPGcnt += stats->IPGcnt;
 		current->tcp.write.WriteErr += stats->tcp.write.WriteErr;
 		current->tcp.write.WriteCnt += stats->tcp.write.WriteCnt;
-#ifdef HAVE_NETINET_IN_H
+#if  HAVE_DECL_TCP_INFO
 		current->tcp.write.TCPretry += stats->tcp.write.TCPretry;
 #endif
                 if ( current->endTime < stats->endTime ) {
@@ -909,7 +909,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
     }
 }
 
-#ifdef HAVE_NETINET_IN_H
+#if  HAVE_DECL_TCP_INFO
 static void gettcpistats (ReporterData *stats) {
     struct tcp_info tcp_internal;
     socklen_t tcp_info_length = sizeof(struct tcp_info);
@@ -935,7 +935,7 @@ static void gettcpistats (ReporterData *stats) {
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force ) {
 
     if ( force ) {
-#ifdef HAVE_NETINET_IN_H
+#if  HAVE_DECL_TCP_INFO
 	gettcpistats(stats);
 #endif
         stats->info.cntOutofOrder = stats->cntOutofOrder;
@@ -980,7 +980,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                    stats->intervalTime.tv_usec != 0) && 
                   TimeDifference( stats->nextTime, 
                                   stats->packetTime ) < 0 ) {
-#ifdef HAVE_NETINET_IN_H
+#if  HAVE_DECL_TCP_INFO
 	    gettcpistats(stats);
 #endif
 	    stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;
