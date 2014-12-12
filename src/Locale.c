@@ -243,7 +243,7 @@ const char report_bw_write_enhanced_header[] =
 "[ ID] Interval        Transfer    Bandwidth       Write/Err\n";
 
 const char report_bw_write_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d/\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d\n";
 
 const char report_sum_bw_write_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d\n";
