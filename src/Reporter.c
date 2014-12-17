@@ -165,6 +165,8 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
                 data->mode = agent->mReportMode;
                 data->info.mFormat = agent->mFormat;
                 data->info.mTTL = agent->mTTL;
+		if (data->mThreadMode == kMode_Server) 
+		    data->info.tcp.read.binsize = data->mBufLen / 8;
                 if ( isEnhanced( agent ) ) {
 		    data->info.mEnhanced = 1;
 		} else {
@@ -254,6 +256,8 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->mode = agent->mReportMode;
             data->info.mFormat = agent->mFormat;
             data->info.mTTL = agent->mTTL;
+	    if (data->mThreadMode == kMode_Server) 
+		data->info.tcp.read.binsize = data->mBufLen / 8;
             if ( isUDP( agent ) ) {
 		gettimeofday(&data->IPGstart, NULL);
                 reporthdr->report.info.mUDP = (char)agent->mThreadMode;
@@ -803,9 +807,13 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    stats->transit.lastTransit = transit;
 		}
 	    } else if (reporthdr->report.mThreadMode == kMode_Server && (packet->packetLen > 0)) {
+		int bin;
 		// mean min max tests
 		stats->tcp.read.cntRead++;
 		stats->tcp.read.totcntRead++;
+		bin = (int)floor((packet->packetLen -1)/stats->tcp.read.binsize);
+		stats->tcp.read.bins[bin]++;
+		stats->tcp.read.totbins[bin]++;
 	    } else if (reporthdr->report.mThreadMode == kMode_Client) {
 		if (packet->errwrite) { 
 		    stats->tcp.write.WriteErr++;
@@ -872,11 +880,19 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		current->IPGsum = stats->IPGsum;
 		current->mUDP = stats->mUDP;
 		current->mTCP = stats->mTCP;
-		current->tcp.write.WriteErr = stats->tcp.write.WriteErr;
-		current->tcp.write.WriteCnt = stats->tcp.write.WriteCnt;
+		if (stats->mTCP == kMode_Server) {
+		    int ix;
+		    current->tcp.read.cntRead = stats->tcp.read.cntRead;
+		    for (ix = 0; ix < 8; ix++) {
+			current->tcp.read.bins[ix] = stats->tcp.read.bins[ix];
+		    }
+		} else if (stats->mTCP == kMode_Client) {
+		    current->tcp.write.WriteErr = stats->tcp.write.WriteErr;
+		    current->tcp.write.WriteCnt = stats->tcp.write.WriteCnt;
 #if  HAVE_DECL_TCP_INFO
-		current->tcp.write.TCPretry = stats->tcp.write.TCPretry;
+		    current->tcp.write.TCPretry = stats->tcp.write.TCPretry;
 #endif
+		}
                 current->free = 1;
             } else {
                 current->cntDatagrams += stats->cntDatagrams;
@@ -884,11 +900,19 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
                 current->cntOutofOrder += stats->cntOutofOrder;
                 current->TotalLen += stats->TotalLen;
 		current->IPGcnt += stats->IPGcnt;
-		current->tcp.write.WriteErr += stats->tcp.write.WriteErr;
-		current->tcp.write.WriteCnt += stats->tcp.write.WriteCnt;
+		if (stats->mTCP == kMode_Server) {
+		    int ix;
+		    current->tcp.read.cntRead += stats->tcp.read.cntRead;
+		    for (ix = 0; ix < 8; ix++) {
+			current->tcp.read.bins[ix] += stats->tcp.read.bins[ix];
+		    }
+		} else if (stats->mTCP == kMode_Client) {
+		    current->tcp.write.WriteErr += stats->tcp.write.WriteErr;
+		    current->tcp.write.WriteCnt += stats->tcp.write.WriteCnt;
 #if  HAVE_DECL_TCP_INFO
-		current->tcp.write.TCPretry += stats->tcp.write.TCPretry;
+		    current->tcp.write.TCPretry += stats->tcp.write.TCPretry;
 #endif
+		}
                 if ( current->endTime < stats->endTime ) {
                     current->endTime = stats->endTime;
                 }
@@ -926,6 +950,7 @@ static void gettcpistats (ReporterData *stats) {
 	stats->info.tcp.write.TCPretry = retry;
 	stats->info.tcp.write.totTCPretry += retry;
 	stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+	stats->info.tcp.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
     } 
 }
 #endif
@@ -962,7 +987,11 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    stats->info.tcp.write.TCPretry = stats->info.tcp.write.totTCPretry;
 	}
 	if (stats->info.mTCP == kMode_Server) {
+	    int ix;
 	    stats->info.tcp.read.cntRead = stats->info.tcp.read.totcntRead;
+	    for (ix = 0; ix < 8; ix++) {
+		stats->info.tcp.read.bins[ix] = stats->info.tcp.read.totbins[ix];
+	    }
 	}
 	if (stats->info.endTime > 0) {
 	    stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);
@@ -1013,6 +1042,12 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 		} else if (stats->info.mTCP == (char)kMode_Client) {
 		    stats->info.tcp.write.WriteCnt = 0;
 		    stats->info.tcp.write.WriteErr = 0;
+		} else if (stats->info.mTCP == (char)kMode_Server) {
+		    int ix;
+		    stats->info.tcp.read.cntRead = 0;
+		    for (ix = 0; ix < 8; ix++) { 
+			stats->info.tcp.read.bins[ix] = 0;
+		    }
 		}
 	    }
 	}

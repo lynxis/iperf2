@@ -220,33 +220,33 @@ const char report_sum_bw_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec\n";
 
 const char report_bw_read_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Reads\n";
+"[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=%.1fK)\n";
 
 const char report_bw_read_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
 
 const char report_sum_bw_read_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  $d\n";
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
 
 #if  HAVE_DECL_TCP_INFO
 const char report_bw_write_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Write/Err/Retries\n";
+"[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd\n";
 
 const char report_bw_write_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d/ %d\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d%10d%7dK\n";
 
 const char report_sum_bw_write_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d/ %d\n";
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d%10d\n";
 
 #else
 const char report_bw_write_enhanced_header[] =
 "[ ID] Interval        Transfer    Bandwidth       Write/Err\n";
 
 const char report_bw_write_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d\n";
 
 const char report_sum_bw_write_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/ %d\n";
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d\n";
 #endif
 
 const char report_bw_pps_enhanced_header[] =

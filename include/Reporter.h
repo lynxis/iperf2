@@ -99,6 +99,9 @@ typedef struct TransitStats {
 typedef struct ReadStats {
     int cntRead;
     int totcntRead;
+    int bins[8];
+    int totbins[8];
+    int binsize;
 } ReadStats;    
 
 typedef struct WriteStats {
@@ -109,6 +112,7 @@ typedef struct WriteStats {
     int totWriteErr;
     int totTCPretry;
     int lastTCPretry;
+    int cwnd;
 } WriteStats;    
 
 /*

@@ -86,21 +86,30 @@ void reporter_printstats( Transfer_Info *stats ) {
 		   buffer, &buffer[sizeof(buffer)/2]);
 	} else {
 	    if( !header_printed ) {
-		printf( "%s", (stats->mTCP == (char)kMode_Server) ? report_bw_read_enhanced_header : report_bw_write_enhanced_header);;
+		printf((stats->mTCP == (char)kMode_Server ? report_bw_read_enhanced_header : report_bw_write_enhanced_header), (stats->tcp.read.binsize/1024.0));
 		header_printed = 1;
 	    }
 	    if (stats->mTCP == (char)kMode_Server) {
 		printf(report_bw_read_enhanced_format, 
 		       stats->transferID, stats->startTime, stats->endTime, 
 		       buffer, &buffer[sizeof(buffer)/2],
-		       stats->tcp.read.cntRead);
+		       stats->tcp.read.cntRead,
+		       stats->tcp.read.bins[0],
+		       stats->tcp.read.bins[1],
+		       stats->tcp.read.bins[2],
+		       stats->tcp.read.bins[3],
+		       stats->tcp.read.bins[4],
+		       stats->tcp.read.bins[5],
+		       stats->tcp.read.bins[6],
+		       stats->tcp.read.bins[7]);
 	    } else {
 		printf(report_bw_write_enhanced_format, 
 		       stats->transferID, stats->startTime, stats->endTime, 
 		       buffer, &buffer[sizeof(buffer)/2],
 		       stats->tcp.write.WriteCnt,
 		       stats->tcp.write.WriteErr,
-		       stats->tcp.write.TCPretry);
+		       stats->tcp.write.TCPretry,
+		       stats->tcp.write.cwnd);
 	    }
 	}	
     } else if ( stats->mUDP == (char)kMode_Client ) {
@@ -175,8 +184,6 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    stats->transit.vdTransit = 0;
 	    stats->transit.meanTransit = 0;
 	    stats->transit.m2Transit = 0;
-	} else if (stats->mTCP == (char)kMode_Server) {
-	    stats->tcp.read.cntRead = 0;
 	}
     }
  
@@ -220,12 +227,27 @@ void reporter_multistats( Transfer_Info *stats ) {
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
 	} else {
 	    // TCP Enhanced Reporting
-	    printf( (stats->mTCP == (char)kMode_Client) ? report_sum_bw_write_enhanced_format : report_sum_bw_format , 
-		    stats->startTime, stats->endTime, 
-		    buffer, &buffer[sizeof(buffer)/2],
-		    stats->tcp.write.WriteCnt,
-		    stats->tcp.write.WriteErr,
-		    stats->tcp.write.TCPretry);
+	    if (stats->mTCP == (char)kMode_Client) {
+		printf( report_sum_bw_write_enhanced_format,
+			stats->startTime, stats->endTime, 
+			buffer, &buffer[sizeof(buffer)/2],
+			stats->tcp.write.WriteCnt,
+			stats->tcp.write.WriteErr,
+			stats->tcp.write.TCPretry);
+	    } else {
+		printf( report_sum_bw_read_enhanced_format,
+			stats->startTime, stats->endTime, 
+			buffer, &buffer[sizeof(buffer)/2],
+			stats->tcp.read.cntRead,
+			stats->tcp.read.bins[0],
+			stats->tcp.read.bins[1],
+			stats->tcp.read.bins[2],
+			stats->tcp.read.bins[3],
+			stats->tcp.read.bins[4],
+			stats->tcp.read.bins[5],
+			stats->tcp.read.bins[6],
+			stats->tcp.read.bins[7]);
+	    }		    
 	}
     }
     if ((stats->mUDP == kMode_Server) && stats->cntOutofOrder > 0 ) {
