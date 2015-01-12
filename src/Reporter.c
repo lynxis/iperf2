@@ -118,7 +118,7 @@ int reporter_handle_packet( ReportHeader *report );
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force );
 int reporter_print( ReporterData *stats, int type, int end );
 void PrintMSS( ReporterData *stats );
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 static void gettcpistats(ReporterData *stats);
 #endif
 
@@ -889,7 +889,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		} else if (stats->mTCP == kMode_Client) {
 		    current->tcp.write.WriteErr = stats->tcp.write.WriteErr;
 		    current->tcp.write.WriteCnt = stats->tcp.write.WriteCnt;
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 		    current->tcp.write.TCPretry = stats->tcp.write.TCPretry;
 #endif
 		}
@@ -909,7 +909,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		} else if (stats->mTCP == kMode_Client) {
 		    current->tcp.write.WriteErr += stats->tcp.write.WriteErr;
 		    current->tcp.write.WriteCnt += stats->tcp.write.WriteCnt;
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 		    current->tcp.write.TCPretry += stats->tcp.write.TCPretry;
 #endif
 		}
@@ -933,7 +933,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
     }
 }
 
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 static void gettcpistats (ReporterData *stats) {
     struct tcp_info tcp_internal;
     socklen_t tcp_info_length = sizeof(struct tcp_info);
@@ -960,7 +960,7 @@ static void gettcpistats (ReporterData *stats) {
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force ) {
 
     if ( force ) {
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 	gettcpistats(stats);
 #endif
         stats->info.cntOutofOrder = stats->cntOutofOrder;
@@ -1009,7 +1009,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                    stats->intervalTime.tv_usec != 0) && 
                   TimeDifference( stats->nextTime, 
                                   stats->packetTime ) < 0 ) {
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 	    gettcpistats(stats);
 #endif
 	    stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;

@@ -228,7 +228,7 @@ const char report_bw_read_enhanced_format[] =
 const char report_sum_bw_read_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
 
-#if  HAVE_DECL_TCP_INFO
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 const char report_bw_write_enhanced_header[] =
 "[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd\n";
 
