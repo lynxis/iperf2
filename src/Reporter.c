@@ -874,7 +874,6 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
                 current->endTime = stats->endTime;
                 current->jitter = stats->jitter;
                 current->startTime = stats->startTime;
-                current->startTime = stats->startTime;
 		current->IPGcnt = stats->IPGcnt;
                 current->startTime = stats->startTime;
 		current->IPGsum = stats->IPGsum;
