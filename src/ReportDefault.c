@@ -206,7 +206,7 @@ void reporter_multistats( Transfer_Info *stats ) {
                    stats->mFormat);
 
     if (!stats->mEnhanced) {
-	if (stats->mUDP) {
+	if (stats->mUDP == (char)kMode_Server) {
         // UDP Reporting
 	    printf(report_sum_bw_jitter_loss_format, 
                 stats->startTime, stats->endTime, 
