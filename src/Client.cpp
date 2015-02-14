@@ -206,18 +206,11 @@ void Client::RunRateLimitedTCP ( void ) {
 		currLen = 0;
 		if (
 #ifdef WIN32
-                    (errno = WSAGetLastError()) == WSAETIMEDOUT
+		    (errno = WSAGetLastError()) != WSAETIMEDOUT
 #else
-		    errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK
+		    errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
 #endif
 		    ) {
-#ifndef HAVE_CLOCK_GETTIME
-		    // leverage the packet gettimeofday reducing
-		    // these sys calls (which can be expensive)
-		    time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
-#endif
-		    break;
-		} else if (errno != 0) {
 		    WARN_errno( 1 , "write");
 		    break;
 		}
