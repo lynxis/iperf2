@@ -237,14 +237,12 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data = &reporthdr->report;
             reporthdr->reporterindex = NUM_REPORT_STRUCTS - 1;
             data->info.transferID = agent->mSock;
-            data->info.groupID = (agent->multihdr != NULL ? agent->multihdr->groupID 
-				  : -1);
+            data->info.groupID = (agent->multihdr != NULL ? agent->multihdr->groupID : -1);
             data->type = TRANSFER_REPORT;
             if ( agent->mInterval != 0.0 ) {
                 struct timeval *interval = &data->intervalTime;
                 interval->tv_sec = (long) agent->mInterval;
-                interval->tv_usec = (long) ((agent->mInterval - interval->tv_sec) 
-                                            * rMillion);
+                interval->tv_usec = (long) ((agent->mInterval - interval->tv_sec) * rMillion);
             }
             data->mHost = agent->mHost;
             data->mLocalhost = agent->mLocalhost;
@@ -393,15 +391,17 @@ void ReportPacket( ReportHeader* agent, ReportStruct *packet ) {
  * the report and signal transfer is over.
  */
 void CloseReport( ReportHeader *agent, ReportStruct *packet ) {
+    int currpktid;
     if ( agent != NULL) {
 
         /*
          * Using PacketID of -1 ends reporting
          */
+	currpktid = packet->packetID;
         packet->packetID = -1;
         packet->packetLen = 0;
         ReportPacket( agent, packet );
-        packet->packetID = agent->report.cntDatagrams;
+        packet->packetID = currpktid;
     }
 }
 
@@ -738,7 +738,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    transit = TimeDifference( packet->packetTime, packet->sentTime );
 		    // packet loss occured if the datagram numbers aren't sequential 
 		    if ( packet->packetID != data->PacketID + 1 ) {
-			if ( packet->packetID < data->PacketID + 1 ) {
+			if (packet->packetID < data->PacketID + 1 ) {
 			    data->cntOutofOrder++;
 			} else {
 			    data->cntError += packet->packetID - data->PacketID - 1;

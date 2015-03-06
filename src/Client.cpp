@@ -735,13 +735,18 @@ void Client::write_UDP_FIN( ) {
     int rc; 
     fd_set readSet; 
     struct timeval timeout; 
+    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf; 
 
     int count = 0; 
+    int packetid;
     while ( count < 10 ) {
         count++; 
 
         // write data 
         write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
+	// decrement the packet count
+	packetid = ntohl(mBuf_UDP->id);
+        mBuf_UDP->id = htonl(--packetid); 
 
         // wait until the socket is readable, or our timeout expires 
         FD_ZERO( &readSet ); 
