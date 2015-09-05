@@ -954,6 +954,7 @@ static void gettcpistats (ReporterData *stats) {
 	stats->info.tcp.write.totTCPretry += retry;
 	stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
 	stats->info.tcp.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
+	stats->info.tcp.write.rtt = tcp_internal.tcpi_rtt;
     } 
 }
 #endif

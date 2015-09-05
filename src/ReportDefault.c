@@ -110,7 +110,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 		       stats->tcp.write.WriteCnt,
 		       stats->tcp.write.WriteErr,
 		       stats->tcp.write.TCPretry,
-		       stats->tcp.write.cwnd);
+		       stats->tcp.write.cwnd,
+		       stats->tcp.write.rtt);
 	    }
 	}	
     } else if ( stats->mUDP == (char)kMode_Client ) {

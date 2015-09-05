@@ -113,6 +113,7 @@ typedef struct WriteStats {
     int totTCPretry;
     int lastTCPretry;
     int cwnd;
+    int rtt;
 } WriteStats;    
 
 /*
