@@ -56,13 +56,29 @@
 #include "report_CSV.h"
 #include "Locale.h"
 
-void CSV_timestamp( char *timestamp, int length );
  
 void CSV_stats( Transfer_Info *stats ) {
     // $TIMESTAMP,$ID,$INTERVAL,$BYTE,$SPEED,$JITTER,$LOSS,$PACKET,$%LOSS
     max_size_t speed = (max_size_t)(((double)stats->TotalLen * 8.0) / (stats->endTime - stats->startTime));
-    char timestamp[16];
-    CSV_timestamp( timestamp, sizeof(timestamp) );
+    char timestamp[80], buffer[80];
+    int milliseconds;
+#ifdef HAVE_CLOCK_GETTIME
+    struct timespec t1;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    milliseconds = t1.tv_nsec / 1e6;
+#else
+    struct timeval t1;
+    gettimeofday( &t1, NULL );
+    milliseconds = t1.tv_usec / 1e3;
+#endif
+
+   // localtime is not thread safe.  It's only used by the reporter thread.  Use localtime_r if thread safe is ever needed.
+    strftime(buffer, 80, "%Y%m%d%H%M%S", localtime(&t1.tv_sec));
+    if (!stats->mEnhanced) {
+	snprintf(timestamp, 80, "%s", buffer);
+    } else {
+	snprintf(timestamp, 80, "%s.%.3d", buffer, milliseconds);
+    }
     if ( stats->mUDP != (char)kMode_Server ) {
         // TCP Reporting
         printf( reportCSV_bw_format, 
@@ -148,10 +164,3 @@ void CSV_serverstats( Connection_Info *conn, Transfer_Info *stats ) {
     CSV_stats( stats );
 }
 
-void CSV_timestamp( char *timestamp, int length ) {
-    time_t times;
-    struct tm *timest;
-    times = time( NULL );
-    timest = localtime( &times );
-    strftime( timestamp, length,"%Y%m%d%H%M%S", timest );
-}
