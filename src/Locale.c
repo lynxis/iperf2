@@ -76,6 +76,7 @@ Usage: iperf [-s|-c host] [options]\n\
 \n\
 Client/Server:\n\
   -b, --bandwidth #[KMG | pps]  bandwidth to send at in bits/sec or packets per second\n\
+  -e, --enhancedreports    use enhanced reporting giving more tcp/udp and traffic information\n\
   -f, --format    [kmKM]   format to report: Kbits, Mbits, KBytes, MBytes\n\
   -i, --interval  #        seconds between periodic bandwidth reports\n\
   -l, --len       #[KM]    length of buffer to read or write (default 8 KB)\n\
