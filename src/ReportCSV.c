@@ -60,7 +60,7 @@
 void CSV_stats( Transfer_Info *stats ) {
     // $TIMESTAMP,$ID,$INTERVAL,$BYTE,$SPEED,$JITTER,$LOSS,$PACKET,$%LOSS
     max_size_t speed = (max_size_t)(((double)stats->TotalLen * 8.0) / (stats->endTime - stats->startTime));
-    char timestamp[80], buffer[80];
+    char timestamp[80];
     int milliseconds;
 #ifdef HAVE_CLOCK_GETTIME
     struct timespec t1;
@@ -73,10 +73,11 @@ void CSV_stats( Transfer_Info *stats ) {
 #endif
 
    // localtime is not thread safe.  It's only used by the reporter thread.  Use localtime_r if thread safe is ever needed.
-    strftime(buffer, 80, "%Y%m%d%H%M%S", localtime(&t1.tv_sec));
     if (!stats->mEnhanced) {
-	snprintf(timestamp, 80, "%s", buffer);
+	strftime(timestamp, 80, "%Y%m%d%H%M%S", localtime(&t1.tv_sec));
     } else {
+	char  buffer[80];
+	strftime(buffer, 80, "%Y%m%d%H%M%S", localtime(&t1.tv_sec));
 	snprintf(timestamp, 80, "%s.%.3d", buffer, milliseconds);
     }
     if ( stats->mUDP != (char)kMode_Server ) {
