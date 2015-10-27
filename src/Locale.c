@@ -92,7 +92,7 @@ Client/Server:\n\
   -C, --compatibility      for use with older versions does not sent extra msgs\n\
   -M, --mss       #        set TCP maximum segment size (MTU - 40 bytes)\n\
   -N, --nodelay            set TCP no delay, disabling Nagle's Algorithm\n\
-  -V, --IPv6Version        Set the domain to IPv6\n\
+  -V, --ipv6_domain        Set the domain to IPv6\n\
 \n\
 Server specific:\n\
   -s, --server             run in server mode\n\

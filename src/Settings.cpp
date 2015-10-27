@@ -318,7 +318,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
     char outarg[100];
     char *parsedopts;
     char *results = NULL;
-    double theNum;
+    max_size_t theNum;
     char suffix='\0';
 
     switch ( option ) {
@@ -328,7 +328,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
         case 'b': // UDP bandwidth
             Settings_GetLowerCaseArg(optarg,outarg);
 	    // scan for PPS units, just look for 'p' as that's good enough
-	    sscanf(outarg, "%lf%c", &theNum, &suffix );
+	    sscanf(outarg, "%ld%c", &theNum, &suffix );
 	    if (suffix == 'p') {
 		mExtSettings->mUDPRateUnits = kRate_PPS;
 		mExtSettings->mUDPRate = theNum;
