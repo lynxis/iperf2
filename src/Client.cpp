@@ -202,7 +202,7 @@ void Client::RunRateLimitedTCP ( void ) {
 	    reportstruct->errwrite=0;
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	    if ( currLen < 0 ) {
-		reportstruct->errwrite=1; 
+		reportstruct->errwrite=1;
 		currLen = 0;
 		if (
 #ifdef WIN32
@@ -346,7 +346,7 @@ void Client::RunTCP( void ) {
 	reportstruct->errwrite=0;
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
-	    reportstruct->errwrite=1; 
+	    reportstruct->errwrite=1;
 	    currLen = 0;
 	    if (
 #ifdef WIN32
@@ -602,6 +602,8 @@ void Client::Run( void ) {
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
 	    reportstruct->errwrite = 1; 
+	    reportstruct->packetID--;
+	    reportstruct->emptyreport=1; 
 	    currLen = 0;
 	    if (
 #ifdef WIN32
