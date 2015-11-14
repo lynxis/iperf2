@@ -420,6 +420,7 @@ void Client::Run( void ) {
     double delay_target = 0; 
     double delay = 0; 
     double adjust = 0;
+    double delay_lower_bounds;
 
     char* readAt = mBuf;
 
@@ -435,6 +436,8 @@ void Client::Run( void ) {
 	} else if (isModeTime(mSettings)) {
 	    sosndtimer = (mSettings->mAmount / 100.0) / 2;
 	} 
+	delay_lower_bounds = sosndtimer * -1e9;
+
 	if (sosndtimer) {
 #ifdef WIN32
             // Windows SO_RCVTIMEO uses ms
@@ -580,6 +583,11 @@ void Client::Run( void ) {
 	    // that spans the life of the thread and constantly adjust.
 	    // A negative delay means the iperf app is behind.
 	    delay += adjust;
+	    // Don't let delay grow unbounded
+	    if (delay < delay_lower_bounds) {
+		delay = delay_target;
+	    }
+
         }
 
         // Read the next data block from 
