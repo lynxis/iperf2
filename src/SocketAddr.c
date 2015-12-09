@@ -117,11 +117,45 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
     }
         inSettings->size_local = sizeof( struct sockaddr_in );
 #endif
-    if ( inSettings->mLocalhost != NULL && inSettings->mThreadMode != kMode_Server) {
-      SockAddr_setPort( &inSettings->local, inSettings->mBindPort );
-    } else {
-      SockAddr_setPort( &inSettings->local, inSettings->mPort );
-    }
+     /*
+      *
+      *  If user set -B for src port (local) binding then
+      *  let's figure things out
+      *
+      *  Quintuple is IP:SrcIP:SrcPort:DestIP:DstPort
+      *  mPort comes from the -p command and defaults to 5001
+      *  mBindPport comes from -B IP:<PORT> and defaults to 0
+      *  mLocalhost indicates -B set
+      *  isMulticast indicates Multicast IP
+      *  Zero will cause the OS to auto assign a SrcPort when unicast
+      *  There are three threads being Client, Listener and Server.
+      *  Windows uses Listener while *nix Server,
+      *  so Listener and Server need to be the same
+      *
+      */
+     if (inSettings->mLocalhost != NULL) {
+	  if (inSettings->mThreadMode == kMode_Client) {
+	       /* Client thread */
+	       if (inSettings->mBindPort) {
+		    SockAddr_setPort( &inSettings->local, inSettings->mBindPort );
+	       } else {
+		    SockAddr_setPortAny (&inSettings->local);
+	       }
+	  } else {
+	       /* Server or Listener thread */
+	       if (isMulticast( inSettings )) {
+		    /*
+		     * A multicast server thread receives/listens
+		     * on the -p port, the -B port is ignored
+		     */
+		    SockAddr_setPort( &inSettings->local, inSettings->mPort );
+	       } else if (inSettings->mBindPort) {
+		    SockAddr_setPort( &inSettings->local, inSettings->mBindPort );
+	       } else {
+		    SockAddr_setPortAny (&inSettings->local);
+	       }
+	  }
+     }
 }
 // end SocketAddr
 

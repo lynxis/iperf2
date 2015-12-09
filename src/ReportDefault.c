@@ -293,8 +293,9 @@ void reporter_reportsettings( ReporterData *data ) {
     }
     if ( data->mLocalhost != NULL ) {
         printf( bind_address, data->mLocalhost );
-        if ( SockAddr_isMulticast( &data->connection.local ) ) {
-            printf( join_multicast, data->mLocalhost );
+	if ((data->mThreadMode != kMode_Client) && \
+	    SockAddr_isMulticast(&data->connection.local)) {
+              printf( join_multicast, data->mLocalhost );
         }
     }
 
