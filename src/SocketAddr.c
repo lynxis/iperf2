@@ -118,22 +118,29 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
         inSettings->size_local = sizeof( struct sockaddr_in );
 #endif
      /*
+      *  This section handles the *local* port binding (which is messy)
+      *  Quintuple is Proto:LocalIP:LocalPort:DstIP:DstPort
       *
-      *  If user set -B for src port (local) binding then
-      *  let's figure things out
-      *
-      *  Quintuple is IP:SrcIP:SrcPort:DestIP:DstPort
-      *  mPort comes from the -p command and defaults to 5001
-      *  mBindPport comes from -B IP:<PORT> and defaults to 0
-      *  mLocalhost indicates -B set
-      *  isMulticast indicates Multicast IP
-      *  Zero will cause the OS to auto assign a SrcPort when unicast
-      *  There are three threads being Client, Listener and Server.
-      *  Windows uses Listener while *nix Server,
-      *  so Listener and Server need to be the same
+      *  There are three threads being Client, Listener and Server
+      *  mPort comes from the -p command (which defaults to 5001)
+      *  mLocalhost indicates -B set requesting a local binding 
+      *  mBindPport comes from -B IP:<port> (where port defaults to 0)
+      *  Multicast IP address, e.g. 239.1.1.1, is set per a -B
+      *  Zero will cause the OS to auto assign a LocalPort
+      *  Windows uses Listener thread while *nix a server thread for iperf -s
+      *  (so, effectively, Listener and Server threads are the same)
       *
       */
-     if (inSettings->mLocalhost != NULL) {
+     if (inSettings->mLocalhost == NULL) {
+	 if (inSettings->mThreadMode == kMode_Client) {
+	     /* Client thread, -p and no -B */
+	     SockAddr_setPortAny (&inSettings->local);
+	 } else {
+	     /* Server or Listener thread, -p and no -B */
+	     SockAddr_setPort( &inSettings->local, inSettings->mPort );
+	 }
+     } else {
+	 /* -B was set (required to receive IP multicast) */
 	  if (inSettings->mThreadMode == kMode_Client) {
 	       /* Client thread */
 	       if (inSettings->mBindPort) {
@@ -142,18 +149,8 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
 		    SockAddr_setPortAny (&inSettings->local);
 	       }
 	  } else {
-	       /* Server or Listener thread */
-	       if (isMulticast( inSettings )) {
-		    /*
-		     * A multicast server thread receives/listens
-		     * on the -p port, the -B port is ignored
-		     */
-		    SockAddr_setPort( &inSettings->local, inSettings->mPort );
-	       } else if (inSettings->mBindPort) {
-		    SockAddr_setPort( &inSettings->local, inSettings->mBindPort );
-	       } else {
-		    SockAddr_setPortAny (&inSettings->local);
-	       }
+	      /* Server or Listener thread, both always use -p port */
+	      SockAddr_setPort( &inSettings->local, inSettings->mPort );
 	  }
      }
 }
