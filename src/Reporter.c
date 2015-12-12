@@ -626,6 +626,16 @@ again:
                     goto again;
             }
             Condition_Signal( &ReportDoneCond );
+#ifdef HAVE_NANOSLEEP 
+	    {
+		struct timespec requested, remaining;
+		requested.tv_sec  = 0;
+		requested.tv_nsec = 10000000L;
+		nanosleep(&requested, &remaining);
+	    }
+#else 
+	    usleep(10000);
+#endif
         }
     } while ( 1 );
 }
