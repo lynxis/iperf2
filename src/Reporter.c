@@ -1080,12 +1080,16 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    if ( isMultipleReport(stats) ) {
 		reporter_handle_multiple_reports( multireport, &stats->info, force );
 	    }
-	    // Reset stats used by SUM now that the SUM has been reported
+	    /*
+	     * Reset transfer stats now that both the individual and SUM reports
+	     * have completed
+	     */
+	    if (stats->info.mUDP) {
+		stats->info.IPGcnt = 0;
+		stats->info.IPGsum = 0;
+	    }
 	    if (stats->info.mEnhanced) {
-		if (stats->info.mUDP) {
-		    stats->info.IPGcnt = 0;
-		    stats->info.IPGsum = 0;
-		} else if (stats->info.mTCP == (char)kMode_Client) {
+		if (stats->info.mTCP == (char)kMode_Client) {
 		    stats->info.tcp.write.WriteCnt = 0;
 		    stats->info.tcp.write.WriteErr = 0;
 		} else if (stats->info.mTCP == (char)kMode_Server) {
