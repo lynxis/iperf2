@@ -58,7 +58,7 @@
 #include "SocketAddr.h"
 #include "PerfSocket.hpp"
 #include "Extractor.h"
-#include "delay.hpp"
+#include "delay.h"
 #include "util.h"
 #include "Locale.h"
 #ifdef HAVE_SCHED_SETSCHEDULER

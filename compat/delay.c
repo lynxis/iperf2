@@ -51,10 +51,9 @@
  * -------------------------------------------------------------------
  * attempts at accurate microsecond delays
  * ------------------------------------------------------------------- */
-
-#include "Timestamp.hpp"
+#include "headers.h"
 #include "util.h"
-#include "delay.hpp"
+#include "delay.h"
 
 #define MILLION 1000000
 #define BILLION 1000000000
@@ -89,6 +88,7 @@
  * (under Linux e.g. it uses hrtimers), does not affect any signals, 
  * and will use up remaining time when interrupted.
  * ------------------------------------------------------------------- */
+
 void delay_loop(unsigned long usec)
 {
 #ifdef HAVE_KALMAN

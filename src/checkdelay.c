@@ -53,7 +53,7 @@
 #include <unistd.h>
 #include "headers.h"
 #include "util.h"
-#include "delay.hpp"
+#include "delay.h"
 #ifdef HAVE_SCHED_SETSCHEDULER
 #include <sched.h>
 #ifdef HAVE_MLOCKALL
