@@ -49,6 +49,7 @@
  *
  * ________________________________________________________________ */
 
+#include <math.h>
 #include "headers.h"
 #include "Settings.hpp"
 #include "util.h"
