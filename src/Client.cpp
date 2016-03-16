@@ -52,6 +52,7 @@
  * ------------------------------------------------------------------- */
 
 #include <time.h>
+#include <cmath>
 #include "headers.h"
 #include "Client.hpp"
 #include "Thread.h"

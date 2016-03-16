@@ -54,6 +54,7 @@
  * ------------------------------------------------------------------- */
 
 #define HEADERS()
+#include <cmath>
 #include "headers.h"
 #include "Server.hpp"
 #include "List.h"

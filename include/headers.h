@@ -82,7 +82,6 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 #include <float.h>
 #include <sys/types.h>
 
