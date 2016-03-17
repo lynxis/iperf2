@@ -344,7 +344,7 @@ void Listener::Listen( ) {
 #endif
     {
         rc = bind( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local );
-        WARN_errno( rc == SOCKET_ERROR, "bind" );
+        FAIL_errno( rc == SOCKET_ERROR, "bind", mSettings );
     }
     // listen for connections (TCP only).
     // default backlog traditionally 5
