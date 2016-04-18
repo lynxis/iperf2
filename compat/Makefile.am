@@ -12,7 +12,7 @@ AM_LDFLAGS = -lrt
 libcompat_a_SOURCES = \
 		      Thread.c \
 		      error.c \
-		      delay.cpp \
+		      delay.c \
 		      gettimeofday.c \
 		      headers_slim.h \
 		      inet_ntop.c \
