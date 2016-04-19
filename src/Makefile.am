@@ -40,6 +40,6 @@ iperf_SOURCES = \
 
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
 
-checkdelay_SOURCES = checkdelay.cpp
+checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 

@@ -324,7 +324,7 @@ iperf_SOURCES = \
 		tcp_window_size.c
 
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
-checkdelay_SOURCES = checkdelay.cpp
+checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 all: all-am
 
