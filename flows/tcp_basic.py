@@ -22,7 +22,7 @@ def testloop(loop):
 #tcp.stop()
 
 count=10
-iperffromsrc = '/usr/local/src/iperf2-code/src/iperf' 
+iperffromsrc = '../src/iperf' 
 if shutil.which(iperffromsrc) is not None :
     flows.iperf = iperffromsrc
 flows = [iperf_flow(name="TCP" + str(i)) for i in range(count)]
