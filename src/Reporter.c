@@ -1,4 +1,4 @@
-/*--------------------------------------------------------------- 
+/*---------------------------------------------------------------
  * Copyright (c) 1999,2000,2001,2002,2003                              
  * The Board of Trustees of the University of Illinois            
  * All Rights Reserved.                                           
@@ -17,7 +17,7 @@
  * copyright notice, this list of conditions and 
  * the following disclaimers. 
  *
- *     
+ *
  * Redistributions in binary form must reproduce the above 
  * copyright notice, this list of conditions and the following 
  * disclaimers in the documentation and/or other materials 
@@ -330,6 +330,9 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 #else
         // set start time
         gettimeofday( &(reporthdr->report.startTime), NULL );
+        // set next report time
+	reporthdr->report.nextTime = reporthdr->report.startTime;
+	TimeAdd( reporthdr->report.nextTime, reporthdr->report.intervalTime );
         /*
          * Process the report in this thread
          */
