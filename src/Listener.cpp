@@ -449,7 +449,7 @@ void Listener::Accept( thread_Settings *server ) {
 	    }
 	    struct timeval timeout;
 	    timeout.tv_sec = mSettings->mAmount / 100;
-	    timeout.tv_usec = (mSettings->mAmount % 100) * 1e4;
+	    timeout.tv_usec = (mSettings->mAmount % 100) * 10000;
 	    fd_set set;
 	    FD_ZERO(&set);
 	    FD_SET(mSettings->mSock, &set);
@@ -518,7 +518,13 @@ void Listener::UDPSingleServer( ) {
     client_hdr* hdr = ( UDP ? (client_hdr*) (((UDP_datagram*)mBuf) + 1) : 
                               (client_hdr*) mBuf);
     ReportStruct *reportstruct = new ReportStruct;
-    
+    bool mMode_Time = isServerModeTime( mSettings ) && !isDaemon( mSettings );
+    // setup termination variables
+    if ( mMode_Time ) {
+	mEndTime.setnow();
+	mEndTime.add( mSettings->mAmount / 100.0 );
+    }
+
     if ( mSettings->mHost != NULL ) {
         client = true;
         SockAddr_remoteAddr( mSettings );
@@ -536,6 +542,26 @@ void Listener::UDPSingleServer( ) {
         // Get next packet
         while ( sInterupted == 0) {
             server->size_peer = sizeof( iperf_sockaddr );
+
+	    if (mMode_Time) {
+		struct timeval t1;
+		gettimeofday( &t1, NULL );
+		if (mEndTime.before( t1)) {
+		    sInterupted = 1;
+		    break;
+		}
+		struct timeval timeout;
+		timeout.tv_sec = mSettings->mAmount / 100;
+		timeout.tv_usec = (mSettings->mAmount % 100) * 10000;
+		fd_set set;
+		FD_ZERO(&set);
+		FD_SET(mSettings->mSock, &set);
+		if (select( mSettings->mSock + 1, &set, NULL, NULL, &timeout) <= 0) {
+		    sInterupted = 1;
+		    break;
+		}
+	    }
+
             rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0, 
                            (struct sockaddr*) &server->peer, &server->size_peer );
             WARN_errno( rc == SOCKET_ERROR, "recvfrom" );
