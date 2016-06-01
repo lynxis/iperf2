@@ -57,6 +57,7 @@
 
 #include "Thread.h"
 #include "Settings.hpp"
+#include "Timestamp.hpp"
 
 class Listener;
 
@@ -89,6 +90,7 @@ protected:
     char* mBuf;
     thread_Settings *mSettings;
     thread_Settings *server;
+    Timestamp mEndTime;
 
 }; // end class Listener
 

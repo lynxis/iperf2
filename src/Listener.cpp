@@ -421,63 +421,91 @@ void Listener::McastSetTTL( int val ) {
 
 /* -------------------------------------------------------------------
  * After Listen() has setup mSock, this will block
- * until a new connection arrives.
+ * until a new connection arrives or until the -t value occurs
  * ------------------------------------------------------------------- */
 
 void Listener::Accept( thread_Settings *server ) {
 
     server->size_peer = sizeof(iperf_sockaddr); 
-    if ( isUDP( server ) ) {
-        /* ------------------------------------------------------------------- 
-         * Do the equivalent of an accept() call for UDP sockets. This waits 
-         * on a listening UDP socket until we get a datagram. 
-         * ------------------------------------------------------------------- */
-        int rc;
-        Iperf_ListEntry *exist;
-        int32_t datagramID;
-        server->mSock = INVALID_SOCKET;
-        while ( server->mSock == INVALID_SOCKET ) {
-            rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0, 
-                           (struct sockaddr*) &server->peer, &server->size_peer );
-            FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
+    // Handles interupted accepts. Returns the newly connected socket.
+    server->mSock = INVALID_SOCKET;
 
-            Mutex_Lock( &clients_mutex );
+    bool mMode_Time = isServerModeTime( mSettings ) && !isDaemon( mSettings );
+    // setup termination variables
+    if ( mMode_Time ) {
+	mEndTime.setnow();
+	mEndTime.add( mSettings->mAmount / 100.0 );
+	if (!setsock_blocking(mSettings->mSock, 0)) {
+	    WARN(1, "Failed setting socket to non-blocking mode");
+	}
+    }
+
+    while ( server->mSock == INVALID_SOCKET) {
+	if (mMode_Time) {
+	    struct timeval t1;
+	    gettimeofday( &t1, NULL );
+	    if (mEndTime.before( t1)) {
+		break;
+	    }
+	    struct timeval timeout;
+	    timeout.tv_sec = mSettings->mAmount / 100;
+	    timeout.tv_usec = (mSettings->mAmount % 100) * 1e4;
+	    fd_set set;
+	    FD_ZERO(&set);
+	    FD_SET(mSettings->mSock, &set);
+	    if (select( mSettings->mSock + 1, &set, NULL, NULL, &timeout) <= 0) {
+		break;
+	    }
+	}
+	if ( isUDP( server ) ) {
+	    /* ------------------------------------------------------------------------
+	     * Do the equivalent of an accept() call for UDP sockets. This waits
+	     * on a listening UDP socket until we get a datagram.
+	     * ------------------------------------------------------------------- ----*/
+	    int rc;
+	    Iperf_ListEntry *exist;
+	    int32_t datagramID;
+	    server->mSock = INVALID_SOCKET;
+
+	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
+			   (struct sockaddr*) &server->peer, &server->size_peer );
+	    FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
+
+	    Mutex_Lock( &clients_mutex );
     
-            // Handle connection for UDP sockets.
-            exist = Iperf_present( &server->peer, clients);
-            datagramID = ntohl( ((UDP_datagram*) mBuf)->id ); 
-            if ( exist == NULL && datagramID >= 0 ) {
-                server->mSock = mSettings->mSock;
-                int rc = connect( server->mSock, (struct sockaddr*) &server->peer,
-                                  server->size_peer );
-                FAIL_errno( rc == SOCKET_ERROR, "connect UDP", mSettings );
-            } else {
-                server->mSock = INVALID_SOCKET;
-            }
-            Mutex_Unlock( &clients_mutex );
-        }
-    } else {
-        // Handles interupted accepts. Returns the newly connected socket.
-        server->mSock = INVALID_SOCKET;
-    
-        while ( server->mSock == INVALID_SOCKET ) {
-            // accept a connection
-            server->mSock = accept( mSettings->mSock, 
-                                    (sockaddr*) &server->peer, &server->size_peer );
-            if ( server->mSock == INVALID_SOCKET && 
+	    // Handle connection for UDP sockets.
+	    exist = Iperf_present( &server->peer, clients);
+	    datagramID = ntohl( ((UDP_datagram*) mBuf)->id );
+	    if ( exist == NULL && datagramID >= 0 ) {
+		server->mSock = mSettings->mSock;
+		int rc = connect( server->mSock, (struct sockaddr*) &server->peer,
+				  server->size_peer );
+		FAIL_errno( rc == SOCKET_ERROR, "connect UDP", mSettings );
+	    } else {
+		server->mSock = INVALID_SOCKET;
+	    }
+	    Mutex_Unlock( &clients_mutex );
+	} else {
+	    // accept a TCP  connection
+	    server->mSock = accept( mSettings->mSock,  (sockaddr*) &server->peer, &server->size_peer );
+	    if ( server->mSock == INVALID_SOCKET &&
 #if WIN32
 		 WSAGetLastError() == WSAEINTR
 #else
 		 errno == EINTR
 #endif
-	     ) {
-		 continue;
-		 }
-        }
+		) {
+		break;
+	    }
+	}
+    }
+    if (server->mSock != INVALID_SOCKET) {
+	if (!setsock_blocking(server->mSock, 1)) {
+	    WARN(1, "Failed setting socket to blocking mode");
+	}
     }
     server->size_local = sizeof(iperf_sockaddr); 
-    getsockname( server->mSock, (sockaddr*) &server->local, 
-                 &server->size_local );
+    getsockname( server->mSock, (sockaddr*) &server->local, &server->size_local );
 } // end Accept
 
 void Listener::UDPSingleServer( ) {

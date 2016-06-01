@@ -52,7 +52,6 @@
  * ------------------------------------------------------------------- */
 
 #include <time.h>
-#include <cmath>
 #include "headers.h"
 #include "Client.hpp"
 #include "Thread.h"
@@ -430,25 +429,24 @@ void Client::Run( void ) {
     //  and after Client::InitiateServer as during thes
     //  default socket timeouts are preferred.
     {
-	double sosndtimer;
-	sosndtimer = 0;    
+	int sosndtimer = 0;
+	// sosndtimer units microseconds
 	if (mSettings->mInterval) {
-	    sosndtimer = mSettings->mInterval / 2;
+	    sosndtimer = (int) (mSettings->mInterval * 1000000) / 2;
 	} else if (isModeTime(mSettings)) {
-	    sosndtimer = (mSettings->mAmount / 100.0) / 2;
+	    sosndtimer = (mSettings->mAmount * 10000) / 2;
 	} 
-	delay_lower_bounds = sosndtimer * -1e9;
+        // units nanoseconds for delay bounds
+	delay_lower_bounds = (double) sosndtimer * -1e3;
 
-	if (sosndtimer) {
+	if (sosndtimer > 0) {
 #ifdef WIN32
             // Windows SO_RCVTIMEO uses ms
-	    DWORD timeout = (sosndtimer) * 1e3;
+	    DWORD timeout = (double) sosndtimer / 1e3;
 #else
 	    struct timeval timeout;
-	    double intpart, fractpart;
-	    fractpart = modf(sosndtimer, &intpart);
-	    timeout.tv_sec = (int) (intpart);
-	    timeout.tv_usec = (int) (fractpart * 1e6);
+	    timeout.tv_sec = sosndtimer / 1000000;
+	    timeout.tv_usec = sosndtimer % 1000000;
 #endif
 	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
 		WARN_errno( mSettings->mSock == SO_SNDTIMEO, "socket" );

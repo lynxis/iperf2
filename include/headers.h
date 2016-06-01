@@ -84,6 +84,7 @@
 #include <time.h>
 #include <float.h>
 #include <sys/types.h>
+#include <fcntl.h>
 
 #ifdef WIN32
 

@@ -54,7 +54,7 @@
  * ------------------------------------------------------------------- */
 
 #define HEADERS()
-#include <cmath>
+
 #include "headers.h"
 #include "Server.hpp"
 #include "List.h"
@@ -108,7 +108,7 @@ void Server::Run( void ) {
     struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf; 
     ReportStruct *reportstruct = NULL;
     int running;
-    static struct timeval watchdog;
+    bool mMode_Time = isServerModeTime( mSettings );
 
 #if HAVE_DECL_SO_TIMESTAMP
     // Structures needed for recvmsg
@@ -133,20 +133,24 @@ void Server::Run( void ) {
         reportstruct->packetID = 0;
         mSettings->reporthdr = InitReport( mSettings );
 	running=1;
-	// Set the socket timeout to 1/2 the report interval
+	int sorcvtimer = 0;
+	// sorcvtimer units microseconds convert to that
+	// minterval double, units seconds
+	// mAmount integer, units 10 milliseconds
+	// divide by two so timeout is 1/2 the interval
 	if (mSettings->mInterval) {
+	    sorcvtimer = (int) (mSettings->mInterval * 1e6) / 2;
+	} else if (isModeTime(mSettings)) {
+	    sorcvtimer = (mSettings->mAmount * 1000) / 2;
+	}
+	if (sorcvtimer > 0) {
 #ifdef WIN32
-	  // Windows SO_RCVTIMEO uses ms
-	    DWORD timeout;
-	    timeout = (mSettings->mInterval / 2.0) * 1e3;
+            // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout = (double) sorcvtimer / 1e3;
 #else
-	  // Linux SO_RCVTIMEO uses timeval
 	    struct timeval timeout;
-	    double intpart, fractpart, half;
-	    half = mSettings->mInterval / 2;
-	    fractpart = modf(half, &intpart);
-	    timeout.tv_sec = (int) (intpart);
-	    timeout.tv_usec = (int) (fractpart * 1e6);
+	    timeout.tv_sec = sorcvtimer / 1000000;
+	    timeout.tv_usec = sorcvtimer % 1000000;
 #endif
 	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
 		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
@@ -175,7 +179,11 @@ void Server::Run( void ) {
 	    }
 	}
 #endif
-	gettimeofday( &watchdog, NULL );
+	// setup termination variables
+	if ( mMode_Time ) {
+	    mEndTime.setnow();
+	    mEndTime.add( mSettings->mAmount / 100.0 );
+	}
         do {
 	    reportstruct->emptyreport=0;
 #if HAVE_DECL_SO_TIMESTAMP
@@ -187,7 +195,7 @@ void Server::Run( void ) {
 		gettimeofday( &(reportstruct->packetTime), NULL );
                 // End loop on 0 read or socket error
 		// except for socket read timeout
-		if (currLen == 0 || (TimeDifference(reportstruct->packetTime, watchdog) > (mSettings->mAmount / 100)) ||
+		if (currLen == 0 ||
 #ifdef WIN32
 		    (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
@@ -196,7 +204,7 @@ void Server::Run( void ) {
 		    ) {
 		    running = 0;
 		}
-		currLen=0;
+		currLen= 0;
 	    }
 
             if (!reportstruct->emptyreport && isUDP( mSettings ) ) {
@@ -241,7 +249,6 @@ void Server::Run( void ) {
             }
 #endif
 	    if (currLen) {
-		watchdog = reportstruct->packetTime;
 		totLen += currLen;
 	    }
             // terminate when datagram begins with negative index 
@@ -251,6 +258,9 @@ void Server::Run( void ) {
                 currLen = -1;
 		running = 0; 
             }
+	    if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
+		running = 0;
+	    }
 
 	    if ( isUDP (mSettings)) {
 		ReportPacket( mSettings->reporthdr, reportstruct );

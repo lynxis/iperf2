@@ -181,7 +181,6 @@ int main( int argc, char **argv ) {
             // remove the service
             if ( CmdRemoveService() ) {
                 fprintf(stderr, "IPerf Service is removed.\n");
-
                 return 0;
             }
         }
@@ -195,7 +194,6 @@ int main( int argc, char **argv ) {
 	    fclose(stdout);
 	    fclose(stderr); 
 	    fclose(stdin); 
-
 	}
 #endif
         // initialize client(s)

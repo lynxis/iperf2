@@ -276,22 +276,27 @@ void reporter_serverstats( Connection_Info *nused, Transfer_Info *stats ) {
  */
 void reporter_reportsettings( ReporterData *data ) {
     int win, win_requested;
+#ifdef WIN32
+    int pid =   _getpid();
+#else
+    int pid =  (int)  getpid();
+#endif
 
     win = getsock_tcp_windowsize( data->info.transferID,
                   (data->mThreadMode == kMode_Listener ? 0 : 1) );
     win_requested = data->mTCPWin;
-
     printf( "%s", separator_line );
     if ( data->mThreadMode == kMode_Listener ) {
-        printf( server_port,
-                (isUDP( data ) ? "UDP" : "TCP"), 
-                data->mPort );
+        printf(isEnhanced(data) ? server_pid_port : server_port,
+                (isUDP( data ) ? "UDP" : "TCP"),
+                data->mPort, pid );
     } else {
-        printf( client_port,
+        printf(isEnhanced(data) ? client_pid_port : client_port,
                 data->mHost,
                 (isUDP( data ) ? "UDP" : "TCP"),
-                data->mPort );
+                data->mPort, pid);
     }
+
     if ( data->mLocalhost != NULL ) {
         printf( bind_address, data->mLocalhost );
 	if ((data->mThreadMode != kMode_Client) && \

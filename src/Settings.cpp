@@ -467,9 +467,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             mExtSettings->mThreadMode = kMode_Listener;
             break;
 
-        case 't': // seconds to write for
-            // time mode (instead of amount mode)
+        case 't': // seconds to run the client, server, listener
+            // time mode (instead of amount mode), units is 10 ms
             setModeTime( mExtSettings );
+            setServerModeTime( mExtSettings );
             mExtSettings->mAmount = (int) (atof( optarg ) * 100.0);
             break;
 

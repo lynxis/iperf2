@@ -224,6 +224,7 @@ typedef struct thread_Settings {
 #define FLAG_REALTIME       0x00800000
 #define FLAG_BWSET          0x01000000
 #define FLAG_ENHANCEDREPORT 0x02000000
+#define FLAG_SERVERMODETIME 0x04000000
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -253,6 +254,7 @@ typedef struct thread_Settings {
 #define isRealtime(settings)       ((settings->flags & FLAG_REALTIME) != 0)
 #define isBWSet(settings)          ((settings->flags & FLAG_BWSET) != 0)
 #define isEnhanced(settings)    ((settings->flags & FLAG_ENHANCEDREPORT) != 0)
+#define isServerModeTime(settings)    ((settings->flags & FLAG_SERVERMODETIME) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -280,6 +282,7 @@ typedef struct thread_Settings {
 #define setRealtime(settings)      settings->flags |= FLAG_REALTIME
 #define setBWSet(settings)         settings->flags |= FLAG_BWSET
 #define setEnhanced(settings)      settings->flags |= FLAG_ENHANCEDREPORT
+#define setServerModeTime(settings)      settings->flags |= FLAG_SERVERMODETIME
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -307,6 +310,7 @@ typedef struct thread_Settings {
 #define unsetRealtime(settings)    settings->flags &= ~FLAG_REALTIME
 #define unsetBWSet(settings)       settings->flags &= ~FLAG_BWSET
 #define unsetEnhanced(settings)    settings->flags &= ~FLAG_ENHANCEDREPORT
+#define unsetServerModeTime(settings)    settings->flags &= ~FLAG_SERVERMODETIME
 
 
 #define HEADER_VERSION1 0x80000000
