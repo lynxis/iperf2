@@ -276,11 +276,7 @@ void reporter_serverstats( Connection_Info *nused, Transfer_Info *stats ) {
  */
 void reporter_reportsettings( ReporterData *data ) {
     int win, win_requested;
-#ifdef WIN32
-    int pid =   _getpid();
-#else
     int pid =  (int)  getpid();
-#endif
 
     win = getsock_tcp_windowsize( data->info.transferID,
                   (data->mThreadMode == kMode_Listener ? 0 : 1) );

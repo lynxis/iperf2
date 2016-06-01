@@ -100,6 +100,7 @@
     #include <windows.h>
     #include <winsock2.h>
     #include <ws2tcpip.h>
+    #include <process.h>
 
 /* define EINTR, just to help compile; it isn't useful */
     #ifndef EINTR
