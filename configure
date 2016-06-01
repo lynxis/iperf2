@@ -7243,7 +7243,7 @@ cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_SIGALRM $ac_have_decl
 _ACEOF
 
-ac_fn_c_check_member "$LINENO" "struct tcp_info" "tcpi_total_retrans" "ac_cv_member_struct_tcp_info_tcpi_total_retrans" "#include <linux/tcp.h>
+ac_fn_c_check_member "$LINENO" "struct tcp_info" "tcpi_total_retrans" "ac_cv_member_struct_tcp_info_tcpi_total_retrans" "#include <netinet/tcp.h>
 "
 if test "x$ac_cv_member_struct_tcp_info_tcpi_total_retrans" = xyes; then :
 

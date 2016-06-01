@@ -138,7 +138,7 @@ AC_CHECK_DECLS([CPU_SET],[],[],[
 	])
 AC_CHECK_DECLS([SIGALRM],[],[],[#include <signal.h>])
 AC_CHECK_MEMBERS([struct tcp_info.tcpi_total_retrans],[],[],
-			 [#include <linux/tcp.h>])
+			 [#include <netinet/tcp.h>])
 
 
 dnl             Gotten from some NetBSD configure.in
