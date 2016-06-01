@@ -54,6 +54,7 @@
 #include "headers.h"
 #include "util.h"
 #include "delay.h"
+#include <math.h>
 
 #define MILLION 1000000
 #define BILLION 1000000000

@@ -328,7 +328,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
         case 'b': // UDP bandwidth
             Settings_GetLowerCaseArg(optarg,outarg);
 	    // scan for PPS units, just look for 'p' as that's good enough
-	    sscanf(outarg, "%ld%c", &theNum, &suffix );
+	    sscanf(outarg, "%lld%c", &theNum, &suffix );
 	    if (suffix == 'p') {
 		mExtSettings->mUDPRateUnits = kRate_PPS;
 		mExtSettings->mUDPRate = theNum;

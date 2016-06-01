@@ -119,7 +119,7 @@ Client::~Client() {
     DELETE_ARRAY( mBuf );
 } // end ~Client
 
-const double kSecs_to_usecs = 1e6; 
+// const double kSecs_to_usecs = 1e6; 
 const double kSecs_to_nsecs = 1e9; 
 const int    kBytes_to_Bits = 8; 
 
