@@ -44,7 +44,7 @@
  * http://www.ncsa.uiuc.edu
  * ________________________________________________________________ 
  *
- * delay.hpp
+ * delay.h
  * by Mark Gates <mgates@nlanr.net>
  * -------------------------------------------------------------------
  * accurate microsecond delay
