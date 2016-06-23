@@ -610,7 +610,8 @@ void Client::Run( void ) {
 		errno != WSAECONNREFUSED
 #else
 		errno != EAGAIN && errno != EWOULDBLOCK &&
-		errno != EINTR  && errno != ECONNREFUSED
+		errno != EINTR  && errno != ECONNREFUSED &&
+		errno != ENOBUFS
 #endif
 		) {
 	        WARN_errno( 1, "write" );
