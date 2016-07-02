@@ -1017,8 +1017,9 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         // assume most of the time out-of-order packets are not
         // duplicate packets, so conditionally subtract them from the lost packets.
         stats->info.cntError = stats->cntError;
-        if ( stats->info.cntError > stats->info.cntOutofOrder ) {
-            stats->info.cntError -= stats->info.cntOutofOrder;
+        stats->info.cntError -= stats->info.cntOutofOrder;
+        if ( stats->info.cntError < 0 ) {
+            stats->info.cntError = 0;
         }
         stats->info.cntDatagrams = ((stats->info.mUDP == kMode_Server) ? stats->PacketID : stats->cntDatagrams);
         stats->info.TotalLen = stats->TotalLen;
@@ -1067,8 +1068,9 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    // assume most of the  time out-of-order packets are not
 	    // duplicate packets, so conditionally subtract them from the lost packets.
 	    stats->info.cntError = stats->cntError - stats->lastError;
-	    if ( stats->info.cntError > stats->info.cntOutofOrder ) {
-		stats->info.cntError -= stats->info.cntOutofOrder;
+	    stats->info.cntError -= stats->info.cntOutofOrder;
+	    if ( stats->info.cntError < 0) {
+		stats->info.cntError = 0;
 	    }
 	    stats->lastError = stats->cntError;
 	    stats->info.cntDatagrams = ((stats->info.mUDP == kMode_Server) ? stats->PacketID - stats->lastDatagrams :
