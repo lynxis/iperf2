@@ -89,7 +89,11 @@ void server_spawn( thread_Settings *thread) {
     theServer = new Server( thread );
     
     // Run the test
-    theServer->Run();
+    if ( isUDP( thread ) ) {
+	theServer->RunUDP();
+    } else {
+	theServer->RunTCP();
+    }
     DELETE_PTR( theServer);
 }
 

@@ -96,13 +96,138 @@ Server::~Server() {
 
 void Server::Sig_Int( int inSigno ) {
 }
-
 /* ------------------------------------------------------------------- 
- * Receive data from the (connected) socket.
+ * Receive TCP data from the (connected) socket.
  * Sends termination flag several times at the end. 
  * Does not close the socket. 
  * ------------------------------------------------------------------- */ 
-void Server::Run( void ) {
+void Server::RunTCP( void ) {
+    long currLen; 
+    max_size_t totLen = 0;
+    ReportStruct *reportstruct = NULL;
+    int running;
+    bool mMode_Time = isServerModeTime( mSettings );
+
+    reportstruct = new ReportStruct;
+    if ( reportstruct != NULL ) {
+        reportstruct->packetID = 0;
+        mSettings->reporthdr = InitReport( mSettings );
+	running=1;
+	int sorcvtimer = 0;
+	// sorcvtimer units microseconds convert to that
+	// minterval double, units seconds
+	// mAmount integer, units 10 milliseconds
+	// divide by two so timeout is 1/2 the interval
+	if (mSettings->mInterval) {
+	    sorcvtimer = (int) (mSettings->mInterval * 1e6) / 2;
+	} else if (isModeTime(mSettings)) {
+	    sorcvtimer = (mSettings->mAmount * 1000) / 2;
+	}
+	if (sorcvtimer > 0) {
+#ifdef WIN32
+            // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout = (double) sorcvtimer / 1e3;
+#else
+	    struct timeval timeout;
+	    timeout.tv_sec = sorcvtimer / 1000000;
+	    timeout.tv_usec = sorcvtimer % 1000000;
+#endif // WIN32
+	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
+	    }
+	}
+#ifdef HAVE_SCHED_SETSCHEDULER
+	if ( isRealtime( mSettings ) ) {
+	    struct sched_param sp;
+	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
+		perror("Client set scheduler");
+#ifdef HAVE_MLOCKALL
+	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+		// lock the threads memory
+		perror ("mlockall");
+#endif // MLOCK
+	    }
+	}
+#endif // SCHED
+	// setup termination variables
+	if ( mMode_Time ) {
+	    mEndTime.setnow();
+	    mEndTime.add( mSettings->mAmount / 100.0 );
+	}
+        do {
+	    reportstruct->emptyreport=0;
+	    // perform read 
+	    currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
+#ifdef HAVE_CLOCK_GETTIME
+	    {
+		struct timespec t1; 
+		clock_gettime(CLOCK_REALTIME, &t1);
+		reportstruct->packetTime.tv_sec = t1.tv_sec;
+		reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
+	    }
+#else 
+	    gettimeofday( &(reportstruct->packetTime), NULL );
+#endif  // GETTIME  
+	    if (currLen <= 0) {
+		reportstruct->emptyreport=1;
+		// End loop on 0 read or socket error
+		// except for socket read timeout
+		if (currLen == 0 ||
+#ifdef WIN32
+		    (WSAGetLastError() != WSAEWOULDBLOCK)
+#else
+		    (errno != EAGAIN && errno != EWOULDBLOCK)
+#endif // WIN32		     
+		    ) {
+		    running = 0;
+		}
+		currLen = 0;
+	    }
+	    totLen += currLen;
+	    reportstruct->packetLen = currLen;
+	    if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
+		running = 0;
+	    }
+	    ReportPacket( mSettings->reporthdr, reportstruct );
+        } while (running); 
+                
+        // stop timing 
+#ifdef HAVE_CLOCK_GETTIME
+       {
+	   struct timespec t1; 
+	   clock_gettime(CLOCK_REALTIME, &t1);
+	   reportstruct->packetTime.tv_sec = t1.tv_sec;
+	   reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
+       }
+#else 
+        gettimeofday( &(reportstruct->packetTime), NULL );
+#endif // GETTIME           
+
+	if(0.0 == mSettings->mInterval) {
+	    reportstruct->packetLen = totLen;
+        }
+	ReportPacket( mSettings->reporthdr, reportstruct );
+        CloseReport( mSettings->reporthdr, reportstruct );
+    } else {
+        FAIL(1, "Out of memory! Closing server thread\n", mSettings);
+    }
+
+    Mutex_Lock( &clients_mutex );     
+    Iperf_delete( &(mSettings->peer), &clients ); 
+    Mutex_Unlock( &clients_mutex );
+
+    DELETE_PTR( reportstruct );
+    EndReport( mSettings->reporthdr );
+} 
+
+/* ------------------------------------------------------------------- 
+ * Receive UDP data from the (connected) socket.
+ * Sends termination flag several times at the end. 
+ * Does not close the socket. 
+ * ------------------------------------------------------------------- */ 
+void Server::RunUDP( void ) {
     long currLen; 
     max_size_t totLen = 0;
     struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf; 
@@ -157,11 +282,9 @@ void Server::Run( void ) {
 	    }
 	}
 #if HAVE_DECL_SO_TIMESTAMP
-        if ( isUDP( mSettings ) ) {
-	    int timestampOn = 1;
-	    if (setsockopt(mSettings->mSock, SOL_SOCKET, SO_TIMESTAMP, (int *) &timestampOn, sizeof(timestampOn)) < 0) {
-		WARN_errno( mSettings->mSock == SO_TIMESTAMP, "socket" );
-	    }
+	int timestampOn = 1;
+	if (setsockopt(mSettings->mSock, SOL_SOCKET, SO_TIMESTAMP, (int *) &timestampOn, sizeof(timestampOn)) < 0) {
+	    WARN_errno( mSettings->mSock == SO_TIMESTAMP, "socket" );
 	}
 #endif
 #ifdef HAVE_SCHED_SETSCHEDULER
@@ -207,7 +330,7 @@ void Server::Run( void ) {
 		currLen= 0;
 	    }
 
-            if (!reportstruct->emptyreport && isUDP( mSettings ) ) {
+            if (!reportstruct->emptyreport) {
                 // read the datagram ID and sentTime out of the buffer 
                 reportstruct->packetID = ntohl( mBuf_UDP->id ); 
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
@@ -239,7 +362,7 @@ void Server::Run( void ) {
 		}
 		currLen = 0;
 	    }
-            if (!reportstruct->emptyreport && isUDP( mSettings ) ) {
+            if (!reportstruct->emptyreport) {
 #ifdef HAVE_CLOCK_GETTIME
 		{
 		    struct timespec t1; 
@@ -257,9 +380,7 @@ void Server::Run( void ) {
 		reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
             }
 #endif
-	    if (currLen) {
-		totLen += currLen;
-	    }
+	    totLen += currLen;
             // terminate when datagram begins with negative index 
             // the datagram ID should be correct, just negated 
             if ( reportstruct->packetID < 0 ) {
@@ -270,24 +391,7 @@ void Server::Run( void ) {
 	    if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
 		running = 0;
 	    }
-
-	    if ( isUDP (mSettings)) {
-		ReportPacket( mSettings->reporthdr, reportstruct );
-            } else {
-		// TCP case
-                reportstruct->packetLen = currLen;
-#ifdef HAVE_CLOCK_GETTIME
-		{
-		    struct timespec t1; 
-		    clock_gettime(CLOCK_REALTIME, &t1);
-		    reportstruct->packetTime.tv_sec = t1.tv_sec;
-		    reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
-		}
-#else 
-		gettimeofday( &(reportstruct->packetTime), NULL );
-#endif    
-                ReportPacket( mSettings->reporthdr, reportstruct );
-            }
+	    ReportPacket( mSettings->reporthdr, reportstruct );
         } while (running); 
                 
         // stop timing 
@@ -301,16 +405,10 @@ void Server::Run( void ) {
 #else 
         gettimeofday( &(reportstruct->packetTime), NULL );
 #endif            
-	if ( !isUDP (mSettings)) {
-		if(0.0 == mSettings->mInterval) {
-                        reportstruct->packetLen = totLen;
-                }
-		ReportPacket( mSettings->reporthdr, reportstruct );
-	}
         CloseReport( mSettings->reporthdr, reportstruct );
         
         // send a acknowledgement back only if we're NOT receiving multicast 
-        if ( isUDP( mSettings ) && !isMulticast( mSettings ) ) {
+        if (!isMulticast( mSettings ) ) {
             // send back an acknowledgement of the terminating datagram 
             write_UDP_AckFIN( ); 
         }
