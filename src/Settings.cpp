@@ -564,18 +564,33 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
         case 'B': // specify bind address
 	    parsedopts = new char[ strlen( optarg ) + 1 ];
 	    strcpy(parsedopts, optarg );
-	    results = strtok(parsedopts, ":");
-	    if (results != NULL) {
-	      mExtSettings->mLocalhost = new char[ strlen( results ) + 1 ];
-	      strcpy( mExtSettings->mLocalhost, results );
-	      results = strtok(NULL, ":");
-	      if (results != NULL) 
-		mExtSettings->mBindPort = atoi(results);
-	    } else {  
-	      mExtSettings->mLocalhost = new char[ strlen( optarg ) + 1 ];
-	      strcpy( mExtSettings->mLocalhost, optarg );
+	    mExtSettings->mLocalhost = NULL;
+	    // Check for local port assignment only on the client
+	    if ( mExtSettings->mThreadMode == kMode_Client ) {
+		char *saveptr;
+		// v4 uses a colon as the delimeter for the local bind port, 192.168.1.1:6001
+		// v6 uses bracket notation [2001:e30:1401:2:d46e:b891:3082:b939]:6001
+		if (!isIPV6(mExtSettings)) {
+		    if ((results = strtok_r(parsedopts, ":", &saveptr)) != NULL) {
+			mExtSettings->mLocalhost = new char[ strlen( results ) + 1 ];
+			strcpy( mExtSettings->mLocalhost, results );
+			if ((results = strtok_r(NULL, ":",&saveptr)) != NULL)
+			    mExtSettings->mBindPort = atoi(results);
+		    } 
+		} else if (parsedopts[0]=='[' && (results = strtok_r(parsedopts, "]",&saveptr)) != NULL) {
+		    mExtSettings->mLocalhost = new char[strlen(results)];
+		    // skip the first bracket
+		    results++;
+		    strcpy(mExtSettings->mLocalhost, results);
+		    if ((results = strtok_r(NULL, ":",&saveptr)) != NULL) 
+			mExtSettings->mBindPort = atoi(results);
+		}
 	    }
 	    delete parsedopts;
+	    if (mExtSettings->mLocalhost == NULL) {
+		mExtSettings->mLocalhost = new char[ strlen( optarg ) + 1 ];
+		strcpy( mExtSettings->mLocalhost, optarg );
+	    }
             // Test for Multicast
             iperf_sockaddr temp;
             SockAddr_setHostname( mExtSettings->mLocalhost, &temp,
