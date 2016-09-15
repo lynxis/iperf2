@@ -325,6 +325,7 @@ void Server::RunUDP( void ) {
 		    (errno != EAGAIN && errno != EWOULDBLOCK)
 #endif		     
 		    ) {
+		    WARN_errno( currLen, "recvmsg" );
 		    running = 0;
 		}
 		currLen= 0;
