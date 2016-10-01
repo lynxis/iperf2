@@ -171,8 +171,12 @@ int main( int argc, char **argv ) {
          || ext_gSettings->mThreadMode == kMode_Listener ) {
 #ifdef WIN32
         // Start the server as a daemon
-        if ( isDaemon( ext_gSettings ) ) {
-            CmdInstallService(argc, argv);
+        if ( isDaemon( ext_gSettings )) {
+	    if (ext_gSettings->mThreadMode == kMode_Listener) {
+		CmdInstallService(argc, argv);
+	    } else {
+		fprintf(stderr, "Client cannot be run as a daemon\n");
+	    }
             return 0;
         }
 
@@ -186,6 +190,10 @@ int main( int argc, char **argv ) {
         }
 #else
 	if ( isDaemon( ext_gSettings ) ) {
+	    if (ext_gSettings->mThreadMode != kMode_Listener) {
+		fprintf(stderr, "Iperf client cannot be run as a daemon\n");
+		return 0;
+	    }
 	    if (daemon(1, 1) < 0) {
 	        perror("daemon");
 	    }
