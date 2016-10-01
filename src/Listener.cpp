@@ -263,7 +263,7 @@ sInterupted == SIGALRM
                 Settings_GenerateClientSettings( server, &tempSettings, hdr );
 		// stash the final flags settings into the thread settings
 		// so each thread can access its copy of them when needed
-		server->flags = hdrxchange_flags;
+		server->flags |= hdrxchange_flags;
             }
             if ( tempSettings != NULL ) {
                 client_init( tempSettings );
