@@ -249,18 +249,17 @@ sInterupted == SIGALRM
 			WARN_errno(0, "tcpnodelay" );
 		    }
 		    rc = send(server->mSock, &hdr_ack, sizeof(int32_t), 0 );
+		    if (rc < 0) {
+			WARN_errno( rc < 0, "send_ack" );
+		    } else {
+			hdrxchange_flags |= HEADER_ACK;
+		    }
 		    // Re-nable Nagle
 		    optflag=0;
 		    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
 			WARN_errno(0, "tcpnodelay" );
 		    }
-		    if (rc < 0) {
-			WARN_errno( rc < 0, "socket" );
-		    } else {
-			hdrxchange_flags |= HEADER_ACK;
-		    }
 		}
-		fflush(stdout);
                 Settings_GenerateClientSettings( server, &tempSettings, hdr );
 		// stash the final flags settings into the thread settings
 		// so each thread can access its copy of them when needed
@@ -515,7 +514,7 @@ void Listener::Accept( thread_Settings *server ) {
 	    int32_t datagramID;
 	    server->mSock = INVALID_SOCKET;
 
-	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, MSG_PEEK,
+	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
 			   (struct sockaddr*) &server->peer, &server->size_peer );
 	    FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
 

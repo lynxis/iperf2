@@ -688,10 +688,10 @@ void Client::InitiateServer() {
 	    }
             currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr), 0 );
             if ( currLen < 0 ) {
-                WARN_errno( currLen < 0, "writehdr" );
+                WARN_errno( currLen < 0, "send_hdr" );
             } else {
 		optflag = 0;
-		// Re-enable Nagle to reduce latency of this intial message
+		// Re-enable Nagle
 		if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
 		    WARN_errno(0, "tcpnodelay" );
 		}
