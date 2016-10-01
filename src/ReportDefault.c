@@ -342,6 +342,18 @@ void reporter_reportsettings( ReporterData *data ) {
  */
 void *reporter_reportpeer( Connection_Info *stats, int ID ) {
     if ( ID > 0 ) {
+	char flagstr[20];
+	if (stats->flags & HEADER_VERSION2) {
+	    if (stats->flags & HEADER_ACK) {
+		strcpy(flagstr," (v2_ack)");
+	    } else {
+		strcpy(flagstr," (v2)");
+	    }
+	} else if (stats->flags & HEADER_VERSION1) {
+	    strcpy(flagstr," (v1)");
+	} else {
+	    flagstr[0]='\0';
+	}
         // copy the inet_ntop into temp buffers, to avoid overwriting
         char local_addr[ REPORT_ADDRLEN ];
         char remote_addr[ REPORT_ADDRLEN ];
@@ -375,17 +387,19 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
                 local_addr,  ( local->sa_family == AF_INET ?
                               ntohs(((struct sockaddr_in*)local)->sin_port) :
 #ifdef HAVE_IPV6
-                              ntohs(((struct sockaddr_in6*)local)->sin6_port)),
+			      ntohs(((struct sockaddr_in6*)local)->sin6_port)),
 #else
                               0),
 #endif
                 remote_addr, ( peer->sa_family == AF_INET ?
                               ntohs(((struct sockaddr_in*)peer)->sin_port) :
 #ifdef HAVE_IPV6
-                              ntohs(((struct sockaddr_in6*)peer)->sin6_port)));
+			      ntohs(((struct sockaddr_in6*)peer)->sin6_port)),
 #else
-                              0));
+                              0),
+
 #endif
+	         flagstr);
     }
     return NULL;
 }

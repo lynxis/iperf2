@@ -203,7 +203,82 @@ sInterupted == SIGALRM
                     continue;
                 }
             }
-    
+
+            // Check for exchange of test information and also determine v2.0.5 vs 2.0.9 
+	    tempSettings = NULL;
+            if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
+		int hdrxchange_flags;
+                if ( !UDP ) {
+		    int n, remain;
+		    char *p = (char *)hdr;
+		    remain = sizeof(client_hdr);
+                    // Read the data but don't pull it fron the queue in order to
+		    // preserve server thread accounting, i.e. these exchange should
+		    // be part of traffic acccouting too
+		    while (remain > 0 && (n = recv( server->mSock, p, remain, (MSG_PEEK & MSG_WAITALL))) > 0 ) {
+			remain -= n;
+			p += n;
+		    }
+		    if (remain != 0 || n < 0) {
+			close( server->mSock );
+			continue;
+		    }
+		}
+		hdrxchange_flags = ntohl(hdr->flags);
+		if ( (hdrxchange_flags & HEADER_VERSION2) != 0 ) {
+		    int32_t hdr_ack = htonl(HEADER_VERSION2 & HEADER_ACK);
+		    int rc;
+		    // This is a version 2.0.9 or greater client
+		    // write back to the client so it knows the server
+		    // version
+#ifdef WIN32
+		    // Windows SO_RCVTIMEO uses ms
+		    DWORD timeout = HDRXCHANGETIMER / 1e3;
+#else
+		    // Others use microseconds
+		    struct timeval timeout;
+		    timeout.tv_sec = HDRXCHANGETIMER / 1000000;
+		    timeout.tv_usec = HDRXCHANGETIMER % 1000000;
+#endif // WIN32
+		    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+			WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
+		    }
+		    int optflag=1;
+		    // Disable Nagle to reduce latency of this intial message
+		    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
+			WARN_errno(0, "tcpnodelay" );
+		    }
+		    rc = send(server->mSock, &hdr_ack, sizeof(int32_t), 0 );
+		    // Re-nable Nagle
+		    optflag=0;
+		    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
+			WARN_errno(0, "tcpnodelay" );
+		    }
+		    if (rc < 0) {
+			WARN_errno( rc < 0, "socket" );
+		    } else {
+			hdrxchange_flags |= HEADER_ACK;
+		    }
+		}
+		fflush(stdout);
+                Settings_GenerateClientSettings( server, &tempSettings, hdr );
+		// stash the final flags settings into the thread settings
+		// so each thread can access its copy of them when needed
+		server->flags = hdrxchange_flags;
+            }
+            if ( tempSettings != NULL ) {
+                client_init( tempSettings );
+                if ( tempSettings->mMode == kTest_DualTest ) {
+#ifdef HAVE_THREAD
+                    server->runNow =  tempSettings;
+#else
+                    server->runNext = tempSettings;
+#endif
+                } else {
+                    server->runNext =  tempSettings;
+                }
+            }
+
             // Create an entry for the connection list
             listtemp = new Iperf_ListEntry;
             memcpy(listtemp, &server->peer, sizeof(iperf_sockaddr));
@@ -230,33 +305,6 @@ sInterupted == SIGALRM
             Iperf_pushback( listtemp, &clients ); 
             Mutex_Unlock( &clients_mutex ); 
     
-            tempSettings = NULL;
-            if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
-                if ( !UDP ) {
-                    // TCP does not have the info yet
-                    if ( recv( server->mSock, (char*)hdr, sizeof(client_hdr), 0) > 0 ) {
-                        Settings_GenerateClientSettings( server, &tempSettings, 
-                                                          hdr );
-                    }
-                } else {
-                    Settings_GenerateClientSettings( server, &tempSettings, 
-                                                      hdr );
-                }
-            }
-    
-    
-            if ( tempSettings != NULL ) {
-                client_init( tempSettings );
-                if ( tempSettings->mMode == kTest_DualTest ) {
-#ifdef HAVE_THREAD
-                    server->runNow =  tempSettings;
-#else
-                    server->runNext = tempSettings;
-#endif
-                } else {
-                    server->runNext =  tempSettings;
-                }
-            }
     
             // Start the server
 #if defined(WIN32) && defined(HAVE_THREAD)
@@ -467,7 +515,7 @@ void Listener::Accept( thread_Settings *server ) {
 	    int32_t datagramID;
 	    server->mSock = INVALID_SOCKET;
 
-	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
+	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, MSG_PEEK,
 			   (struct sockaddr*) &server->peer, &server->size_peer );
 	    FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
 

@@ -681,13 +681,52 @@ void Client::InitiateServer() {
         }
         Settings_GenerateClientHdr( mSettings, temp_hdr );
         if ( !isUDP( mSettings ) ) {
+	    int optflag=1;
+	    // Disable Nagle to reduce latency of this intial message
+	    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
+		WARN_errno(0, "tcpnodelay" );
+	    }
             currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr), 0 );
             if ( currLen < 0 ) {
-                WARN_errno( currLen < 0, "write1" );
-            }
+                WARN_errno( currLen < 0, "writehdr" );
+            } else {
+		optflag = 0;
+		// Re-enable Nagle to reduce latency of this intial message
+		if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
+		    WARN_errno(0, "tcpnodelay" );
+		}
+		int n, remain;
+		char *p = (char *)mBuf;
+		remain = sizeof(int32_t);
+#ifdef WIN32
+		// Windows SO_RCVTIMEO uses ms
+		DWORD timeout = HDRXCHANGETIMER / 1e3;
+#else
+		// Others use microseconds
+		struct timeval timeout;
+		timeout.tv_sec = HDRXCHANGETIMER / 1000000;
+		timeout.tv_usec = HDRXCHANGETIMER % 1000000;
+#endif // WIN32
+		if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		    WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
+		} else {
+		    while (remain > 0 && (n = recv( mSettings->mSock, p, remain, 0)) > 0 ) {
+			remain -= n;
+			p += n;
+		    }
+		    if (remain > 0) {
+			if (remain == sizeof(int32_t)) {
+			    printf(warn_server_old);
+			} else {
+			    printf(warn_test_exchange_failed);
+			}
+		    }
+		}
+	    }
         }
     }
 }
+
 
 /* -------------------------------------------------------------------
  * Setup a socket connected to a server.

@@ -314,9 +314,14 @@ typedef struct thread_Settings {
 
 
 #define HEADER_VERSION1 0x80000000
+#define HEADER_VERSION2 0x40000000
+#define HEADER_ACK      0x20000000
 #define RUN_NOW         0x00000001
 #define UNITS_PPS       0x00000002
+#define SEQNO64B        0x00000004
 
+#define HDRXCHANGETIMER 1000000 // units microseconds 
+    
 // used to reference the 4 byte ID number we place in UDP datagrams
 // use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90) 
 typedef struct UDP_datagram {

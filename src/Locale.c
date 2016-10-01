@@ -287,8 +287,8 @@ const char report_outoforder[] =
 const char report_sum_outoforder[] =
 "[SUM] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
 
-const char report_peer[] =
-"[%3d] local %s port %u connected with %s port %u\n";
+const char report_peer [] =
+"[%3d] local %s port %u connected with %s port %u%s\n";
 
 const char report_mss_unsupported[] =
 "[%3d] MSS and MTU size unknown (TCP_MAXSEG not supported by OS?)\n";
@@ -399,6 +399,12 @@ const char warn_invalid_report_style[] =
 
 const char warn_invalid_report[] =
 "WARNING: unknown reporting type \"%c\", ignored\n valid options are:\n\t exclude: C(connection) D(data) M(multicast) S(settings) V(server) report\n\n";
+
+const char warn_server_old[] =
+"WARNING: iperf server version is likely very old\n";
+
+const char warn_test_exchange_failed[] =
+"WARNING: client/server version exchange failed\n";
 
 #ifdef __cplusplus
 } /* end extern "C" */

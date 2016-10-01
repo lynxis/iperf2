@@ -177,6 +177,14 @@ typedef struct Connection_Info {
     Socklen_t size_peer;
     iperf_sockaddr local;
     Socklen_t size_local;
+#ifdef HAVE_INT32_T
+    /*
+     * Shared flags indicating version and test information
+     */
+    int32_t flags;
+#else
+    signed int flags      : 32;
+#endif
 } Connection_Info;
 
 typedef struct ReporterData {

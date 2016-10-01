@@ -161,7 +161,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
                 data->mBufLen = agent->mBufLen;
                 data->mMSS = agent->mMSS;
                 data->mTCPWin = agent->mTCPWin;
-                data->flags = agent->flags;
+		data->flags = agent->flags;
                 data->mThreadMode = agent->mThreadMode;
                 data->mode = agent->mReportMode;
                 data->info.mFormat = agent->mFormat;
@@ -187,6 +187,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
                     data->connection.local = agent->local;
                     data->connection.size_local = agent->size_local;
                     SockAddr_setPortAny( &data->connection.local );
+		    data->connection.flags = agent->flags;
                 }
             }
         } else {
@@ -294,6 +295,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->connection.size_peer = agent->size_peer;
             data->connection.local = agent->local;
             data->connection.size_local = agent->size_local;
+	    data->connection.flags = agent->flags;
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
@@ -1129,9 +1131,8 @@ int reporter_print( ReporterData *stats, int type, int end ) {
             settings_reports[stats->mode]( stats );
             break;
         case CONNECTION_REPORT:
-            stats->info.reserved_delay = connection_reports[stats->mode]( 
-                                               &stats->connection,
-                                               stats->info.transferID );
+	    stats->info.reserved_delay = connection_reports[stats->mode] \
+		(&stats->connection, stats->info.transferID);
             break;
         case MULTIPLE_REPORT:
             multiple_reports[stats->mode]( &stats->info );

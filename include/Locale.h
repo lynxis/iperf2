@@ -222,6 +222,10 @@ extern const char warn_invalid_report_style[];
 
 extern const char warn_invalid_report[];
 
+extern const char warn_server_old[];
+
+extern const char warn_test_exchange_failed[];    
+
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif

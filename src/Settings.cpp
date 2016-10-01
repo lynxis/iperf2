@@ -862,11 +862,7 @@ void Settings_GenerateClientSettings( thread_Settings *server,
  * This should be an inverse operation of GenerateSpeakerSettings
  */
 void Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
-    if ( client->mMode != kTest_Normal ) {
-        hdr->flags  = htonl(HEADER_VERSION1);
-    } else {
-        hdr->flags  = 0;
-    }
+    hdr->flags  = htonl(HEADER_VERSION2);
     if ( isBuflenSet( client ) ) {
         hdr->bufferlen = htonl(client->mBufLen);
     } else {
