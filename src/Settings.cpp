@@ -71,6 +71,8 @@
 
 #include "gnu_getopt.h"
 
+static int seqno64b = 0;
+
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
 
 /* -------------------------------------------------------------------
@@ -123,6 +125,7 @@ const struct option long_options[] =
 {"ipv6_domain",      no_argument, NULL, 'V'},
 {"suggest_win_size", no_argument, NULL, 'W'},
 {"linux-congestion", required_argument, NULL, 'Z'},
+{"udp-counters-64bit", no_argument, &seqno64b, 1},
 {0, 0, 0, 0}
 };
 
@@ -722,6 +725,11 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 #endif
 	    break;
 
+        case 0:
+	    if (seqno64b) {
+		setSeqno64b(mExtSettings);
+	    }
+	    
         default: // ignore unknown
             break;
     }
@@ -862,7 +870,15 @@ void Settings_GenerateClientSettings( thread_Settings *server,
  * This should be an inverse operation of GenerateSpeakerSettings
  */
 void Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
-    hdr->flags  = htonl(HEADER_VERSION2);
+
+    int testflags = 0;
+    if ( isSeqno64b( client ) ) {
+	testflags  |= HEADER_VERSION2;
+    }
+    if ( client->mMode != kTest_Normal ) {
+        testflags  |= HEADER_VERSION1;
+    }
+    hdr->flags  |= htonl(testflags);
     if ( isBuflenSet( client ) ) {
         hdr->bufferlen = htonl(client->mBufLen);
     } else {

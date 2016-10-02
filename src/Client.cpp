@@ -680,7 +680,8 @@ void Client::InitiateServer() {
             temp_hdr = (client_hdr*)mBuf;
         }
         Settings_GenerateClientHdr( mSettings, temp_hdr );
-        if ( !isUDP( mSettings ) ) {
+	// Run compatability detection and test version change for test that require it
+        if (isSeqno64b(mSettings) && !isUDP( mSettings ) ) {
 	    int optflag=1;
 	    // Disable Nagle to reduce latency of this intial message
 	    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
