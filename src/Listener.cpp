@@ -138,7 +138,8 @@ void Listener::Run( void ) {
 #endif
     {
         bool client = false, UDP = isUDP( mSettings ), mCount = (mSettings->mThreads != 0);
-        thread_Settings *tempSettings = NULL;
+        thread_Settings ClientSettings;
+        thread_Settings *tempSettings = &ClientSettings;
         Iperf_ListEntry *exist, *listtemp;
         client_hdr* hdr = ( UDP ? (client_hdr*) (((UDP_datagram*)mBuf) + 1) : 
                                   (client_hdr*) mBuf);
@@ -205,7 +206,6 @@ sInterupted == SIGALRM
             }
 
             // Check for exchange of test information and also determine v2.0.5 vs 2.0.9 
-	    tempSettings = NULL;
             if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
 		int hdrxchange_flags;
                 if ( !UDP ) {
@@ -260,11 +260,15 @@ sInterupted == SIGALRM
 			WARN_errno(0, "tcpnodelay" );
 		    }
 		}
+		// The following will set the tempSettings to NULL if
+		// there is no need for the Listener to start a client
                 Settings_GenerateClientSettings( server, &tempSettings, hdr );
 		// stash the final flags settings into the thread settings
 		// so each thread can access its copy of them when needed
 		server->flags |= hdrxchange_flags;
-            }
+            } else {
+	        tempSettings = NULL;
+	    }
             if ( tempSettings != NULL ) {
                 client_init( tempSettings );
                 if ( tempSettings->mMode == kTest_DualTest ) {
@@ -292,7 +296,6 @@ sInterupted == SIGALRM
                 listtemp->holder = exist->holder;
                 server->multihdr = exist->holder;
             } else {
-                server->mThreads = 0;
                 Mutex_Lock( &groupCond );
                 groupID--;
                 listtemp->holder = InitMulti( server, groupID );
@@ -558,7 +561,8 @@ void Listener::Accept( thread_Settings *server ) {
 void Listener::UDPSingleServer( ) {
     
     bool client = false, UDP = isUDP( mSettings ), mCount = (mSettings->mThreads != 0);
-    thread_Settings *tempSettings = NULL;
+    thread_Settings ClientSettings;
+    thread_Settings *tempSettings = &ClientSettings;
     Iperf_ListEntry *exist, *listtemp;
     int rc;
     int32_t datagramID;
@@ -744,7 +748,6 @@ void Listener::UDPSingleServer( ) {
             listtemp->holder = exist->holder;
             server->multihdr = exist->holder;
         } else {
-            server->mThreads = 0;
             Mutex_Lock( &groupCond );
             groupID--;
             listtemp->holder = InitMulti( server, groupID );
@@ -755,12 +758,12 @@ void Listener::UDPSingleServer( ) {
         // Store entry in connection list
         Iperf_pushback( listtemp, &clients ); 
 
-        tempSettings = NULL;
         if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
             Settings_GenerateClientSettings( server, &tempSettings, 
                                               hdr );
-        }
-
+        } else {
+	    tempSettings = NULL;
+	}
 
         if ( tempSettings != NULL ) {
             client_init( tempSettings );
