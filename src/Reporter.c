@@ -111,6 +111,7 @@ report_statistics multiple_reports[kReport_MAXIMUM] = {
 
 char buffer[64]; // Buffer for printing
 ReportHeader *ReportRoot = NULL;
+static int num_multi_slots = 0;
 extern Condition ReportCond;
 extern Condition ReportDoneCond;
 int reporter_process_report ( ReportHeader *report );
@@ -123,12 +124,18 @@ void PrintMSS( ReporterData *stats );
 static void gettcpistats(ReporterData *stats);
 #endif
 
-MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
+MultiHeader* InitMulti( thread_Settings *agent, int inID) {
     MultiHeader *multihdr = NULL;
     if ( agent->mThreads > 1 || agent->mThreadMode == kMode_Server ) {
         if ( isMultipleReport( agent ) ) {
+	    if (agent->mThreadMode == kMode_Client) {
+		num_multi_slots = (agent->mMode == kTest_DualTest) ? ((agent->mThreads * 2) + 1) : (agent->mThreads  + 1);
+	    } else {
+		num_multi_slots = (((agent->mThreads * 2) + 1) > NUM_MULTI_SLOTS) ? ((agent->mThreads * 2) + 1) : NUM_MULTI_SLOTS;
+	    }
+	    // printf ("Alloc %d multislots\n", num_multi_slots);
             multihdr = malloc(sizeof(MultiHeader) +  sizeof(ReporterData) +
-                              NUM_MULTI_SLOTS * sizeof(Transfer_Info));
+                              num_multi_slots * sizeof(Transfer_Info));
         } else {
             multihdr = malloc(sizeof(MultiHeader));
         }
@@ -144,7 +151,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID ) {
                 memset(multihdr->report, 0, sizeof(ReporterData));
                 multihdr->data = (Transfer_Info*)(multihdr->report + 1);
                 data = multihdr->report;
-                for ( i = 0; i < NUM_MULTI_SLOTS; i++ ) {
+                for ( i = 0; i < num_multi_slots; i++ ) {
                     multihdr->data[i].startTime = -1;
                     multihdr->data[i].transferID = inID;
                     multihdr->data[i].groupID = -2;
@@ -903,7 +910,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
             int i;
             Transfer_Info *current = NULL;
             // Search for start Time
-            for ( i = 0; i < NUM_MULTI_SLOTS; i++ ) {
+            for ( i = 0; i < num_multi_slots; i++ ) {
                 current = &reporthdr->data[i];
                 if ( current->startTime == stats->startTime ) {
                     break;
@@ -911,7 +918,7 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
             }
             if ( current->startTime != stats->startTime ) {
                 // Find first available
-                for ( i = 0; i < NUM_MULTI_SLOTS; i++ ) {
+                for ( i = 0; i < num_multi_slots; i++ ) {
                     current = &reporthdr->data[i];
                     if ( current->startTime < 0 ) {
                         break;

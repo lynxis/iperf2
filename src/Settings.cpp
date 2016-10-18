@@ -813,7 +813,7 @@ void Settings_GenerateClientSettings( thread_Settings *server,
         setCompat( (*client) );
         (*client)->mTID = thread_zeroid();
         (*client)->mPort       = (unsigned short) ntohl(hdr->mPort);
-        (*client)->mThreads    = ntohl(hdr->numThreads);
+        (*client)->mThreads    = 1;
         if ( hdr->bufferlen != 0 ) {
             (*client)->mBufLen = ntohl(hdr->bufferlen);
         }
