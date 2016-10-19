@@ -83,6 +83,12 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
  * ------------------------------------------------------------------- */
 #define LONG_OPTIONS()
 
+const struct option long_options_priority1[] =
+{
+    {"ipv6_domain",      no_argument, NULL, 'V'},
+    {0, 0, 0, 0}
+};
+
 const struct option long_options[] =
 {
 {"singleclient",     no_argument, NULL, '1'},
@@ -133,6 +139,7 @@ const struct option long_options[] =
 
 const struct option env_options[] =
 {
+{"IPERF_IPV6_DOMAIN",      no_argument, NULL, 'V'},
 {"IPERF_SINGLECLIENT",     no_argument, NULL, '1'},
 {"IPERF_BANDWIDTH",  required_argument, NULL, 'b'},
 {"IPERF_CLIENT",     required_argument, NULL, 'c'},
@@ -167,7 +174,6 @@ const struct option env_options[] =
 {"IPERF_TOS",        required_argument, NULL, 'S'},
 {"IPERF_TTL",        required_argument, NULL, 'T'},
 {"IPERF_SINGLE_UDP",       no_argument, NULL, 'U'},
-{"IPERF_IPV6_DOMAIN",      no_argument, NULL, 'V'},
 {"IPERF_SUGGEST_WIN_SIZE", required_argument, NULL, 'W'},
 {"IPERF_CONGESTION_CONTROL",  required_argument, NULL, 'Z'},
 {0, 0, 0, 0}
@@ -175,6 +181,7 @@ const struct option env_options[] =
 
 #define SHORT_OPTIONS()
 
+const char short_options_priority1[] = "-V";
 const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWZ:";
 
 /* -------------------------------------------------------------------
@@ -301,6 +308,15 @@ void Settings_ParseEnvironment( thread_Settings *mSettings ) {
 
 void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSettings ) {
     int option;
+    gnu_opterr = 0;
+    while ( (option =
+             gnu_getopt_long( argc, argv, short_options_priority1,
+                              long_options_priority1, NULL )) != EOF ) {
+        if (option != '?')
+	    Settings_Interpret( option, gnu_optarg, mSettings );
+    }
+    gnu_opterr = 1;
+    gnu_optind = 1;
     while ( (option =
              gnu_getopt_long( argc, argv, short_options,
                               long_options, NULL )) != EOF ) {
@@ -397,13 +413,18 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'i': // specify interval between periodic bw reports
-            mExtSettings->mInterval = atof( optarg );
-            if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
-                fprintf (stderr, report_interval_small, mExtSettings->mInterval);
-                mExtSettings->mInterval = SMALLEST_INTERVAL;
-            }
-            if ( mExtSettings->mInterval < 0.5 ) {
-		setEnhanced( mExtSettings );
+	    char *endp;
+            mExtSettings->mInterval = strtof( optarg, &endp );
+	    if (endp != NULL) {
+		fprintf (stderr, "Invalid value of '%s' for -i interval\n", optarg);
+	    } else {
+		if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
+		    fprintf (stderr, report_interval_small, mExtSettings->mInterval);
+		    mExtSettings->mInterval = SMALLEST_INTERVAL;
+		}
+		if ( mExtSettings->mInterval < 0.5 ) {
+		    setEnhanced( mExtSettings );
+		}
 	    }
             break;
 
