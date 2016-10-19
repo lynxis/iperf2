@@ -138,8 +138,7 @@ void Listener::Run( void ) {
 #endif
     {
         bool client = false, UDP = isUDP( mSettings ), mCount = (mSettings->mThreads != 0);
-        thread_Settings ClientSettings;
-        thread_Settings *tempSettings = &ClientSettings;
+        thread_Settings *tempSettings = NULL;
         Iperf_ListEntry *exist, *listtemp;
         client_hdr* hdr = ( UDP ? (client_hdr*) (((UDP_datagram*)mBuf) + 1) : 
                                   (client_hdr*) mBuf);
@@ -252,7 +251,10 @@ sInterupted == SIGALRM
 		    if (rc < 0) {
 			WARN_errno( rc < 0, "send_ack" );
 		    } else {
-			hdrxchange_flags |= HEADER_ACK;
+			server->flags |= (HEADER_VERSION2 & HEADER_ACK);
+		    }
+		    if ((hdrxchange_flags & SEQNO64B) !=0) {
+			server->flags |= SEQNO64B;
 		    }
 		    // Re-nable Nagle
 		    optflag=0;
@@ -263,9 +265,6 @@ sInterupted == SIGALRM
 		// The following will set the tempSettings to NULL if
 		// there is no need for the Listener to start a client
                 Settings_GenerateClientSettings( server, &tempSettings, hdr );
-		// stash the final flags settings into the thread settings
-		// so each thread can access its copy of them when needed
-		server->flags |= hdrxchange_flags;
             } else {
 	        tempSettings = NULL;
 	    }
@@ -306,7 +305,6 @@ sInterupted == SIGALRM
             // Store entry in connection list
             Iperf_pushback( listtemp, &clients ); 
             Mutex_Unlock( &clients_mutex ); 
-    
     
             // Start the server
 #if defined(WIN32) && defined(HAVE_THREAD)
@@ -561,8 +559,7 @@ void Listener::Accept( thread_Settings *server ) {
 void Listener::UDPSingleServer( ) {
     
     bool client = false, UDP = isUDP( mSettings ), mCount = (mSettings->mThreads != 0);
-    thread_Settings ClientSettings;
-    thread_Settings *tempSettings = &ClientSettings;
+    thread_Settings *tempSettings = NULL;
     Iperf_ListEntry *exist, *listtemp;
     int rc;
     int32_t datagramID;
