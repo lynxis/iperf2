@@ -500,7 +500,7 @@ void Server::write_UDP_AckFIN( ) {
         } else {
             // socket ready to read 
             rc = read( mSettings->mSock, mBuf, mSettings->mBufLen ); 
-            WARN_errno( 0, "read" );
+            WARN_errno( rc < 0, "read" );
             if ( rc <= 0 ) {
                 // Connection closed or errored
                 // Stop using it.

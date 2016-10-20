@@ -413,9 +413,9 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'i': // specify interval between periodic bw reports
-	    char *endp;
-            mExtSettings->mInterval = strtof( optarg, &endp );
-	    if (endp != NULL) {
+	    char *end;
+	    mExtSettings->mInterval = strtof( optarg, &end );
+	    if (*end != '\0') {
 		fprintf (stderr, "Invalid value of '%s' for -i interval\n", optarg);
 	    } else {
 		if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
