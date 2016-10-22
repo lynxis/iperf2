@@ -344,7 +344,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             setSingleClient( mExtSettings );
             break;
         case 'b': // UDP bandwidth
-            Settings_GetLowerCaseArg(optarg,outarg);
 	    // scan for PPS units, just look for 'p' as that's good enough
 	    {
 		char *end;
@@ -358,15 +357,14 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		    fprintf(stderr, "Invalid bandwidth -b of %s\n", optarg);
 		    exit(1);
 		}
-		if (*end == 'p') {
+		if (*end == 'p' || *end == 'P') {
 		    mExtSettings->mUDPRateUnits = kRate_PPS;
 		    mExtSettings->mUDPRate = theNum;
 		} else {
 		    mExtSettings->mUDPRateUnits = kRate_BW;
-		    mExtSettings->mUDPRate = byte_atoi(outarg);
+		    mExtSettings->mUDPRate = byte_atoi(optarg);
 		}
 	    }
-
             setBWSet( mExtSettings );
             // if -l has already been processed, mBufLenSet is true
             // so don't overwrite that value.
