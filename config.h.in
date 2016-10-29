@@ -169,6 +169,9 @@
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
 
+/* Define to 1 if you have the `strtoll' function. */
+#undef HAVE_STRTOLL
+
 /* Define to 1 if the system has the type `struct ipv6_mreq'. */
 #undef HAVE_STRUCT_IPV6_MREQ
 

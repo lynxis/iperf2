@@ -342,18 +342,6 @@ void reporter_reportsettings( ReporterData *data ) {
  */
 void *reporter_reportpeer( Connection_Info *stats, int ID ) {
     if ( ID > 0 ) {
-	char flagstr[20];
-	if (stats->flags & HEADER_VERSION2) {
-	    if (stats->flags & HEADER_ACK) {
-		strcpy(flagstr," (v2_ack)");
-	    } else {
-		strcpy(flagstr," (v2)");
-	    }
-	} else if (stats->flags & HEADER_VERSION1) {
-	    strcpy(flagstr," (v1)");
-	} else {
-	    flagstr[0]='\0';
-	}
         // copy the inet_ntop into temp buffers, to avoid overwriting
         char local_addr[ REPORT_ADDRLEN ];
         char remote_addr[ REPORT_ADDRLEN ];
@@ -399,12 +387,37 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
                               0),
 
 #endif
-	         flagstr);
+	         stats->peerversion);
     }
     return NULL;
 }
 // end ReportPeer
 
+void reporter_peerversion (thread_Settings *inSettings, int upper, int lower) {
+    int rel, major, minor, alpha;
+    inSettings->peerversion[0] = '\0';
+
+    rel = (upper & 0xFFFF0000) >> 16;
+    major = (upper & 0x0000FFFF);
+    minor = (lower & 0xFFFF0000) >> 16;
+    alpha = (lower & 0x0000000F);
+    sprintf(inSettings->peerversion," (peer %d.%d.%d)", rel, major, minor);
+    switch(alpha) {
+    case 0:
+	sprintf(inSettings->peerversion + strlen(inSettings->peerversion) - 1,"-alpha)");
+	break;
+    case 1:
+	sprintf(inSettings->peerversion + strlen(inSettings->peerversion) - 1,"-beta)");
+	break;
+    case 2:
+	sprintf(inSettings->peerversion + strlen(inSettings->peerversion) - 1,"-rc)");
+	break;
+    case 3:
+	break;
+    default:
+	sprintf(inSettings->peerversion + strlen(inSettings->peerversion) - 1, "-unk)");
+    }
+}
 /* -------------------------------------------------------------------
  * Report the MSS and MTU, given the MSS (or a guess thereof)
  * ------------------------------------------------------------------- */

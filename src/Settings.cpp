@@ -68,10 +68,12 @@
 #include "SocketAddr.h"
 
 #include "util.h"
+#include "version.h"
 
 #include "gnu_getopt.h"
 
 static int seqno64b = 0;
+static int reversetest = 0;
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
 
@@ -124,14 +126,22 @@ const struct option long_options[] =
 {"nodelay",          no_argument, NULL, 'N'},
 {"listenport", required_argument, NULL, 'L'},
 {"parallel",   required_argument, NULL, 'P'},
+#ifdef WIN32
 {"remove",           no_argument, NULL, 'R'},
+#else
+{"reverse",          no_argument, NULL, 'R'},
+#endif
 {"tos",        required_argument, NULL, 'S'},
 {"ttl",        required_argument, NULL, 'T'},
 {"single_udp",       no_argument, NULL, 'U'},
 {"ipv6_domain",      no_argument, NULL, 'V'},
 {"suggest_win_size", no_argument, NULL, 'W'},
+{"peer-detect",      no_argument, NULL, 'X'},
 {"linux-congestion", required_argument, NULL, 'Z'},
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
+#ifdef WIN32
+{"reverse", no_argument, &reversetest, 1},
+#endif
 {0, 0, 0, 0}
 };
 
@@ -175,6 +185,7 @@ const struct option env_options[] =
 {"IPERF_TTL",        required_argument, NULL, 'T'},
 {"IPERF_SINGLE_UDP",       no_argument, NULL, 'U'},
 {"IPERF_SUGGEST_WIN_SIZE", required_argument, NULL, 'W'},
+{"IPERF_PEER_DETECT", required_argument, NULL, 'X'},
 {"IPERF_CONGESTION_CONTROL",  required_argument, NULL, 'Z'},
 {0, 0, 0, 0}
 };
@@ -182,7 +193,7 @@ const struct option env_options[] =
 #define SHORT_OPTIONS()
 
 const char short_options_priority1[] = "-V";
-const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWZ:";
+const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWXZ:";
 
 /* -------------------------------------------------------------------
  * defaults
@@ -630,7 +641,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             }
             break;
 
-        case 'C': // Run in Compatibility Mode
+        case 'C': // Run in Compatibility Mode, i.e. no intial nor final header messaging
             setCompat( mExtSettings );
             if ( mExtSettings->mMode != kTest_Normal ) {
                 fprintf( stderr, warn_invalid_compatibility_option,
@@ -697,10 +708,17 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             }
 #endif
             break;
-
+#ifdef WIN32
         case 'R':
             setRemoveService( mExtSettings );
             break;
+#else
+        case 'R':
+	    fprintf(stderr, "Reverse not yet implemented\n");
+	    exit(1);
+	    setReverse(mExtSettings);
+            break;
+#endif
 
         case 'S': // IP type-of-service
             // TODO use a function that understands base-2
@@ -742,6 +760,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             fprintf( stderr, "The -W option is not available in this release\n");
             break;
 
+        case 'X' :
+            setPeerVerDetect( mExtSettings );
+            break;
+
         case 'Z':
 #ifdef TCP_CONGESTION
 	    setCongestionControl( mExtSettings );
@@ -754,9 +776,11 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
         case 0:
 	    if (seqno64b) {
-		setSeqno64b(mExtSettings);
+		setSeqNo64b(mExtSettings);
 	    }
-	    
+	    if (reversetest) {
+		setReverse(mExtSettings);
+	    }
         default: // ignore unknown
             break;
     }
@@ -833,27 +857,22 @@ void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings
 void Settings_GenerateClientSettings( thread_Settings *server, 
                                       thread_Settings **client,
                                       client_hdr *hdr ) {
-    int flags = ntohl(hdr->flags);
+    int extendflags = 0;
+    int flags = ntohl(hdr->base.flags);
+    if ((flags & HEADER_EXTEND) != 0 ) {
+	extendflags = ntohl(hdr->extend.flags);
+    }
     if ( (flags & HEADER_VERSION1) != 0 ) {
         *client = new thread_Settings;
         memcpy(*client, server, sizeof( thread_Settings ));
         setCompat( (*client) );
         (*client)->mTID = thread_zeroid();
-        (*client)->mPort       = (unsigned short) ntohl(hdr->mPort);
+        (*client)->mPort       = (unsigned short) ntohl(hdr->base.mPort);
         (*client)->mThreads    = 1;
-        if ( hdr->bufferlen != 0 ) {
-            (*client)->mBufLen = ntohl(hdr->bufferlen);
+        if ( hdr->base.bufferlen != 0 ) {
+            (*client)->mBufLen = ntohl(hdr->base.bufferlen);
         }
-        (*client)->mTCPWin = ntohl(hdr->mWindowSize);
-	if ( !isBWSet(server) ) {
-	    (*client)->mUDPRate = ntohl(hdr->mRate); 
-	    if ((flags & UNITS_PPS) == UNITS_PPS) {
-		(*client)->mUDPRateUnits = kRate_PPS;
-	    } else {
-		(*client)->mUDPRateUnits = kRate_BW;
-	    }
-	}
-	(*client)->mAmount     = ntohl(hdr->mAmount);
+	(*client)->mAmount     = ntohl(hdr->base.mAmount);
         if ( ((*client)->mAmount & 0x80000000) > 0 ) {
             setModeTime( (*client) );
 #ifndef WIN32
@@ -868,8 +887,18 @@ void Settings_GenerateClientSettings( thread_Settings *server,
         (*client)->mLocalhost  = NULL;
         (*client)->mOutputFileName = NULL;
         (*client)->mMode       = ((flags & RUN_NOW) == 0 ?
-                                   kTest_TradeOff : kTest_DualTest);
+				  kTest_TradeOff : kTest_DualTest);
         (*client)->mThreadMode = kMode_Client;
+	if ((flags & HEADER_EXTEND) != 0 ) {
+	    if ( !isBWSet(server) ) {
+		(*client)->mUDPRate = ntohl(hdr->extend.mRate);
+		if ((extendflags & UNITS_PPS) == UNITS_PPS) {
+		    (*client)->mUDPRateUnits = kRate_PPS;
+		} else {
+		    (*client)->mUDPRateUnits = kRate_BW;
+		}
+	    }
+	}
         if ( server->mLocalhost != NULL ) {
             (*client)->mLocalhost = new char[strlen( server->mLocalhost ) + 1];
             strcpy( (*client)->mLocalhost, server->mLocalhost );
@@ -880,7 +909,7 @@ void Settings_GenerateClientSettings( thread_Settings *server,
                        (*client)->mHost, REPORT_ADDRLEN);
         }
 #ifdef HAVE_IPV6
-          else {
+	else {
             inet_ntop( AF_INET6, &((sockaddr_in6*)&server->peer)->sin6_addr, 
                        (*client)->mHost, REPORT_ADDRLEN);
         }
@@ -895,38 +924,58 @@ void Settings_GenerateClientSettings( thread_Settings *server,
  * Called to generate the client header to be passed to the
  * server that will handle dual testings from the server side
  * This should be an inverse operation of GenerateSpeakerSettings
+ *
+ * Returns hdr flags set
  */
-void Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
-
-    int testflags = 0;
-    if ( isSeqno64b( client ) ) {
-	testflags  |= HEADER_VERSION2;
+int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
+    int flags = 0, extendflags = 0;
+    if (isPeerVerDetect(client)) {
+	flags |= HEADER_EXTEND;
+    }
+    if ( isSeqNo64b( client ) ) {
+	flags |= HEADER_EXTEND;
+	extendflags |=  SEQNO64B;
     }
     if ( client->mMode != kTest_Normal ) {
-        testflags  |= HEADER_VERSION1;
+	flags |= HEADER_VERSION1;
+	if ( isBuflenSet( client ) ) {
+	    hdr->base.bufferlen = htonl(client->mBufLen);
+	} else {
+	    hdr->base.bufferlen = 0;
+	}
+	if ( client->mListenPort != 0 ) {
+	    hdr->base.mPort  = htonl(client->mListenPort);
+	} else {
+	    hdr->base.mPort  = htonl(client->mPort);
+	}
+	hdr->base.numThreads = htonl(client->mThreads);
+	if ( isModeTime( client ) ) {
+	    hdr->base.mAmount = htonl(-(long)client->mAmount);
+	} else {
+	    hdr->base.mAmount = htonl((long)client->mAmount);
+	    hdr->base.mAmount &= htonl( 0x7FFFFFFF );
+	}
+	if ( client->mMode == kTest_DualTest ) {
+	    flags |= RUN_NOW;
+	}
     }
-    hdr->flags  |= htonl(testflags);
-    if ( isBuflenSet( client ) ) {
-        hdr->bufferlen = htonl(client->mBufLen);
-    } else {
-        hdr->bufferlen = 0;
+    /*
+     * Finally, update the header flags (to be passed to the remote server)
+     */
+    hdr->base.flags = htonl(flags);
+    if (flags & HEADER_EXTEND) {
+	if (!isBWSet(client)) {
+	    hdr->extend.mRate = htonl(client->mUDPRate);
+	}
+	if (client->mUDPRateUnits == kRate_PPS) {
+	    extendflags |= UNITS_PPS;
+	}
+        hdr->extend.typelen.type  = htonl(CLIENTHDR);
+	hdr->extend.typelen.length = htonl((sizeof(client_hdrext) - sizeof(hdr_typelen)));
+	hdr->extend.reserved = 0;
+	hdr->extend.version_u = htonl(IPERF_VERSION_MAJORHEX);
+	hdr->extend.version_l = htonl(IPERF_VERSION_MINORHEX);
+	hdr->extend.flags  = htonl(extendflags);
     }
-    hdr->mWindowSize  = htonl(client->mTCPWin);
-    hdr->mRate = htonl(client->mUDPRate);
-    if ( client->mListenPort != 0 ) {
-        hdr->mPort  = htonl(client->mListenPort);
-    } else {
-        hdr->mPort  = htonl(client->mPort);
-    }
-    hdr->numThreads = htonl(client->mThreads);
-    if ( isModeTime( client ) ) {
-        hdr->mAmount    = htonl(-(long)client->mAmount);
-    } else {
-        hdr->mAmount    = htonl((long)client->mAmount);
-        hdr->mAmount &= htonl( 0x7FFFFFFF );
-    }
-    if (client->mUDPRateUnits == kRate_PPS)
-	hdr->flags |= htonl(UNITS_PPS);
-    if ( client->mMode == kTest_DualTest )
-	hdr->flags |= htonl(RUN_NOW);
+    return (flags);
 }

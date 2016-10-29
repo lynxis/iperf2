@@ -79,6 +79,7 @@
 #include "PerfSocket.hpp"
 #include "List.h"
 #include "util.h" 
+#include "version.h"
 
 /* ------------------------------------------------------------------- 
  * Stores local hostname and socket info. 
@@ -91,7 +92,7 @@ Listener::Listener( thread_Settings *inSettings ) {
     mSettings = inSettings;
 
     // initialize buffer
-    mBuf = new char[ mSettings->mBufLen ];
+    mBuf = new char[(mSettings->mBufLen > (int)(sizeof(client_hdr)+1)) ? mSettings->mBufLen : (sizeof(client_hdr)+1)];
 
     // open listening socket 
     Listen( ); 
@@ -203,64 +204,11 @@ sInterupted == SIGALRM
                     continue;
                 }
             }
-
-            // Check for exchange of test information and also determine v2.0.5 vs 2.0.9 
+            // Check for exchange of test information and also determine v2.0.5 vs 2.0.10+
             if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
-		int hdrxchange_flags;
-                if ( !UDP ) {
-		    int n, remain;
-		    char *p = (char *)hdr;
-		    remain = sizeof(client_hdr);
-                    // Read the data but don't pull it fron the queue in order to
-		    // preserve server thread accounting, i.e. these exchange should
-		    // be part of traffic acccouting too
-		    while (remain > 0 && (n = recv( server->mSock, p, remain, (MSG_PEEK & MSG_WAITALL))) > 0 ) {
-			remain -= n;
-			p += n;
-		    }
-		    if (remain != 0 || n < 0) {
-			close( server->mSock );
-			continue;
-		    }
-		}
-		hdrxchange_flags = ntohl(hdr->flags);
-		if ( (hdrxchange_flags & HEADER_VERSION2) != 0 ) {
-		    int32_t hdr_ack = htonl(HEADER_VERSION2 & HEADER_ACK);
-		    int rc;
-		    // This is a version 2.0.9 or greater client
-		    // write back to the client so it knows the server
-		    // version
-#ifdef WIN32
-		    // Windows SO_RCVTIMEO uses ms
-		    DWORD timeout = HDRXCHANGETIMER / 1e3;
-#else
-		    // Others use microseconds
-		    struct timeval timeout;
-		    timeout.tv_sec = HDRXCHANGETIMER / 1000000;
-		    timeout.tv_usec = HDRXCHANGETIMER % 1000000;
-#endif // WIN32
-		    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
-			WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
-		    }
-		    int optflag=1;
-		    // Disable Nagle to reduce latency of this intial message
-		    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
-			WARN_errno(0, "tcpnodelay" );
-		    }
-		    rc = send(server->mSock, &hdr_ack, sizeof(int32_t), 0 );
-		    if (rc < 0) {
-			WARN_errno( rc < 0, "send_ack" );
-		    } else {
-			server->flags |= (HEADER_VERSION2 & HEADER_ACK);
-		    }
-		    if ((hdrxchange_flags & SEQNO64B) !=0) {
-			server->flags |= SEQNO64B;
-		    }
-		    // Re-nable Nagle
-		    optflag=0;
-		    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
-			WARN_errno(0, "tcpnodelay" );
-		    }
+                if (ReadClientHeader(hdr) < 0) {
+		    close( server->mSock );
+		    continue;
 		}
 		// The following will set the tempSettings to NULL if
 		// there is no need for the Listener to start a client
@@ -518,7 +466,6 @@ void Listener::Accept( thread_Settings *server ) {
 	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
 			   (struct sockaddr*) &server->peer, &server->size_peer );
 	    FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
-
 	    Mutex_Lock( &clients_mutex );
     
 	    // Handle connection for UDP sockets.
@@ -666,19 +613,18 @@ void Listener::UDPSingleServer( ) {
                         Transfer_Info *stats = GetReport( exist->server->reporthdr );
                         hdr = (server_hdr*) (UDP_Hdr+1);
         
-                        hdr->flags        = htonl( HEADER_VERSION1 );
-                        hdr->total_len1   = htonl( (long) (stats->TotalLen >> 32) );
-                        hdr->total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
-                        hdr->stop_sec     = htonl( (long) stats->endTime );
-                        hdr->stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime)
+                        hdr->base.flags        = htonl( HEADER_VERSION1 );
+                        hdr->base.total_len1   = htonl( (long) (stats->TotalLen >> 32) );
+                        hdr->base.total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
+                        hdr->base.stop_sec     = htonl( (long) stats->endTime );
+                        hdr->base.stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime) \
                                                           * rMillion));
-                        hdr->error_cnt    = htonl( stats->cntError );
-                        hdr->outorder_cnt = htonl( stats->cntOutofOrder );
-                        hdr->datagrams    = htonl( stats->cntDatagrams );
-                        hdr->jitter1      = htonl( (long) stats->jitter );
-                        hdr->jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) 
+                        hdr->base.error_cnt    = htonl( stats->cntError );
+                        hdr->base.outorder_cnt = htonl( stats->cntOutofOrder );
+                        hdr->base.datagrams    = htonl( stats->cntDatagrams );
+                        hdr->base.jitter1      = htonl( (long) stats->jitter );
+                        hdr->base.jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) \
                                                            * rMillion) );
-        
                     }
                     EndReport( exist->server->reporthdr );
                     exist->server->reporthdr = NULL;
@@ -690,7 +636,7 @@ void Listener::UDPSingleServer( ) {
         
                     UDP_Hdr = (UDP_datagram*) mBuf;
                     hdr = (server_hdr*) (UDP_Hdr+1);
-                    hdr->flags = htonl( 0 );
+                    hdr->base.flags = htonl( 0 );
                 }
                 sendto( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
                         (struct sockaddr*) &server->peer, server->size_peer);
@@ -788,4 +734,112 @@ void Listener::UDPSingleServer( ) {
     Settings_Destroy( server );
 }
 
+int Listener::ReadClientHeader(client_hdr *hdr ) {
+    int flags = 0;
+    if (isUDP(mSettings)) {
+	flags = ntohl(hdr->base.flags);
+    } else {
+	int n, len;
+	char *p = (char *)hdr;
+	len = sizeof(client_hdr_v1);
+	int sorcvtimer = 0;
+	// sorcvtimer units microseconds convert to that
+	// minterval double, units seconds
+	// mAmount integer, units 10 milliseconds
+	// divide by two so timeout is 1/2 the interval
+	if (mSettings->mInterval) {
+	    sorcvtimer = (int) (mSettings->mInterval * 1e6) / 2;
+	} else if (isModeTime(mSettings)) {
+	    sorcvtimer = (mSettings->mAmount * 1000) / 2;
+	}
+	if (sorcvtimer > 0) {
+#ifdef WIN32
+	    // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout = (double) sorcvtimer / 1e3;
+#else
+	    struct timeval timeout;
+	    timeout.tv_sec = sorcvtimer / 1000000;
+	    timeout.tv_usec = sorcvtimer % 1000000;
+#endif // WIN32
+	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
+	    }
+	}
+	// Read the headers but don't pull them from the queue in order to
+	// preserve server thread accounting, i.e. these exchanges will
+	// be part of traffic accounting
+	if ((n = recvn(server->mSock, p, 4, MSG_PEEK)) == 4) {
+	    flags = ntohl(hdr->base.flags);
+	    len=0;
+	    if ((flags & HEADER_EXTEND) != 0) {
+		len = sizeof(client_hdr);
+	    } else if ((flags & HEADER_VERSION1) != 0) {
+		len = sizeof(client_hdr_v1);
+	    }
+	    if (len && ((n = recvn(server->mSock, p, len, MSG_PEEK)) != len)) {
+		flags = 0;
+		return -1;
+	    }
+	}
+    }
+    printf("client hdr flags=%x\n", flags);
+    if ((flags & HEADER_EXTEND) != 0 ) {
+	reporter_peerversion(server, ntohl(hdr->extend.version_u), ntohl(hdr->extend.version_l));
+	//  Extended header successfully read so ack the client now
+	ClientHeaderAck();
+    }
+    return 1;
+}
 
+int Listener::ClientHeaderAck(void) {
+    client_hdr_ack ack;
+    int sotimer = 0;
+    int optflag;
+    ack.typelen.type  = htonl(CLIENTHDRACK);
+    ack.typelen.length = htonl(sizeof(client_hdr_ack));
+    ack.flags = 0;
+    ack.reserved = 0;
+    ack.version_u = htonl(IPERF_VERSION_MAJORHEX);
+    ack.version_l = htonl(IPERF_VERSION_MINORHEX);
+    int rc = 1;
+    // This is a version 2.0.10 or greater client
+    // write back to the client so it knows the server
+    // version
+    if (!isUDP(mSettings)) {
+	// sotimer units microseconds convert
+	if (mSettings->mInterval) {
+	    sotimer = (int) (mSettings->mInterval * 1e6) / 4;
+	} else if (isModeTime(mSettings)) {
+	    sotimer = (mSettings->mAmount * 1000) / 4;
+	}
+	if (sotimer > HDRXACKMAX) {
+	    sotimer = HDRXACKMAX;
+	}
+#ifdef WIN32
+	// Windows SO_RCVTIMEO uses ms
+	DWORD timeout = (double) sorcvtimer / 1e3;
+#else
+	struct timeval timeout;
+	timeout.tv_sec = sotimer / 1000000;
+	timeout.tv_usec = sotimer % 1000000;
+#endif
+	if ((rc = setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout))) < 0 ) {
+	    WARN_errno( rc < 0, "setsockopt SO_SNDTIMEO");
+	}
+	optflag=1;
+	// Disable Nagle to reduce latency of this intial message
+	if ((rc = setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
+	    WARN_errno(rc < 0, "tcpnodelay" );
+	}
+    }
+    if ((rc = send(mSettings->mSock, &ack, sizeof(client_hdr_ack),0)) < 0) {
+	WARN_errno( rc <= 0, "send_ack" );
+	rc = 0;
+    }
+    // Re-nable Nagle
+    optflag=0;
+    if (!isUDP( mSettings ) && (rc = setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
+	WARN_errno(rc < 0, "tcpnodelay" );
+    }
+    return rc;
+}

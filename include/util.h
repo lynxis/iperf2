@@ -72,6 +72,7 @@ void setsock_tcp_mss( int inSock, int inTCPWin );
 int  getsock_tcp_mss( int inSock );
 bool setsock_blocking(int fd, bool blocking);
 
+int recvn( int inSock, char *outBuf, int inLen, int flags );
 /* -------------------------------------------------------------------
  * signal handlers
  * signal.c

@@ -113,29 +113,6 @@ void Server::RunTCP( void ) {
         reportstruct->packetID = 0;
         mSettings->reporthdr = InitReport( mSettings );
 	running=1;
-	int sorcvtimer = 0;
-	// sorcvtimer units microseconds convert to that
-	// minterval double, units seconds
-	// mAmount integer, units 10 milliseconds
-	// divide by two so timeout is 1/2 the interval
-	if (mSettings->mInterval) {
-	    sorcvtimer = (int) (mSettings->mInterval * 1e6) / 2;
-	} else if (isModeTime(mSettings)) {
-	    sorcvtimer = (mSettings->mAmount * 1000) / 2;
-	}
-	if (sorcvtimer > 0) {
-#ifdef WIN32
-            // Windows SO_RCVTIMEO uses ms
-	    DWORD timeout = (double) sorcvtimer / 1e3;
-#else
-	    struct timeval timeout;
-	    timeout.tv_sec = sorcvtimer / 1000000;
-	    timeout.tv_usec = sorcvtimer % 1000000;
-#endif // WIN32
-	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
-		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
-	    }
-	}
 #ifdef HAVE_SCHED_SETSCHEDULER
 	if ( isRealtime( mSettings ) ) {
 	    struct sched_param sp;
@@ -456,31 +433,31 @@ void Server::write_UDP_AckFIN( ) {
             Transfer_Info *stats = GetReport( mSettings->reporthdr );
             hdr = (server_hdr*) (UDP_Hdr+1);
 
-            hdr->flags        = htonl( HEADER_VERSION1 );
-            hdr->total_len1   = htonl( (long) (stats->TotalLen >> 32) );
-            hdr->total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
-            hdr->stop_sec     = htonl( (long) stats->endTime );
-            hdr->stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime) * rMillion));
-            hdr->error_cnt    = htonl( stats->cntError );
-            hdr->outorder_cnt = htonl( stats->cntOutofOrder );
-            hdr->datagrams    = htonl( stats->cntDatagrams );
-            hdr->jitter1      = htonl( (long) stats->jitter );
-            hdr->jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) * rMillion) );
-            hdr->minTransit1  = htonl( (long) stats->transit.totminTransit );
-            hdr->minTransit2  = htonl( (long) ((stats->transit.totminTransit - (long)stats->transit.totminTransit) * rMillion) );
-            hdr->maxTransit1  = htonl( (long) stats->transit.totmaxTransit );
-            hdr->maxTransit2  = htonl( (long) ((stats->transit.totmaxTransit - (long)stats->transit.totmaxTransit) * rMillion) );
-            hdr->sumTransit1  = htonl( (long) stats->transit.totsumTransit );
-            hdr->sumTransit2  = htonl( (long) ((stats->transit.totsumTransit - (long)stats->transit.totsumTransit) * rMillion) );
-            hdr->meanTransit1  = htonl( (long) stats->transit.totmeanTransit );
-            hdr->meanTransit2  = htonl( (long) ((stats->transit.totmeanTransit - (long)stats->transit.totmeanTransit) * rMillion) );
-            hdr->m2Transit1  = htonl( (long) stats->transit.totm2Transit );
-            hdr->m2Transit2  = htonl( (long) ((stats->transit.totm2Transit - (long)stats->transit.totm2Transit) * rMillion) );
-            hdr->vdTransit1  = htonl( (long) stats->transit.totvdTransit );
-            hdr->vdTransit2  = htonl( (long) ((stats->transit.totvdTransit - (long)stats->transit.totvdTransit) * rMillion) );
-            hdr->cntTransit   = htonl( stats->transit.totcntTransit );
-	    hdr->IPGcnt = htonl( (long) (stats->cntDatagrams / (stats->endTime - stats->startTime)));
-	    hdr->IPGsum = htonl(1);
+            hdr->base.flags        = htonl( (long) (HEADER_VERSION1 | HEADER_EXTEND ));
+            hdr->base.total_len1   = htonl( (long) (stats->TotalLen >> 32) );
+            hdr->base.total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
+            hdr->base.stop_sec     = htonl( (long) stats->endTime );
+            hdr->base.stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime) * rMillion));
+            hdr->base.error_cnt    = htonl( stats->cntError );
+            hdr->base.outorder_cnt = htonl( stats->cntOutofOrder );
+            hdr->base.datagrams    = htonl( stats->cntDatagrams );
+            hdr->base.jitter1      = htonl( (long) stats->jitter );
+            hdr->base.jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) * rMillion) );
+            hdr->extend.minTransit1  = htonl( (long) stats->transit.totminTransit );
+            hdr->extend.minTransit2  = htonl( (long) ((stats->transit.totminTransit - (long)stats->transit.totminTransit) * rMillion) );
+            hdr->extend.maxTransit1  = htonl( (long) stats->transit.totmaxTransit );
+            hdr->extend.maxTransit2  = htonl( (long) ((stats->transit.totmaxTransit - (long)stats->transit.totmaxTransit) * rMillion) );
+            hdr->extend.sumTransit1  = htonl( (long) stats->transit.totsumTransit );
+            hdr->extend.sumTransit2  = htonl( (long) ((stats->transit.totsumTransit - (long)stats->transit.totsumTransit) * rMillion) );
+            hdr->extend.meanTransit1  = htonl( (long) stats->transit.totmeanTransit );
+            hdr->extend.meanTransit2  = htonl( (long) ((stats->transit.totmeanTransit - (long)stats->transit.totmeanTransit) * rMillion) );
+            hdr->extend.m2Transit1  = htonl( (long) stats->transit.totm2Transit );
+            hdr->extend.m2Transit2  = htonl( (long) ((stats->transit.totm2Transit - (long)stats->transit.totm2Transit) * rMillion) );
+            hdr->extend.vdTransit1  = htonl( (long) stats->transit.totvdTransit );
+            hdr->extend.vdTransit2  = htonl( (long) ((stats->transit.totvdTransit - (long)stats->transit.totvdTransit) * rMillion) );
+            hdr->extend.cntTransit   = htonl( stats->transit.totcntTransit );
+	    hdr->extend.IPGcnt = htonl( (long) (stats->cntDatagrams / (stats->endTime - stats->startTime)));
+	    hdr->extend.IPGsum = htonl(1);
         }
 
         // write data 

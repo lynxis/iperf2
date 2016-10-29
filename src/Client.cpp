@@ -92,7 +92,6 @@ Client::Client( thread_Settings *inSettings ) {
 
     // connect
     Connect( );
-
     if ( isReport( inSettings ) ) {
         ReportSettings( inSettings );
         if ( mSettings->multihdr && isMultipleReport( inSettings ) ) {
@@ -525,7 +524,7 @@ void Client::Run( void ) {
     // InitReport handles Barrier for multiple Streams
     mSettings->reporthdr = InitReport( mSettings );
     reportstruct = new ReportStruct;
-    reportstruct->packetID = 0;
+    reportstruct->packetID = (isPeerVerDetect(mSettings)) ? 1 : 0;
     reportstruct->emptyreport=0;
     reportstruct->errwrite=0;
     reportstruct->socket = mSettings->mSock;
@@ -671,7 +670,7 @@ void Client::Run( void ) {
 
 void Client::InitiateServer() {
     if ( !isCompat( mSettings ) ) {
-        int currLen;
+	int flags = 0;
         client_hdr* temp_hdr;
         if ( isUDP( mSettings ) ) {
             UDP_datagram *UDPhdr = (UDP_datagram *)mBuf;
@@ -679,52 +678,13 @@ void Client::InitiateServer() {
         } else {
             temp_hdr = (client_hdr*)mBuf;
         }
-        Settings_GenerateClientHdr( mSettings, temp_hdr );
-	// Run compatability detection and test version change for test that require it
-        if (isSeqno64b(mSettings) && !isUDP( mSettings ) ) {
-	    int optflag=1;
-	    // Disable Nagle to reduce latency of this intial message
-	    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
-		WARN_errno(0, "tcpnodelay" );
-	    }
-            currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr), 0 );
-            if ( currLen < 0 ) {
-                WARN_errno( currLen < 0, "send_hdr" );
-            } else {
-		optflag = 0;
-		// Re-enable Nagle
-		if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
-		    WARN_errno(0, "tcpnodelay" );
-		}
-		int n, remain;
-		char *p = (char *)mBuf;
-		remain = sizeof(int32_t);
-#ifdef WIN32
-		// Windows SO_RCVTIMEO uses ms
-		DWORD timeout = HDRXCHANGETIMER / 1e3;
-#else
-		// Others use microseconds
-		struct timeval timeout;
-		timeout.tv_sec = HDRXCHANGETIMER / 1000000;
-		timeout.tv_usec = HDRXCHANGETIMER % 1000000;
-#endif // WIN32
-		if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
-		    WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
-		} else {
-		    while (remain > 0 && (n = recv( mSettings->mSock, p, remain, 0)) > 0 ) {
-			remain -= n;
-			p += n;
-		    }
-		    if (remain > 0) {
-			if (remain == sizeof(int32_t)) {
-			    printf(warn_server_old);
-			} else {
-			    printf(warn_test_exchange_failed);
-			}
-		    }
-		}
-	    }
-        }
+	flags = Settings_GenerateClientHdr( mSettings, temp_hdr );
+	if (flags & (HEADER_EXTEND | HEADER_VERSION1)) {
+	    //  This test requires the pre-test header messages
+	    //  The extended headers require an exchange
+	    //  between the client and server/listener
+	    HdrXchange(flags);
+	}
     }
 }
 
@@ -774,6 +734,92 @@ void Client::Connect( ) {
     getpeername( mSettings->mSock, (sockaddr*) &mSettings->peer,
                  &mSettings->size_peer );
 } // end Connect
+
+void Client::HdrXchange(int flags) {
+    int currLen = 0, len;
+
+    if (flags & HEADER_EXTEND) {
+	// Run compatability detection and test info exchange for tests that require it
+	int optflag;
+	if (!isUDP( mSettings )){
+	    len = sizeof(client_hdr);
+	    // Disable Nagle to reduce latency of this intial message
+	    optflag=1;
+	    if(setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 )
+		WARN_errno(0, "tcpnodelay" );
+	} else {
+	    // UDP header message packe must be mBufLen so server/Listener will read it
+	    // because the Listener read length used  mBufLen
+	    len = mSettings->mBufLen;
+	}
+	if ( isUDP( mSettings ) ) {
+	    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
+#ifdef HAVE_CLOCK_GETTIME
+	    struct timespec t1;
+	    clock_gettime(CLOCK_REALTIME, &t1);
+#else
+	    gettimeofday( &(reportstruct->packetTime), NULL );
+#endif
+            // store datagram ID and timestamp into buffer
+            mBuf_UDP->id      = htonl(0);
+            mBuf_UDP->tv_sec  = htonl(t1.tv_sec);
+            mBuf_UDP->tv_usec = htonl((t1.tv_nsec + 500) / 1000L);
+	}
+	currLen = send( mSettings->mSock, mBuf, len, 0 );
+	if ( currLen < 0 ) {
+	    WARN_errno( currLen < 0, "send_hdr_v2" );
+	} else {
+	    int n;
+	    client_hdr_ack ack;
+	    int sotimer = 0;
+	    // sotimer units microseconds convert
+	    if (mSettings->mInterval) {
+		sotimer = (int) (mSettings->mInterval * 1e6) / 4;
+	    } else if (isModeTime(mSettings)) {
+		sotimer = (mSettings->mAmount * 1000) / 4;
+	    }
+	    if (sotimer > HDRXACKMAX) {
+		sotimer = HDRXACKMAX;
+	    }
+#ifdef WIN32
+            // Windows SO_RCVTIMEO uses ms
+	    DWORD timeout = (double) sorcvtimer / 1e3;
+#else
+	    struct timeval timeout;
+	    timeout.tv_sec = sotimer / 1000000;
+	    timeout.tv_usec = sotimer % 1000000;
+#endif
+	    if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+		WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
+	    }
+	    /*
+	     * Hang a TCP or UDP read and see if this is a header ack message
+	     */
+	    if ((n = recvn(mSettings->mSock, (char *)&ack, sizeof(client_hdr_ack), 0)) == sizeof(client_hdr_ack)) {
+		if (ntohl(ack.typelen.type) == CLIENTHDRACK) {
+		    reporter_peerversion (mSettings, ntohl(ack.version_u), ntohl(ack.version_l));
+		}
+	    } else {
+		WARN_errno(1, "recvack" );
+		sprintf(mSettings->peerversion, " (server version is old)");
+	    }
+	}
+	if (!isUDP( mSettings ) && !isNoDelay(mSettings)) {
+	    optflag = 0;
+	    // Re-enable Nagle
+	    if (setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 ) {
+		WARN_errno(0, "tcpnodelay" );
+	    }
+	}
+    } else if (!isUDP( mSettings ) && (flags & HEADER_VERSION1)) {
+	// Send TCP version1 header message now, UDP version1 header message is sent
+	// as part of normal traffic per Client::RunUDP
+	currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr_v1), 0 );
+	if ( currLen < 0 ) {
+	    WARN_errno( currLen < 0, "send_hdr_v1" );
+	}
+    }
+}
 
 /* ------------------------------------------------------------------- 
  * Send a datagram on the socket. The datagram's contents should signify 

@@ -194,7 +194,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID) {
                     data->connection.local = agent->local;
                     data->connection.size_local = agent->size_local;
                     SockAddr_setPortAny( &data->connection.local );
-		    data->connection.flags = agent->flags;
+		    data->connection.peerversion = agent->peerversion;
                 }
             }
         } else {
@@ -302,7 +302,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->connection.size_peer = agent->size_peer;
             data->connection.local = agent->local;
             data->connection.size_local = agent->size_local;
-	    data->connection.flags = agent->flags;
+	    data->connection.peerversion = agent->peerversion;
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
@@ -522,77 +522,78 @@ void ReportSettings( thread_Settings *agent ) {
  * side.
  */
 void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
-    if ( (ntohl(server->flags) & HEADER_VERSION1) != 0 &&
-         isServerReport( agent ) ) {
-        /*
-         * Create in one big chunk
-         */
-        ReportHeader *reporthdr = malloc( sizeof(ReportHeader) );
-        Transfer_Info *stats = &reporthdr->report.info;
+    if (isServerReport(agent) && ((ntohl(server->base.flags) & HEADER_VERSION1) != 0)) {
+	/*
+	 * Create in one big chunk
+	 */
+	ReportHeader *reporthdr = malloc( sizeof(ReportHeader) );
+	Transfer_Info *stats = &reporthdr->report.info;
 
-        if ( reporthdr != NULL ) {
-            stats->transferID = agent->mSock;
-            stats->groupID = (agent->multihdr != NULL ? agent->multihdr->groupID 
-                                                      : -1);
-            reporthdr->agentindex = -1;
-            reporthdr->reporterindex = -1;
+	if ( !reporthdr ) {
+	    FAIL(1, "Out of Memory!!\n", agent);
+	}
 
-            reporthdr->report.type = SERVER_RELAY_REPORT;
-            reporthdr->report.mode = agent->mReportMode;
-            stats->mFormat = agent->mFormat;
-            stats->jitter = ntohl( server->jitter1 );
-            stats->jitter += ntohl( server->jitter2 ) / (double)rMillion;
-            stats->TotalLen = (((max_size_t) ntohl( server->total_len1 )) << 32) +
-                                  ntohl( server->total_len2 ); 
-            stats->startTime = 0;
-            stats->endTime = ntohl( server->stop_sec );
-            stats->endTime += ntohl( server->stop_usec ) / (double)rMillion;
-            stats->cntError = ntohl( server->error_cnt );
-            stats->cntOutofOrder = ntohl( server->outorder_cnt );
-            stats->cntDatagrams = ntohl( server->datagrams );
-            stats->transit.minTransit = ntohl( server->minTransit1 );
-            stats->transit.minTransit += ntohl( server->minTransit2 ) / (double)rMillion;
-            stats->transit.maxTransit = ntohl( server->maxTransit1 );
-            stats->transit.maxTransit += ntohl( server->maxTransit2 ) / (double)rMillion;
-            stats->transit.sumTransit = ntohl( server->sumTransit1 );
-            stats->transit.sumTransit += ntohl( server->sumTransit2 ) / (double)rMillion;
-            stats->transit.meanTransit = ntohl( server->meanTransit1 );
-            stats->transit.meanTransit += ntohl( server->meanTransit2 ) / (double)rMillion;
-            stats->transit.m2Transit = ntohl( server->m2Transit1 );
-            stats->transit.m2Transit += ntohl( server->m2Transit2 ) / (double)rMillion;
-            stats->transit.vdTransit = ntohl( server->vdTransit1 );
-            stats->transit.vdTransit += ntohl( server->vdTransit2 ) / (double)rMillion;
-            stats->transit.cntTransit = ntohl( server->cntTransit );
-            stats->IPGcnt = ntohl( server->IPGcnt );
-            stats->IPGsum = ntohl( server->IPGsum );
+	stats->transferID = agent->mSock;
+	stats->groupID = (agent->multihdr != NULL ? agent->multihdr->groupID \
+			  : -1);
+	reporthdr->agentindex = -1;
+	reporthdr->reporterindex = -1;
 
-            stats->mUDP = (char)kMode_Server;
-            reporthdr->report.connection.peer = agent->local;
-            reporthdr->report.connection.size_peer = agent->size_local;
-            reporthdr->report.connection.local = agent->peer;
-            reporthdr->report.connection.size_local = agent->size_peer;
+	reporthdr->report.type = SERVER_RELAY_REPORT;
+	reporthdr->report.mode = agent->mReportMode;
+	stats->mFormat = agent->mFormat;
+	stats->jitter = ntohl( server->base.jitter1 );
+	stats->jitter += ntohl( server->base.jitter2 ) / (double)rMillion;
+	stats->TotalLen = (((max_size_t) ntohl( server->base.total_len1 )) << 32) + \
+	    ntohl( server->base.total_len2 );
+	stats->startTime = 0;
+	stats->endTime = ntohl( server->base.stop_sec );
+	stats->endTime += ntohl( server->base.stop_usec ) / (double)rMillion;
+	stats->cntError = ntohl( server->base.error_cnt );
+	stats->cntOutofOrder = ntohl( server->base.outorder_cnt );
+	stats->cntDatagrams = ntohl( server->base.datagrams );
+	if ( (ntohl(server->base.flags) & HEADER_EXTEND) != 0) {
+	    stats->transit.minTransit = ntohl( server->extend.minTransit1 );
+	    stats->transit.minTransit += ntohl( server->extend.minTransit2 ) / (double)rMillion;
+	    stats->transit.maxTransit = ntohl( server->extend.maxTransit1 );
+	    stats->transit.maxTransit += ntohl( server->extend.maxTransit2 ) / (double)rMillion;
+	    stats->transit.sumTransit = ntohl( server->extend.sumTransit1 );
+	    stats->transit.sumTransit += ntohl( server->extend.sumTransit2 ) / (double)rMillion;
+	    stats->transit.meanTransit = ntohl( server->extend.meanTransit1 );
+	    stats->transit.meanTransit += ntohl( server->extend.meanTransit2 ) / (double)rMillion;
+	    stats->transit.m2Transit = ntohl( server->extend.m2Transit1 );
+	    stats->transit.m2Transit += ntohl( server->extend.m2Transit2 ) / (double)rMillion;
+	    stats->transit.vdTransit = ntohl( server->extend.vdTransit1 );
+	    stats->transit.vdTransit += ntohl( server->extend.vdTransit2 ) / (double)rMillion;
+	    stats->transit.cntTransit = ntohl( server->extend.cntTransit );
+	    stats->IPGcnt = ntohl( server->extend.IPGcnt );
+	    stats->IPGsum = ntohl( server->extend.IPGsum );
+	}
+	stats->mUDP = (char)kMode_Server;
+	reporthdr->report.connection.peer = agent->local;
+	reporthdr->report.connection.size_peer = agent->size_local;
+	reporthdr->report.connection.local = agent->peer;
+	reporthdr->report.connection.size_local = agent->size_peer;
             
 #ifdef HAVE_THREAD
-            /*
-             * Update the ReportRoot to include this report.
-             */
-            Condition_Lock( ReportCond );
-            reporthdr->next = ReportRoot;
-            ReportRoot = reporthdr;
-            Condition_Signal( &ReportCond );
-            Condition_Unlock( ReportCond );
+	/*
+	 * Update the ReportRoot to include this report.
+	 */
+	Condition_Lock( ReportCond );
+	reporthdr->next = ReportRoot;
+	ReportRoot = reporthdr;
+	Condition_Signal( &ReportCond );
+	Condition_Unlock( ReportCond );
 #else
-            /*
-             * Process the report in this thread
-             */
-            reporthdr->next = NULL;
-            process_report ( reporthdr );
+	/*
+	 * Process the report in this thread
+	 */
+	reporthdr->next = NULL;
+	process_report ( reporthdr );
 #endif 
-        } else {
-            FAIL(1, "Out of Memory!!\n", agent);
-        }
     }
 }
+
 
 /*
  * This function is called only when the reporter thread

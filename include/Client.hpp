@@ -85,12 +85,14 @@ public:
     // client connect
     void Connect( );
 
+private :
+    void HdrXchange(int flags);
+
 protected:
     thread_Settings *mSettings;
     char* mBuf;
     Timestamp mEndTime;
     Timestamp lastPacketTime;
-
 }; // end class Client
 
 #endif // CLIENT_H

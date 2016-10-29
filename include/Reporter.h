@@ -177,14 +177,7 @@ typedef struct Connection_Info {
     Socklen_t size_peer;
     iperf_sockaddr local;
     Socklen_t size_local;
-#ifdef HAVE_INT32_T
-    /*
-     * Shared flags indicating version and test information
-     */
-    int32_t flags;
-#else
-    signed int flags      : 32;
-#endif
+    char *peerversion;
 } Connection_Info;
 
 typedef struct ReporterData {
@@ -271,6 +264,7 @@ Transfer_Info* GetReport( ReportHeader *agent );
 void ReportServerUDP( struct thread_Settings *agent, struct server_hdr *server );
 void ReportSettings( struct thread_Settings *agent );
 void ReportConnections( struct thread_Settings *agent );
+void reporter_peerversion (struct thread_Settings *inSettings, int upper, int lower);
 
 extern report_connection connection_reports[];
 

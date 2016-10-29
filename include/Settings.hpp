@@ -104,6 +104,7 @@ typedef enum RateUnits {
 } RateUnits;
 
 #include "Reporter.h"
+
 /*
  * The thread_Settings is a structure that holds all
  * options for a given execution of either a client
@@ -156,7 +157,8 @@ typedef struct thread_Settings {
         bool   mNoServerReport;         // -x 
         bool   mNoMultReport;           // -x m
         bool   mSinlgeClient;           // -1 */
-    int flags; 
+    int flags;
+    int flags_extend;
     // enums (which should be special int's)
     ThreadMode mThreadMode;         // -s or -c
     ReportMode mReportMode;
@@ -182,12 +184,15 @@ typedef struct thread_Settings {
     Socklen_t size_local;
     nthread_t mTID;
     char* mCongestion;
+    char peerversion[40];
 #if defined( HAVE_WIN32_THREAD )
     HANDLE mHandle;
 #endif
 } thread_Settings;
 
 /*
+ * Thread based flags
+ *
  * Due to the use of thread_Settings in C and C++
  * we are unable to use bool values. To provide
  * the functionality of bools we use the following
@@ -225,7 +230,12 @@ typedef struct thread_Settings {
 #define FLAG_BWSET          0x01000000
 #define FLAG_ENHANCEDREPORT 0x02000000
 #define FLAG_SERVERMODETIME 0x04000000
-#define FLAG_SEQNO64 0x06000000
+/*
+ * Extended flags
+ */
+#define FLAG_PEERVER        0x00000001
+#define FLAG_SEQNO64        0x00000002
+#define FLAG_REVERSE        0x00000004
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -256,7 +266,9 @@ typedef struct thread_Settings {
 #define isBWSet(settings)          ((settings->flags & FLAG_BWSET) != 0)
 #define isEnhanced(settings)       ((settings->flags & FLAG_ENHANCEDREPORT) != 0)
 #define isServerModeTime(settings) ((settings->flags & FLAG_SERVERMODETIME) != 0)
-#define isSeqno64b(settings)       ((settings->flags & FLAG_SEQNO64) != 0)
+#define isPeerVerDetect(settings)       ((settings->flags_extend & FLAG_PEERVER) != 0)
+#define isSeqNo64b(settings)       ((settings->flags_extend & FLAG_SEQNO64) != 0)
+#define isReverse(settings)       ((settings->flags_extend & FLAG_REVERSE) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -285,7 +297,9 @@ typedef struct thread_Settings {
 #define setBWSet(settings)         settings->flags |= FLAG_BWSET
 #define setEnhanced(settings)      settings->flags |= FLAG_ENHANCEDREPORT
 #define setServerModeTime(settings)      settings->flags |= FLAG_SERVERMODETIME
-#define setSeqno64b(settings)      settings->flags |= FLAG_SEQNO64
+#define setPeerVerDetect(settings)      settings->flags_extend |= FLAG_PEERVER
+#define setSeqNo64b(settings)      settings->flags_extend |= FLAG_SEQNO64
+#define setReverse(settings)      settings->flags_extend |= FLAG_REVERSE
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -314,18 +328,26 @@ typedef struct thread_Settings {
 #define unsetBWSet(settings)       settings->flags &= ~FLAG_BWSET
 #define unsetEnhanced(settings)    settings->flags &= ~FLAG_ENHANCEDREPORT
 #define unsetServerModeTime(settings)    settings->flags &= ~FLAG_SERVERMODETIME
-#define unsetSeqno64b(settings)    settings->flags &= ~FLAG_SEQNO64
+#define unsetPeerVerDetect(settings)    settings->flags_extend &= ~FLAG_PEERVER
+#define unsetSeqNo64b(settings)    settings->flags_extend &= ~FLAG_SEQNO64
+#define unsetReverse(settings)    settings->flags_extend &= ~FLAG_REVERSE
 
-
+/*
+ * Messasge header flags
+ *
+ * base flags, keep compatible with older versions
+ */
 #define HEADER_VERSION1 0x80000000
-#define HEADER_VERSION2 0x40000000
-#define HEADER_ACK      0x20000000
+#define HEADER_EXTEND   0x40000000
 #define RUN_NOW         0x00000001
-#define UNITS_PPS       0x00000002
-#define SEQNO64B        0x00000004
+// newer flags
+#define UNITS_PPS             0x00000001
+#define SEQNO64B              0x00000002
+#define REALTIME              0x00000004
+#define REVERSE               0x00000008
 
-#define HDRXCHANGETIMER 1000000 // units microseconds 
-    
+#define HDRXACKMAX 2500000 // units microseconds
+
 // used to reference the 4 byte ID number we place in UDP datagrams
 // use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90) 
 typedef struct UDP_datagram {
@@ -340,6 +362,28 @@ typedef struct UDP_datagram {
 #endif
 } UDP_datagram;
 
+
+/*
+ * Structures used for test messages which
+ * are exchanged between the client and the Server/Listener
+ */
+typedef enum MsgType {
+    CLIENTHDR = 0x1,
+    CLIENTHDRACK,
+    SERVERHDR,
+    SERVERHDRACK
+} MsgType;
+
+typedef struct hdr_typelen {
+#ifdef HAVE_INT32_T
+    int32_t type;
+    int32_t length;
+#else
+    signed int type     : 32;
+    signed int length    : 32;
+#endif
+} hdr_typelen;
+
 /*
  * The client_hdr structure is sent from clients
  * to servers to alert them of things that need
@@ -347,10 +391,8 @@ typedef struct UDP_datagram {
  * future releases for backward compatibility.
  * 1.7 has flags, numThreads, mPort, and bufferlen
  */
-typedef struct client_hdr {
-
+typedef struct client_hdr_v1 {
 #ifdef HAVE_INT32_T
-
     /*
      * flags is a bitmap for different options
      * the most significant bits are for determining
@@ -367,22 +409,57 @@ typedef struct client_hdr {
     int32_t numThreads;
     int32_t mPort;
     int32_t bufferlen;
-    int32_t mWindowSize;
+    int32_t mWinBand;
     int32_t mAmount;
-    int32_t mRate;
-    int32_t mUDPRateUnits;
-    int32_t mRealtime;
 #else
     signed int flags      : 32;
     signed int numThreads : 32;
     signed int mPort      : 32;
     signed int bufferlen  : 32;
-    signed int mWindowSize : 32;
+    signed int mWinBand : 32;
     signed int mAmount    : 32;
+#endif
+} client_hdr_v1;
+
+typedef struct client_hdrext {
+    hdr_typelen typelen;
+#ifdef HAVE_INT32_T
+    int32_t flags;
+    int32_t version_u;
+    int32_t version_l;
+    int32_t reserved;
+    int32_t mRate;
+    int32_t mUDPRateUnits;
+    int32_t mRealtime;
+#else
+    signed int flags       : 32;
+    signed int version_u   : 32;
+    signed int version_l   : 32;
+    signed int reserved    : 32;
     signed int mRate      : 32;
     signed int mUDPRateUnits : 32;
     signed int mRealtime  : 32;
 #endif
+} client_hdrext;
+
+typedef struct client_hdr_ack {
+    hdr_typelen typelen;
+#ifdef HAVE_INT32_T
+    int32_t flags;
+    int32_t version_u;
+    int32_t version_l;
+    int32_t reserved;
+#else
+    signed int flags    : 32;
+    signed int version_u   : 32;
+    signed int version_l   : 32;
+    signed int reserved    : 32;
+#endif
+} client_hdr_ack;
+
+typedef struct client_hdr {
+    client_hdr_v1 base;
+    client_hdrext extend;
 } client_hdr;
 
 /*
@@ -391,10 +468,8 @@ typedef struct client_hdr {
  * It piggy_backs on the existing clear to close
  * packet.
  */
-typedef struct server_hdr {
-
+typedef struct server_hdr_v1 {
 #ifdef HAVE_INT32_T
-
     /*
      * flags is a bitmap for different options
      * the most significant bits are for determining
@@ -414,6 +489,23 @@ typedef struct server_hdr {
     int32_t datagrams;
     int32_t jitter1;
     int32_t jitter2;
+#else
+    signed int flags        : 32;
+    signed int total_len1   : 32;
+    signed int total_len2   : 32;
+    signed int stop_sec     : 32;
+    signed int stop_usec    : 32;
+    signed int error_cnt    : 32;
+    signed int outorder_cnt : 32;
+    signed int datagrams    : 32;
+    signed int jitter1      : 32;
+    signed int jitter2      : 32;
+#endif
+} server_hdr_v1;
+
+typedef struct server_hdr_extension {
+    hdr_typelen typelen;
+#ifdef HAVE_INT32_T
     int32_t minTransit1;
     int32_t minTransit2;
     int32_t maxTransit1;
@@ -430,16 +522,6 @@ typedef struct server_hdr {
     int32_t IPGcnt;
     int32_t IPGsum;
 #else
-    signed int flags        : 32;
-    signed int total_len1   : 32;
-    signed int total_len2   : 32;
-    signed int stop_sec     : 32;
-    signed int stop_usec    : 32;
-    signed int error_cnt    : 32;
-    signed int outorder_cnt : 32;
-    signed int datagrams    : 32;
-    signed int jitter1      : 32;
-    signed int jitter2      : 32;
     signed int minTransit1  : 32;
     signed int minTransit2  : 32;
     signed int maxTransit1  : 32;
@@ -456,40 +538,44 @@ typedef struct server_hdr {
     signed int IPGcnt       : 32;
     signed int IPGsum       : 32;
 #endif
+} server_hdr_extension;
 
+typedef struct server_hdr {
+    server_hdr_v1 base;
+    server_hdr_extension extend;
 } server_hdr;
 
-    // set to defaults
-    void Settings_Initialize( thread_Settings* main );
+// set to defaults
+void Settings_Initialize( thread_Settings* main );
 
-    // copy structure
-    void Settings_Copy( thread_Settings* from, thread_Settings** into );
+// copy structure
+void Settings_Copy( thread_Settings* from, thread_Settings** into );
 
-    // free associated memory
-    void Settings_Destroy( thread_Settings *mSettings );
+// free associated memory
+void Settings_Destroy( thread_Settings *mSettings );
 
-    // parse settings from user's environment variables
-    void Settings_ParseEnvironment( thread_Settings *mSettings );
+// parse settings from user's environment variables
+void Settings_ParseEnvironment( thread_Settings *mSettings );
 
-    // parse settings from app's command line
-    void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSettings );
+// parse settings from app's command line
+void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSettings );
 
-    // convert to lower case for [KMG]bits/sec
-    void Settings_GetLowerCaseArg(const char *,char *);
+// convert to lower case for [KMG]bits/sec
+void Settings_GetLowerCaseArg(const char *,char *);
 
-    // convert to upper case for [KMG]bytes/sec
-    void Settings_GetUpperCaseArg(const char *,char *);
+// convert to upper case for [KMG]bytes/sec
+void Settings_GetUpperCaseArg(const char *,char *);
 
-    // generate settings for listener instance
-    void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings **listener);
+// generate settings for listener instance
+void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings **listener);
 
-    // generate settings for speaker instance
-    void Settings_GenerateClientSettings( thread_Settings *server, 
-                                          thread_Settings **client,
-                                          client_hdr *hdr );
+// generate settings for speaker instance
+void Settings_GenerateClientSettings( thread_Settings *server,
+				      thread_Settings **client,
+                                      client_hdr *hdr );
 
-    // generate client header for server
-    void Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr );
+// generate client header for server
+int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr );
 
 #ifdef __cplusplus
 } /* end extern "C" */

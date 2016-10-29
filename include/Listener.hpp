@@ -92,6 +92,9 @@ protected:
     thread_Settings *server;
     Timestamp mEndTime;
 
+private:
+    int ReadClientHeader(client_hdr *hdr);
+    int ClientHeaderAck(void);
 }; // end class Listener
 
 #endif // LISTENER_H

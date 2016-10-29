@@ -79,7 +79,7 @@ Client/Server:\n\
   -e, --enhancedreports    use enhanced reporting giving more tcp/udp and traffic information\n\
   -f, --format    [kmKM]   format to report: Kbits, Mbits, KBytes, MBytes\n\
   -i, --interval  #        seconds between periodic bandwidth reports\n\
-  -l, --len       #[KM]    length of buffer to read or write (default 8 KB)\n\
+  -l, --len       #[KM]    length of buffer to read or write (default 128 KB)\n\
   -m, --print_mss          print TCP maximum segment size (MTU - TCP/IP header)\n\
   -o, --output    <filename> output the report or error message to this specified file\n\
   -p, --port      #        server port to listen on/connect to\n\
@@ -96,6 +96,7 @@ Client/Server:\n\
 \n\
 Server specific:\n\
   -s, --server             run in server mode\n\
+  -t, --time      #        time in seconds to listen for new connections as well as to receive traffic (default not set)\n\
   -U, --single_udp         run in single threaded UDP mode\n\
   -D, --daemon             run the server as a daemon\n"
 #ifdef WIN32
@@ -115,8 +116,12 @@ Client specific:\n\
   -F, --fileinput <name>   input the data to be transmitted from a file\n\
   -I, --stdin              input the data to be transmitted from stdin\n\
   -L, --listenport #       port to receive bidirectional tests back on\n\
-  -P, --parallel  #        number of parallel client threads to run\n\
-  -T, --ttl       #        time-to-live, for multicast (default 1)\n\
+  -P, --parallel  #        number of parallel client threads to run\n"
+#ifndef WIN32
+"  -R, --reverse            reverse the test (client receives, server sends)\n"
+#endif
+"  -T, --ttl       #        time-to-live, for multicast (default 1)\n\
+  -X, --peer-detect        perform server version detection and version exchange\n\
   -Z, --linux-congestion <algo>  set TCP congestion control algorithm (Linux only)\n\
 \n\
 Miscellaneous:\n\

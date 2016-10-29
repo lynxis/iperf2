@@ -41,7 +41,7 @@ print a help synopsis
 pause \fIn\fR seconds between periodic bandwidth reports
 .TP
 .BR -l ", " --len " \fIn\fR[KM]"
-set length read/write buffer to \fIn\fR (default 8 KB)
+set length read/write buffer to \fIn\fR (default 128 KB)
 .TP
 .BR -m ", " --print_mss " "
 print TCP maximum segment size (MTU - TCP/IP header)
@@ -116,10 +116,10 @@ number of bytes to transmit (instead of -t)
 Do a bidirectional test individually
 .TP
 .BR -t ", " --time " \fIn\fR"
-time in seconds to transmit for (default 10 secs)
+time in seconds to listen for new traffic connections, receive traffic or transmit traffic (Defaults: transmit is 10 secs while listen and receive are indefinite)
 .TP
-.BR -B ", " --bind " \fIip\fR | \fIip\fR:\fIport\fR"
-bind src addr(s) from which to originate traffic
+.BR -B ", " --bind " \fIip\fR | \fIip\fR:\fIport\fR | \fIipv6 -V\fR | \fI[ipv6]\fR:\fIport -V\fR"
+bind src addr(s) and ports from which to originate traffic (Note: -V option required for ipv6)
 .TP
 .BR -F ", " --fileinput " \fIname\fR"
 input the data to be transmitted from a file
@@ -133,8 +133,14 @@ port to recieve bidirectional tests back on
 .BR -P ", " --parallel " \fIn\fR"
 number of parallel client threads to run
 .TP
+.BR -R ", " --reverse " "
+reverse the traffic flow after header exchange, useful for testing through firewalls
+.TP
 .BR -T ", " --ttl " \fIn\fR"
 time-to-live, for multicast (default 1)
+.TP
+.BR -X ", " --peerdetect " "
+run server version detection prior to traffic.
 .TP
 .BR -Z ", " --linux-congestion " \fIalgo\fR"
 set TCP congestion control algorithm (Linux only)
@@ -148,13 +154,14 @@ This section needs to be filled in.
 Exit statuses are inconsistent.
 The threading implementation is rather heinous.
 .SH AUTHORS
-Iperf was originally written by Mark Gates and Alex Warshavsky.
-Man page and maintence by Jon Dugan <jdugan at x1024 dot net>.
-Other contributions from Ajay Tirumala, Jim Ferguson,
+Iperf2, based from iperf (originally written by Mark Gates and Alex Warshavsky), has a goal of maintainence with some feature enhancement.
+Other contributions from Ajay Tirumala, Jim Ferguson, Jon Dugan <jdugan at x1024 dot net>,
 Feng Qin,
 Kevin Gibbs,
 John Estabrook <jestabro at ncsa.uiuc.edu>,
 Andrew Gallatin <gallatin at gmail.com>,
-Stephen Hemminger <shemminger at linux-foundation.org>
+Stephen Hemminger <shemminger at linux-foundation.org>,
+Tim Auckland,
+Robert J. McMahon <rjmcmahon at rjmcmahon.com>
 .SH "SEE ALSO"
-http://iperf.sourceforge.net/
+http://sourceforge.net/projects/iperf2/

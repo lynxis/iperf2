@@ -156,6 +156,45 @@ ssize_t readn( int inSock, void *outBuf, size_t inLen ) {
 } /* end readn */
 
 /* -------------------------------------------------------------------
+ * Similar to read but supports recv flags
+ * Returns number actually read, or -1 on error.
+ * If number read < inLen then we reached EOF.
+ * from Stevens, 1998, section 3.9
+ * ------------------------------------------------------------------- */
+int recvn( int inSock, char *outBuf, int inLen, int flags ) {
+    int  nleft;
+    int nread;
+    char *ptr;
+
+    assert( inSock >= 0 );
+    assert( outBuf != NULL );
+    assert( inLen > 0 );
+
+    ptr   = outBuf;
+    nleft = inLen;
+
+    while ( nleft > 0 ) {
+        nread = recv( inSock, ptr, nleft, flags );
+	printf("nread=%d\n",nread);
+        if ( nread < 0 ) {
+            if ( errno == EAGAIN ) {
+                nread = 0;  /* Socket read timeout */
+		break;
+            } else {
+		WARN_errno( 1, "recvn" );
+                return -1;  /* error */
+	    }
+	} else if ( nread == 0 ) {
+	    WARN_errno( 1, "recvn abort" );
+            break;        /* EOF */
+	}
+        nleft -= nread;
+        ptr   += nread;
+    }
+    return(inLen - nleft);
+} /* end readn */
+
+/* -------------------------------------------------------------------
  * Attempts to write  n bytes to a socket.
  * returns number actually written, or -1 on error.
  * number written is always inLen if there is not an error.
