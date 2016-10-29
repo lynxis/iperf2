@@ -741,19 +741,11 @@ void Client::HdrXchange(int flags) {
     if (flags & HEADER_EXTEND) {
 	// Run compatability detection and test info exchange for tests that require it
 	int optflag;
-	if (!isUDP( mSettings )){
-	    len = sizeof(client_hdr);
-	    // Disable Nagle to reduce latency of this intial message
-	    optflag=1;
-	    if(setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 )
-		WARN_errno(0, "tcpnodelay" );
-	} else {
+	if (isUDP(mSettings)) {
+	    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
 	    // UDP header message packe must be mBufLen so server/Listener will read it
 	    // because the Listener read length used  mBufLen
 	    len = mSettings->mBufLen;
-	}
-	if ( isUDP( mSettings ) ) {
-	    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
 #ifdef HAVE_CLOCK_GETTIME
 	    struct timespec t1;
 	    clock_gettime(CLOCK_REALTIME, &t1);
@@ -764,6 +756,12 @@ void Client::HdrXchange(int flags) {
             mBuf_UDP->id      = htonl(0);
             mBuf_UDP->tv_sec  = htonl(t1.tv_sec);
             mBuf_UDP->tv_usec = htonl((t1.tv_nsec + 500) / 1000L);
+	} else {
+	    len = sizeof(client_hdr);
+	    // Disable Nagle to reduce latency of this intial message
+	    optflag=1;
+	    if(setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int)) < 0 )
+		WARN_errno(0, "tcpnodelay" );
 	}
 	currLen = send( mSettings->mSock, mBuf, len, 0 );
 	if ( currLen < 0 ) {
@@ -774,12 +772,14 @@ void Client::HdrXchange(int flags) {
 	    int sotimer = 0;
 	    // sotimer units microseconds convert
 	    if (mSettings->mInterval) {
-		sotimer = (int) (mSettings->mInterval * 1e6) / 4;
+		sotimer = (int) ((mSettings->mInterval * 1e6) / 4);
 	    } else if (isModeTime(mSettings)) {
-		sotimer = (mSettings->mAmount * 1000) / 4;
+		sotimer = (int) ((mSettings->mAmount * 1000) / 4);
 	    }
 	    if (sotimer > HDRXACKMAX) {
 		sotimer = HDRXACKMAX;
+	    } else if (sotimer < HDRXACKMIN) {
+		sotimer = HDRXACKMIN;
 	    }
 #ifdef WIN32
             // Windows SO_RCVTIMEO uses ms
@@ -798,6 +798,8 @@ void Client::HdrXchange(int flags) {
 	    if ((n = recvn(mSettings->mSock, (char *)&ack, sizeof(client_hdr_ack), 0)) == sizeof(client_hdr_ack)) {
 		if (ntohl(ack.typelen.type) == CLIENTHDRACK) {
 		    reporter_peerversion (mSettings, ntohl(ack.version_u), ntohl(ack.version_l));
+		} else {
+		    sprintf(mSettings->peerversion, " (invalid server version)");
 		}
 	    } else {
 		WARN_errno(1, "recvack" );

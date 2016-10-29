@@ -175,7 +175,6 @@ int recvn( int inSock, char *outBuf, int inLen, int flags ) {
 
     while ( nleft > 0 ) {
         nread = recv( inSock, ptr, nleft, flags );
-	printf("nread=%d\n",nread);
         if ( nread < 0 ) {
             if ( errno == EAGAIN ) {
                 nread = 0;  /* Socket read timeout */

@@ -346,7 +346,8 @@ typedef struct thread_Settings {
 #define REALTIME              0x00000004
 #define REVERSE               0x00000008
 
-#define HDRXACKMAX 2500000 // units microseconds
+#define HDRXACKMAX 2500000 // default 2.5 seconds, units microseconds
+#define HDRXACKMIN   10000 // default 10 ms, units microseconds
 
 // used to reference the 4 byte ID number we place in UDP datagrams
 // use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90) 

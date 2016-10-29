@@ -570,7 +570,7 @@ void Listener::UDPSingleServer( ) {
             datagramID = ntohl( ((UDP_datagram*) mBuf)->id ); 
             if ( datagramID >= 0 ) {
                 if ( exist != NULL ) {
-                    // read the datagram ID and sentTime out of the buffer 
+                    // read the datagram ID and sentTime out of the buffer
                     reportstruct->packetID = datagramID; 
                     reportstruct->sentTime.tv_sec = ntohl( ((UDP_datagram*) mBuf)->tv_sec  );
                     reportstruct->sentTime.tv_usec = ntohl( ((UDP_datagram*) mBuf)->tv_usec ); 
@@ -585,7 +585,7 @@ void Listener::UDPSingleServer( ) {
                     server->mSock = -groupID;
                     Mutex_Unlock( &groupCond );
                     server->size_local = sizeof(iperf_sockaddr); 
-                    getsockname( mSettings->mSock, (sockaddr*) &server->local, 
+                    getsockname( mSettings->mSock, (sockaddr*) &server->local, \
                                  &server->size_local );
                     break;
                 }
@@ -604,8 +604,7 @@ void Listener::UDPSingleServer( ) {
                     gettimeofday( &(reportstruct->packetTime), NULL );
                     CloseReport( exist->server->reporthdr, reportstruct );
         
-                    if ( rc > (int) ( sizeof( UDP_datagram )
-                                                      + sizeof( server_hdr ) ) ) {
+                    if (rc > (int) (sizeof(UDP_datagram) + sizeof(server_hdr))) {
                         UDP_datagram *UDP_Hdr;
                         server_hdr *hdr;
         
@@ -629,8 +628,7 @@ void Listener::UDPSingleServer( ) {
                     EndReport( exist->server->reporthdr );
                     exist->server->reporthdr = NULL;
                     Iperf_delete( &(exist->server->peer), &clients );
-                } else if ( rc > (int) ( sizeof( UDP_datagram )
-                                                  + sizeof( server_hdr ) ) ) {
+                } else if (rc > (int) (sizeof(UDP_datagram) + sizeof(server_hdr))) {
                     UDP_datagram *UDP_Hdr;
                     server_hdr *hdr;
         
@@ -638,7 +636,7 @@ void Listener::UDPSingleServer( ) {
                     hdr = (server_hdr*) (UDP_Hdr+1);
                     hdr->base.flags = htonl( 0 );
                 }
-                sendto( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
+                sendto( mSettings->mSock, mBuf, mSettings->mBufLen, 0, \
                         (struct sockaddr*) &server->peer, server->size_peer);
             }
         }
@@ -664,7 +662,7 @@ void Listener::UDPSingleServer( ) {
         }
         // Verify that it is allowed
         if ( client ) {
-            if ( !SockAddr_Hostare_Equal( (sockaddr*) &mSettings->peer, 
+            if ( !SockAddr_Hostare_Equal( (sockaddr*) &mSettings->peer, \
                                           (sockaddr*) &server->peer ) ) {
                 // Not allowed try again
                 connect( mSettings->mSock, 
@@ -782,10 +780,9 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    }
 	}
     }
-    printf("client hdr flags=%x\n", flags);
     if ((flags & HEADER_EXTEND) != 0 ) {
 	reporter_peerversion(server, ntohl(hdr->extend.version_u), ntohl(hdr->extend.version_l));
-	//  Extended header successfully read so ack the client now
+	//  Extended header successfully read. Ack the client with our version info now
 	ClientHeaderAck();
     }
     return 1;
@@ -805,15 +802,17 @@ int Listener::ClientHeaderAck(void) {
     // This is a version 2.0.10 or greater client
     // write back to the client so it knows the server
     // version
-    if (!isUDP(mSettings)) {
+    if (!isUDP(server)) {
 	// sotimer units microseconds convert
-	if (mSettings->mInterval) {
-	    sotimer = (int) (mSettings->mInterval * 1e6) / 4;
-	} else if (isModeTime(mSettings)) {
-	    sotimer = (mSettings->mAmount * 1000) / 4;
+	if (server->mInterval) {
+	    sotimer = (int) ((server->mInterval * 1e6) / 4);
+	} else if (isModeTime(server)) {
+	    sotimer = (int) ((server->mAmount * 1000) / 4);
 	}
 	if (sotimer > HDRXACKMAX) {
 	    sotimer = HDRXACKMAX;
+	} else if (sotimer < HDRXACKMIN) {
+	    sotimer = HDRXACKMIN;
 	}
 #ifdef WIN32
 	// Windows SO_RCVTIMEO uses ms
@@ -823,22 +822,22 @@ int Listener::ClientHeaderAck(void) {
 	timeout.tv_sec = sotimer / 1000000;
 	timeout.tv_usec = sotimer % 1000000;
 #endif
-	if ((rc = setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout))) < 0 ) {
+	if ((rc = setsockopt( server->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout))) < 0 ) {
 	    WARN_errno( rc < 0, "setsockopt SO_SNDTIMEO");
 	}
 	optflag=1;
 	// Disable Nagle to reduce latency of this intial message
-	if ((rc = setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
+	if ((rc = setsockopt( server->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
 	    WARN_errno(rc < 0, "tcpnodelay" );
 	}
     }
-    if ((rc = send(mSettings->mSock, &ack, sizeof(client_hdr_ack),0)) < 0) {
+    if ((rc = send(server->mSock, &ack, sizeof(client_hdr_ack),0)) < 0) {
 	WARN_errno( rc <= 0, "send_ack" );
 	rc = 0;
     }
     // Re-nable Nagle
     optflag=0;
-    if (!isUDP( mSettings ) && (rc = setsockopt( mSettings->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
+    if (!isUDP( server ) && (rc = setsockopt( server->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
 	WARN_errno(rc < 0, "tcpnodelay" );
     }
     return rc;
