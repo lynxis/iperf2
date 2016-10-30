@@ -80,6 +80,7 @@
 #include "List.h"
 #include "util.h" 
 #include "version.h"
+#include "Locale.h"
 
 /* ------------------------------------------------------------------- 
  * Stores local hostname and socket info. 
@@ -95,7 +96,12 @@ Listener::Listener( thread_Settings *inSettings ) {
     mBuf = new char[(mSettings->mBufLen > (int)(sizeof(client_hdr)+1)) ? mSettings->mBufLen : (sizeof(client_hdr)+1)];
 
     // open listening socket 
-    Listen( ); 
+    Listen( );
+    if (isUDP(inSettings) && (inSettings->mBufLen < (int) sizeof(UDP_datagram))) {
+	inSettings->mBufLen = sizeof( UDP_datagram );
+	fprintf( stderr, warn_buffer_too_small, inSettings->mBufLen );
+    }
+
     ReportSettings( inSettings );
 
 } // end Listener 
@@ -795,7 +801,8 @@ int Listener::ClientHeaderAck(void) {
     ack.typelen.type  = htonl(CLIENTHDRACK);
     ack.typelen.length = htonl(sizeof(client_hdr_ack));
     ack.flags = 0;
-    ack.reserved = 0;
+    ack.reserved1 = 0;
+    ack.reserved2 = 0;
     ack.version_u = htonl(IPERF_VERSION_MAJORHEX);
     ack.version_l = htonl(IPERF_VERSION_MINORHEX);
     int rc = 1;
@@ -830,6 +837,9 @@ int Listener::ClientHeaderAck(void) {
 	if ((rc = setsockopt( server->mSock, IPPROTO_TCP, TCP_NODELAY, (char *)&optflag, sizeof(int))) < 0 ) {
 	    WARN_errno(rc < 0, "tcpnodelay" );
 	}
+    }
+    if (isUDP(server) && (server->mBufLen < (int) sizeof(client_hdr_ack))) {
+	fprintf( stderr, warn_len_too_small_peer_exchange, sizeof(client_hdr_ack));
     }
     if ((rc = send(server->mSock, &ack, sizeof(client_hdr_ack),0)) < 0) {
 	WARN_errno( rc <= 0, "send_ack" );

@@ -229,6 +229,10 @@ void Server::RunUDP( void ) {
     message.msg_control = (char *) ctrl;
     message.msg_controllen = sizeof(ctrl);
 #endif
+    if (mSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
+	mSettings->mBufLen = sizeof( UDP_datagram );
+	fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+    }
 
     reportstruct = new ReportStruct;
     if ( reportstruct != NULL ) {

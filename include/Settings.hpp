@@ -184,7 +184,7 @@ typedef struct thread_Settings {
     Socklen_t size_local;
     nthread_t mTID;
     char* mCongestion;
-    char peerversion[40];
+    char peerversion[80];
 #if defined( HAVE_WIN32_THREAD )
     HANDLE mHandle;
 #endif
@@ -454,7 +454,8 @@ typedef struct client_hdr_ack {
     signed int flags    : 32;
     signed int version_u   : 32;
     signed int version_l   : 32;
-    signed int reserved    : 32;
+    signed int reserved1   : 32;
+    signed int reserved2   : 32;
 #endif
 } client_hdr_ack;
 

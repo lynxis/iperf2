@@ -75,9 +75,20 @@
 Client::Client( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
-
+    if (isUDP(inSettings)) {
+	if ((isPeerVerDetect(inSettings)) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr)))) {
+	    mSettings->mBufLen = (sizeof(UDP_datagram) + sizeof(client_hdr));
+	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+	} else if ((inSettings->mMode != kTest_Normal) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr_v1)))) {
+	    mSettings->mBufLen = (sizeof(UDP_datagram) + sizeof(client_hdr_v1));
+	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+	} else if (inSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
+	    mSettings->mBufLen = sizeof( UDP_datagram );
+	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+	}
+    }
     // initialize buffer
-    mBuf = new char[ mSettings->mBufLen ];
+    mBuf = new char[((int)sizeof(client_hdr) > mSettings->mBufLen) ? sizeof(client_hdr) : mSettings->mBufLen];
     pattern( mBuf, mSettings->mBufLen );
     if ( isFileInput( mSettings ) ) {
         if ( !isSTDIN( mSettings ) )
@@ -743,9 +754,12 @@ void Client::HdrXchange(int flags) {
 	int optflag;
 	if (isUDP(mSettings)) {
 	    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
-	    // UDP header message packe must be mBufLen so server/Listener will read it
-	    // because the Listener read length used  mBufLen
 	    len = mSettings->mBufLen;
+	    // UDP header message must be mBufLen so server/Listener will read it
+	    // because the Listener read length uses  mBufLen
+	    if ((sizeof(UDP_datagram) + (sizeof(client_hdr)) - len) > 0) {
+		fprintf( stderr, warn_len_too_small_peer_exchange, (sizeof(UDP_datagram) + sizeof(client_hdr))); 
+	    }
 #ifdef HAVE_CLOCK_GETTIME
 	    struct timespec t1;
 	    clock_gettime(CLOCK_REALTIME, &t1);
@@ -796,10 +810,10 @@ void Client::HdrXchange(int flags) {
 	     * Hang a TCP or UDP read and see if this is a header ack message
 	     */
 	    if ((n = recvn(mSettings->mSock, (char *)&ack, sizeof(client_hdr_ack), 0)) == sizeof(client_hdr_ack)) {
-		if (ntohl(ack.typelen.type) == CLIENTHDRACK) {
+		if (ntohl(ack.typelen.type) == CLIENTHDRACK && ntohl(ack.typelen.length) == sizeof(client_hdr_ack)) {
 		    reporter_peerversion (mSettings, ntohl(ack.version_u), ntohl(ack.version_l));
 		} else {
-		    sprintf(mSettings->peerversion, " (invalid server version)");
+		    sprintf(mSettings->peerversion, " (misformed server version)");
 		}
 	    } else {
 		WARN_errno(1, "recvack" );
@@ -813,12 +827,17 @@ void Client::HdrXchange(int flags) {
 		WARN_errno(0, "tcpnodelay" );
 	    }
 	}
-    } else if (!isUDP( mSettings ) && (flags & HEADER_VERSION1)) {
-	// Send TCP version1 header message now, UDP version1 header message is sent
-	// as part of normal traffic per Client::RunUDP
-	currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr_v1), 0 );
-	if ( currLen < 0 ) {
-	    WARN_errno( currLen < 0, "send_hdr_v1" );
+    } else if ((flags & HEADER_VERSION1)) {
+	if (isUDP(mSettings)) {
+	    // Send TCP version1 header message now, UDP version1 header message is sent
+	    // as part of normal traffic per Client::RunUDP
+	    currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr_v1), 0 );
+	    if ( currLen < 0 ) {
+		WARN_errno( currLen < 0, "send_hdr_v1" );
+	    }
+	    
+	} else if (((sizeof(UDP_datagram) + sizeof(client_hdr_v1)) - mSettings->mBufLen) > 0) {
+	    fprintf( stderr, warn_len_too_small_peer_exchange, (sizeof(UDP_datagram) + sizeof(client_hdr_v1))); 
 	}
     }
 }

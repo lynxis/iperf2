@@ -411,6 +411,9 @@ const char warn_server_old[] =
 const char warn_test_exchange_failed[] =
 "WARNING: client/server version exchange failed\n";
 
+const char warn_len_too_small_peer_exchange[] =
+"WARNING: -l may be too small peer exchange of information, min=%d bytes\n";
+
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif

@@ -449,25 +449,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             Settings_GetUpperCaseArg(optarg,outarg);
             mExtSettings->mBufLen = byte_atoi( outarg );
             setBuflenSet( mExtSettings );
-            if ( !isUDP( mExtSettings ) ) {
-                 if ( mExtSettings->mBufLen < (int) sizeof( client_hdr ) &&
-                      !isCompat( mExtSettings ) ) {
-                    setCompat( mExtSettings );
-                    fprintf( stderr, warn_implied_compatibility, option );
-                 }
-            } else {
-                if ( mExtSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
-                    mExtSettings->mBufLen = sizeof( UDP_datagram );
-                    fprintf( stderr, warn_buffer_too_small, mExtSettings->mBufLen );
-                }
-                if ( !isCompat( mExtSettings ) &&
-                            mExtSettings->mBufLen < (int) ( sizeof( UDP_datagram )
-                            + sizeof( client_hdr ) ) ) {
-                    setCompat( mExtSettings );
-                    fprintf( stderr, warn_implied_compatibility, option );
-                }
-            }
-
             break;
 
         case 'm': // print TCP MSS
@@ -532,11 +513,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             // so don't overwrite that value.
             if ( !isBuflenSet( mExtSettings ) ) {
                 mExtSettings->mBufLen = kDefault_UDPBufLen;
-            } else if ( mExtSettings->mBufLen < (int) ( sizeof( UDP_datagram ) 
-                        + sizeof( client_hdr ) ) &&
-                        !isCompat( mExtSettings ) ) {
-                setCompat( mExtSettings );
-                fprintf( stderr, warn_implied_compatibility, option );
             }
             break;
 
