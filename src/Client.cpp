@@ -88,7 +88,7 @@ Client::Client( thread_Settings *inSettings ) {
 	}
     }
     // initialize buffer
-    mBuf = new char[((int)sizeof(client_hdr) > mSettings->mBufLen) ? sizeof(client_hdr) : mSettings->mBufLen];
+    mBuf = new char[(mSettings->mBufLen > (int)(sizeof(client_hdr)+1)) ? mSettings->mBufLen : (sizeof(client_hdr)+1)];
     pattern( mBuf, mSettings->mBufLen );
     if ( isFileInput( mSettings ) ) {
         if ( !isSTDIN( mSettings ) )
