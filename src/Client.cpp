@@ -75,11 +75,17 @@
 Client::Client( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
+
+    if (isCompat(inSettings) && isPeerVerDetect(inSettings)) {
+	fprintf(stderr, warn_compat_and_peer_exchange);
+	unsetCompat(inSettings);
+	unsetPeerVerDetect(inSettings);
+    }
     if (isUDP(inSettings)) {
-	if ((isPeerVerDetect(inSettings)) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr)))) {
+	if (!isCompat(inSettings) && isPeerVerDetect(inSettings) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr)))) {
 	    mSettings->mBufLen = (sizeof(UDP_datagram) + sizeof(client_hdr));
 	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
-	} else if ((inSettings->mMode != kTest_Normal) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr_v1)))) {
+	} else if (!isCompat(inSettings) &&(inSettings->mMode != kTest_Normal) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr_v1)))) {
 	    mSettings->mBufLen = (sizeof(UDP_datagram) + sizeof(client_hdr_v1));
 	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
 	} else if (inSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {

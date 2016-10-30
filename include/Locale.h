@@ -224,9 +224,11 @@ extern const char warn_invalid_report[];
 
 extern const char warn_server_old[];
 
-extern const char warn_test_exchange_failed[];    
+extern const char warn_test_exchange_failed[];
 
-extern const char warn_len_too_small_peer_exchange[];    
+extern const char warn_len_too_small_peer_exchange[];
+
+extern const char warn_compat_and_peer_exchange[];
 
 #ifdef __cplusplus
 } /* end extern "C" */

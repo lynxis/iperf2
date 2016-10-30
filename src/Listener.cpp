@@ -97,13 +97,16 @@ Listener::Listener( thread_Settings *inSettings ) {
 
     // open listening socket 
     Listen( );
-    if (isUDP(inSettings) && (inSettings->mBufLen < (int) sizeof(UDP_datagram))) {
-	inSettings->mBufLen = sizeof( UDP_datagram );
-	fprintf( stderr, warn_buffer_too_small, inSettings->mBufLen );
+    if (isUDP(inSettings)) {
+	if (!isCompat(inSettings) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr)))) {
+	    fprintf(stderr, warn_len_too_small_peer_exchange, mSettings->mBufLen, (sizeof(UDP_datagram) + sizeof(client_hdr)));
+	}
+	if (inSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
+	    mSettings->mBufLen = sizeof( UDP_datagram );
+	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+	}
     }
-
     ReportSettings( inSettings );
-
 } // end Listener 
 
 /* ------------------------------------------------------------------- 
