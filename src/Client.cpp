@@ -833,17 +833,25 @@ void Client::HdrXchange(int flags) {
 		WARN_errno(0, "tcpnodelay" );
 	    }
 	}
-    } else if ((flags & HEADER_VERSION1)) {
+    } else if (flags & HEADER_VERSION1) {
 	if (isUDP(mSettings)) {
-	    // Send TCP version1 header message now, UDP version1 header message is sent
-	    // as part of normal traffic per Client::RunUDP
-	    currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr_v1), 0 );
-	    if ( currLen < 0 ) {
-		WARN_errno( currLen < 0, "send_hdr_v1" );
+	    if (((sizeof(UDP_datagram) + sizeof(client_hdr_v1)) - mSettings->mBufLen) > 0) {
+		fprintf( stderr, warn_len_too_small_peer_exchange, mSettings->mBufLen, (sizeof(UDP_datagram) + sizeof(client_hdr_v1)));
 	    }
-	    
-	} else if (((sizeof(UDP_datagram) + sizeof(client_hdr_v1)) - mSettings->mBufLen) > 0) {
-	    fprintf( stderr, warn_len_too_small_peer_exchange, (sizeof(UDP_datagram) + sizeof(client_hdr_v1))); 
+	    // UDP version1 header message is sent as part of normal traffic per Client::Run
+	} else {
+	    /*
+	     * Really should not need this warning as TCP is a byte protocol so the mBufLen shouldn't cause
+             * a problem.  Unfortunately, the ver 2.0.5 server didn't read() TCP properly and will fail
+             * if the full V1 message does come in a single read.  This was fixed in 2.0.10 but go ahead
+	     * and issue a warning in case the server is version 2.0.5
+	     */
+	    if (((int)sizeof(client_hdr_v1) - mSettings->mBufLen) > 0) {
+		fprintf( stderr, warn_len_too_small_peer_exchange, mSettings->mBufLen, sizeof(client_hdr_v1));
+	    }
+	    // Send TCP version1 header message now
+	    currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr_v1), 0 );
+	    WARN_errno( currLen < 0, "send_hdr_v1" );
 	}
     }
 }

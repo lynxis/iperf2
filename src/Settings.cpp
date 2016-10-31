@@ -791,11 +791,11 @@ void Settings_GetLowerCaseArg(const char *inarg, char *outarg) {
  * for client side execution 
  */
 void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings **listener ) {
-    if ( !isCompat( client ) && 
+    if ( !isCompat( client ) && \
          (client->mMode == kTest_DualTest || client->mMode == kTest_TradeOff) ) {
         *listener = new thread_Settings;
         memcpy(*listener, client, sizeof( thread_Settings ));
-        setCompat( (*listener) );
+	setCompat((*listener));
         unsetDaemon( (*listener) );
         if ( client->mListenPort != 0 ) {
             (*listener)->mPort   = client->mListenPort;
