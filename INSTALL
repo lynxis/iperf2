@@ -5,7 +5,7 @@ Platform Specific Notes
 FreeBSD
 
   If you use a cc or c++ other than the system one, threads may not be
-  detected properly.  To work around this set the following environment 
+  detected properly.  To work around this set the following environment
   variables:
 
     setenv CC /usr/bin/cc

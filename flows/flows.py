@@ -16,7 +16,7 @@ logging.basicConfig(filename='flowtest.log', level=logging.DEBUG, format='%(asct
 class iperf_flow:
     port = 61000
     iperf = "/usr/bin/iperf"
-    
+
     def __init__(self, name="iperf"):
         mystate = "INIT"
         self.name = name
@@ -35,7 +35,7 @@ class iperf_flow:
         logging.info(self.name + " " + "Start")
         self.rx.start()
         self.tx.start()
-        
+
     def stop(self):
         logging.info(self.name + " " + "Stop")
         self.rx.stop()
@@ -48,13 +48,13 @@ class iperf_server():
     def __init__(self, name="Server"):
         mystate = "INIT"
         self.name = name
-        
+
     def __getattribute__(self, attr):
         try:
             return object.__getattribute__(self, attr)
         except AttributeError:
             return getattr(iperf_flow, attr)
-        
+
     def start(self):
         logging.info(self.name + " " + "Start")
         self.childprocess = subprocess.Popen([self.iperf, "-s", "-p" + str(self.port), "-e", "-i 0.5" , "-t 3600"], bufsize=1, universal_newlines = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
@@ -66,7 +66,7 @@ class iperf_server():
     def stop(self):
         logging.info(self.name + " " + "Stop")
         self.childprocess.kill()
-        
+
     def server_stdout_event(self):
         data = self.childprocess.stdout.readline()
         if data is not None :
@@ -84,7 +84,7 @@ class iperf_server():
         if self.childprocess.returncode is not None :
             loop.remove_reader(self.childprocess.stderr)
             print("{} stdout> Finished".format(self.name))
-        
+
 class iperf_client():
     def __init__(self, name="Client"):
         mystate = "INIT"
@@ -95,7 +95,7 @@ class iperf_client():
             return object.__getattribute__(self, attr)
         except AttributeError:
             return getattr(iperf_flow, attr)
-        
+
     def start(self):
         logging.info(self.name + " " + "Start")
         logging.info("TX Start")
@@ -103,7 +103,7 @@ class iperf_client():
         print("client start pid=%d" % self.childprocess.pid)
         loop = asyncio.get_event_loop()
         loop.add_reader(self.childprocess.stdout, self.client_stdout_event)
-        loop.add_reader(self.childprocess.stderr, self.client_stderr_event) 
+        loop.add_reader(self.childprocess.stderr, self.client_stderr_event)
 
     def stop(self):
         logging.info(self.name + " " + "Stop")
@@ -114,10 +114,10 @@ class iperf_client():
 
     def pause(self) :
         self.childprocess.send_signal(signal.SIGSTOP)
-        
+
     def resume(self) :
         self.childprocess.send_signal(signal.SIGCONT)
-        
+
     def client_stdout_event(self):
         data = self.childprocess.stdout.readline()
         if data :
@@ -127,7 +127,7 @@ class iperf_client():
             loop.remove_reader(self.childprocess.stdout)
             print("{} stdout> Finished".format(self.name))
             self.peer.stop()
-            
+
     def client_stderr_event(self):
         data = self.childprocess.stderr.readline()
         if data :
@@ -137,4 +137,4 @@ class iperf_client():
             loop.remove_reader(self.childprocess.stderr)
             print("{} stderr> Finished".format(self.name))
             self.peer.stop()
-            
+

@@ -27,7 +27,7 @@ class ssh_session:
             self.childprocess = subprocess.Popen([self.ssh, str(host), str(cmd)], bufsize=1, universal_newlines = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
             self.loop.add_reader(self.childprocess.stdout, self.stdout_event)
             self.loop.add_reader(self.childprocess.stderr, self.stderr_event)
-            self.iowatchdog = self.loop.call_later(self.IO_TIMEOUT, self.io_timer) 
+            self.iowatchdog = self.loop.call_later(self.IO_TIMEOUT, self.io_timer)
             await self.done.wait()
             self.iowatchdog.cancel()
             self.loop.remove_reader(self.childprocess.stdout)
@@ -38,7 +38,7 @@ class ssh_session:
     def stdout_event(self):
         data = self.childprocess.stdout.readline()
         self.iowatchdog.cancel()
-        self.iowatchdog = self.loop.call_later(self.IO_TIMEOUT, self.io_timer) 
+        self.iowatchdog = self.loop.call_later(self.IO_TIMEOUT, self.io_timer)
         if data :
             print("stdout> {}".format(data),end='')
         else :
@@ -50,7 +50,7 @@ class ssh_session:
     def stderr_event(self):
         data = self.childprocess.stderr.readline()
         self.iowatchdog.cancel()
-        self.iowatchdog = self.loop.call_later(self.IO_TIMEOUT, self.io_timer) 
+        self.iowatchdog = self.loop.call_later(self.IO_TIMEOUT, self.io_timer)
         if data :
             print("stderr> {}".format(data), end='')
         else :
@@ -62,9 +62,9 @@ class ssh_session:
     def close_actions(self,origin):
         self.returncode = self.childprocess.returncode
         if self.childprocess.stdout.closed and self.childprocess.stderr.closed :
-            self.done.set()    
+            self.done.set()
 
     def io_timer(self):
         self.done.set()
 
-        
+

@@ -1,48 +1,48 @@
-/*--------------------------------------------------------------- 
- * Copyright (c) 1999,2000,2001,2002,2003                              
- * The Board of Trustees of the University of Illinois            
- * All Rights Reserved.                                           
- *--------------------------------------------------------------- 
- * Permission is hereby granted, free of charge, to any person    
- * obtaining a copy of this software (Iperf) and associated       
- * documentation files (the "Software"), to deal in the Software  
- * without restriction, including without limitation the          
- * rights to use, copy, modify, merge, publish, distribute,        
- * sublicense, and/or sell copies of the Software, and to permit     
+/*---------------------------------------------------------------
+ * Copyright (c) 1999,2000,2001,2002,2003
+ * The Board of Trustees of the University of Illinois
+ * All Rights Reserved.
+ *---------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software (Iperf) and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit
  * persons to whom the Software is furnished to do
- * so, subject to the following conditions: 
+ * so, subject to the following conditions:
  *
- *     
- * Redistributions of source code must retain the above 
- * copyright notice, this list of conditions and 
- * the following disclaimers. 
  *
- *     
- * Redistributions in binary form must reproduce the above 
- * copyright notice, this list of conditions and the following 
- * disclaimers in the documentation and/or other materials 
- * provided with the distribution. 
- * 
- *     
- * Neither the names of the University of Illinois, NCSA, 
- * nor the names of its contributors may be used to endorse 
+ * Redistributions of source code must retain the above
+ * copyright notice, this list of conditions and
+ * the following disclaimers.
+ *
+ *
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimers in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ *
+ * Neither the names of the University of Illinois, NCSA,
+ * nor the names of its contributors may be used to endorse
  * or promote products derived from this Software without
- * specific prior written permission. 
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
- * National Laboratory for Applied Network Research 
- * National Center for Supercomputing Applications 
- * University of Illinois at Urbana-Champaign 
+ * National Laboratory for Applied Network Research
+ * National Center for Supercomputing Applications
+ * University of Illinois at Urbana-Champaign
  * http://www.ncsa.uiuc.edu
- * ________________________________________________________________ 
+ * ________________________________________________________________
  *
  * Socket.cpp
  * by       Ajay Tirumala <tirumala@ncsa.uiuc.edu>
@@ -68,7 +68,7 @@ extern "C" {
 void SockAddr_remoteAddr( thread_Settings *inSettings ) {
     SockAddr_zeroAddress( &inSettings->peer );
     if ( inSettings->mHost != NULL ) {
-        SockAddr_setHostname( inSettings->mHost, &inSettings->peer, 
+        SockAddr_setHostname( inSettings->mHost, &inSettings->peer,
                               isIPV6( inSettings ) );
     } else {
 #ifdef HAVE_IPV6
@@ -98,7 +98,7 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
     inSettings->peerversion[0] = '\0';
 
     if ( inSettings->mLocalhost != NULL ) {
-        SockAddr_setHostname( inSettings->mLocalhost, &inSettings->local, 
+        SockAddr_setHostname( inSettings->mLocalhost, &inSettings->local,
                               isIPV6( inSettings ) );
     } else {
 #ifdef HAVE_IPV6
@@ -125,20 +125,20 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
       *
       *  There are three threads being Client, Listener and Server
       *  mPort comes from the -p command (which defaults to 5001)
-      *  mLocalhost indicates -B set requesting a local binding 
+      *  mLocalhost indicates -B set requesting a local binding
       *  mBindPort comes from -B IP:<port> (where port defaults to 0)
       *  Multicast IP address, e.g. 239.1.1.1, is set per a -B
       *  Zero will cause the OS to auto assign a LocalPort
       *  For iperf -s; Windows uses listener thread, *nix a server thread
       *  (so, effectively, Listener and Server threads are the same)
-      *  Client threads support either auto assignment (default) or 
+      *  Client threads support either auto assignment (default) or
       *  user specified (via -B)
       */
      if (inSettings->mLocalhost == NULL) {
 	 if (inSettings->mThreadMode == kMode_Client) {
-	     /* 
+	     /*
 	      * Client thread, -p and no -B,
-	      * OS will auto assign a free local port 
+	      * OS will auto assign a free local port
 	      */
 	     SockAddr_setPortAny (&inSettings->local);
 	 } else {
@@ -150,18 +150,18 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
 	  if (inSettings->mThreadMode == kMode_Client) {
 	       /* Client thread */
 	       if (inSettings->mBindPort) {
-		   /* 
-		    * User specified port so use it 
+		   /*
+		    * User specified port so use it
 		    */
 		    SockAddr_setPort( &inSettings->local, inSettings->mBindPort );
 	       } else {
-		   /* 
-		    * No user specified port, let OS assign a free one 
+		   /*
+		    * No user specified port, let OS assign a free one
 		    */
 		    SockAddr_setPortAny (&inSettings->local);
 	       }
 	  } else {
-	      /* 
+	      /*
 	       * Server or Listener thread, both always use -p port
 	       * any -B port will be ignored
 	       */
@@ -175,8 +175,8 @@ void SockAddr_localAddr( thread_Settings *inSettings ) {
  * Resolve the hostname address and fill it in.
  * ------------------------------------------------------------------- */
 
-void SockAddr_setHostname( const char* inHostname, 
-                           iperf_sockaddr *inSockAddr, 
+void SockAddr_setHostname( const char* inHostname,
+                           iperf_sockaddr *inSockAddr,
                            int isIPv6 ) {
 
     // ..I think this works for both ipv6 & ipv4... we'll see
@@ -228,7 +228,7 @@ void SockAddr_setHostname( const char* inHostname,
 #else
     // first try just converting dotted decimal
     // on Windows gethostbyname doesn't understand dotted decimal
-    int rc = inet_pton( AF_INET, inHostname, 
+    int rc = inet_pton( AF_INET, inHostname,
                         (unsigned char*)&(((struct sockaddr_in*)inSockAddr)->sin_addr) );
     inSockAddr->sin_family = AF_INET;
     if ( rc == 0 ) {
@@ -270,15 +270,15 @@ void SockAddr_setHostname( const char* inHostname,
 /* -------------------------------------------------------------------
  * Copy the IP address into the string.
  * ------------------------------------------------------------------- */
-void SockAddr_getHostAddress( iperf_sockaddr *inSockAddr, char* outAddress, 
+void SockAddr_getHostAddress( iperf_sockaddr *inSockAddr, char* outAddress,
                                 size_t len ) {
     if ( ((struct sockaddr*)inSockAddr)->sa_family == AF_INET ) {
-        inet_ntop( AF_INET, &(((struct sockaddr_in*) inSockAddr)->sin_addr), 
+        inet_ntop( AF_INET, &(((struct sockaddr_in*) inSockAddr)->sin_addr),
                    outAddress, len);
     }
 #ifdef HAVE_IPV6
     else {
-        inet_ntop( AF_INET6, &(((struct sockaddr_in6*) inSockAddr)->sin6_addr), 
+        inet_ntop( AF_INET6, &(((struct sockaddr_in6*) inSockAddr)->sin6_addr),
                    outAddress, len);
     }
 #endif
@@ -291,11 +291,11 @@ void SockAddr_getHostAddress( iperf_sockaddr *inSockAddr, char* outAddress,
 
 void SockAddr_setAddressAny( iperf_sockaddr *inSockAddr ) {
     if ( ((struct sockaddr*)inSockAddr)->sa_family == AF_INET )
-        memset( &(((struct sockaddr_in*) inSockAddr)->sin_addr), 0, 
+        memset( &(((struct sockaddr_in*) inSockAddr)->sin_addr), 0,
                 sizeof( struct in_addr ));
-#if defined(HAVE_IPV6)  
+#if defined(HAVE_IPV6)
     else
-        memset( &(((struct sockaddr_in6*) inSockAddr)->sin6_addr), 0, 
+        memset( &(((struct sockaddr_in6*) inSockAddr)->sin6_addr), 0,
                 sizeof( struct in6_addr ));
 #endif
 }
@@ -308,7 +308,7 @@ void SockAddr_setAddressAny( iperf_sockaddr *inSockAddr ) {
 void SockAddr_setPort( iperf_sockaddr *inSockAddr, unsigned short inPort ) {
     if ( ((struct sockaddr*)inSockAddr)->sa_family == AF_INET )
         ((struct sockaddr_in*) inSockAddr)->sin_port = htons( inPort );
-#if defined(HAVE_IPV6)  
+#if defined(HAVE_IPV6)
     else
         ((struct sockaddr_in6*) inSockAddr)->sin6_port = htons( inPort );
 #endif
@@ -437,13 +437,13 @@ int SockAddr_are_Equal( struct sockaddr* first, struct sockaddr* second ) {
         return( ((long) ((struct sockaddr_in*)first)->sin_addr.s_addr == (long) ((struct sockaddr_in*)second)->sin_addr.s_addr)
                 && ( ((struct sockaddr_in*)first)->sin_port == ((struct sockaddr_in*)second)->sin_port) );
     }
-#if defined(HAVE_IPV6)      
+#if defined(HAVE_IPV6)
     if ( first->sa_family == AF_INET6 && second->sa_family == AF_INET6 ) {
         // compare IPv6 addresses
-        return( !memcmp(((struct sockaddr_in6*)first)->sin6_addr.s6_addr, ((struct sockaddr_in6*)second)->sin6_addr.s6_addr, sizeof(struct in6_addr)) 
+        return( !memcmp(((struct sockaddr_in6*)first)->sin6_addr.s6_addr, ((struct sockaddr_in6*)second)->sin6_addr.s6_addr, sizeof(struct in6_addr))
                 && (((struct sockaddr_in6*)first)->sin6_port == ((struct sockaddr_in6*)second)->sin6_port) );
     }
-#endif 
+#endif
     return 0;
 
 }
@@ -454,16 +454,16 @@ int SockAddr_are_Equal( struct sockaddr* first, struct sockaddr* second ) {
 int SockAddr_Hostare_Equal( struct sockaddr* first, struct sockaddr* second ) {
     if ( first->sa_family == AF_INET && second->sa_family == AF_INET ) {
         // compare IPv4 adresses
-        return( (long) ((struct sockaddr_in*)first)->sin_addr.s_addr == 
+        return( (long) ((struct sockaddr_in*)first)->sin_addr.s_addr ==
                 (long) ((struct sockaddr_in*)second)->sin_addr.s_addr);
     }
-#if defined(HAVE_IPV6)      
+#if defined(HAVE_IPV6)
     if ( first->sa_family == AF_INET6 && second->sa_family == AF_INET6 ) {
         // compare IPv6 addresses
-        return( !memcmp(((struct sockaddr_in6*)first)->sin6_addr.s6_addr, 
+        return( !memcmp(((struct sockaddr_in6*)first)->sin6_addr.s6_addr,
                         ((struct sockaddr_in6*)second)->sin6_addr.s6_addr, sizeof(struct in6_addr)));
     }
-#endif 
+#endif
     return 0;
 
 }

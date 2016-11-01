@@ -1,48 +1,48 @@
 /*---------------------------------------------------------------
- * Copyright (c) 1999,2000,2001,2002,2003                              
- * The Board of Trustees of the University of Illinois            
- * All Rights Reserved.                                           
- *--------------------------------------------------------------- 
- * Permission is hereby granted, free of charge, to any person    
- * obtaining a copy of this software (Iperf) and associated       
- * documentation files (the "Software"), to deal in the Software  
- * without restriction, including without limitation the          
- * rights to use, copy, modify, merge, publish, distribute,        
- * sublicense, and/or sell copies of the Software, and to permit     
+ * Copyright (c) 1999,2000,2001,2002,2003
+ * The Board of Trustees of the University of Illinois
+ * All Rights Reserved.
+ *---------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software (Iperf) and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit
  * persons to whom the Software is furnished to do
- * so, subject to the following conditions: 
- *
- *     
- * Redistributions of source code must retain the above 
- * copyright notice, this list of conditions and 
- * the following disclaimers. 
+ * so, subject to the following conditions:
  *
  *
- * Redistributions in binary form must reproduce the above 
- * copyright notice, this list of conditions and the following 
- * disclaimers in the documentation and/or other materials 
- * provided with the distribution. 
- * 
- *     
- * Neither the names of the University of Illinois, NCSA, 
- * nor the names of its contributors may be used to endorse 
+ * Redistributions of source code must retain the above
+ * copyright notice, this list of conditions and
+ * the following disclaimers.
+ *
+ *
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimers in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ *
+ * Neither the names of the University of Illinois, NCSA,
+ * nor the names of its contributors may be used to endorse
  * or promote products derived from this Software without
- * specific prior written permission. 
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
- * National Laboratory for Applied Network Research 
- * National Center for Supercomputing Applications 
- * University of Illinois at Urbana-Champaign 
+ * National Laboratory for Applied Network Research
+ * National Center for Supercomputing Applications
+ * University of Illinois at Urbana-Champaign
  * http://www.ncsa.uiuc.edu
- * ________________________________________________________________ 
+ * ________________________________________________________________
  *
  * Reporter.c
  * by Kevin Gibbs <kgibbs@nlanr.net>
@@ -69,8 +69,8 @@ extern "C" {
   instance the provided CSV format does not have a settings
   report so it uses settings_notimpl.
   */
-void* connection_notimpl( Connection_Info * nused, int nuse ) { 
-    return NULL; 
+void* connection_notimpl( Connection_Info * nused, int nuse ) {
+    return NULL;
 }
 void settings_notimpl( ReporterData * nused ) { }
 void statistics_notimpl( Transfer_Info * nused ) { }
@@ -160,7 +160,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID) {
                 if ( agent->mInterval != 0.0 ) {
                     struct timeval *interval = &data->intervalTime;
                     interval->tv_sec = (long) agent->mInterval;
-                    interval->tv_usec = (long) ((agent->mInterval - interval->tv_sec) 
+                    interval->tv_usec = (long) ((agent->mInterval - interval->tv_sec)
                                                 * rMillion);
                 }
                 data->mHost = agent->mHost;
@@ -173,7 +173,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID) {
                 data->mode = agent->mReportMode;
                 data->info.mFormat = agent->mFormat;
                 data->info.mTTL = agent->mTTL;
-		if (data->mThreadMode == kMode_Server) 
+		if (data->mThreadMode == kMode_Server)
 		    data->info.tcp.read.binsize = data->mBufLen / 8;
                 if ( isEnhanced( agent ) ) {
 		    data->info.mEnhanced = 1;
@@ -263,7 +263,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->mode = agent->mReportMode;
             data->info.mFormat = agent->mFormat;
             data->info.mTTL = agent->mTTL;
-	    if (data->mThreadMode == kMode_Server) 
+	    if (data->mThreadMode == kMode_Server)
 		data->info.tcp.read.binsize = data->mBufLen / 8;
             if ( isUDP( agent ) ) {
 		gettimeofday(&data->IPGstart, NULL);
@@ -347,7 +347,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
          */
         reporthdr->next = NULL;
         process_report ( reporthdr );
-#endif 
+#endif
     }
     if ( !isDataReport( agent ) ) {
         reporthdr = NULL;
@@ -357,7 +357,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 
 /*
  * ReportPacket is called by a transfer agent to record
- * the arrival or departure of a "packet" (for TCP it 
+ * the arrival or departure of a "packet" (for TCP it
  * will actually represent many packets). This needs to
  * be as simple and fast as possible as it gets called for
  * every "packet".
@@ -391,7 +391,7 @@ void ReportPacket( ReportHeader* agent, ReportStruct *packet ) {
 
         // Put the information there
         memcpy( agent->data + agent->agentindex, packet, sizeof(ReportStruct) );
-        
+
         // Updating agentindex MUST be the last thing done
         agent->agentindex++;
 #ifndef HAVE_THREAD
@@ -399,7 +399,7 @@ void ReportPacket( ReportHeader* agent, ReportStruct *packet ) {
          * Process the report in this thread
          */
         process_report ( agent );
-#endif 
+#endif
     }
 }
 
@@ -468,14 +468,14 @@ void ReportSettings( thread_Settings *agent ) {
          * Create in one big chunk
          */
         ReportHeader *reporthdr = malloc( sizeof(ReportHeader) );
-    
+
         if ( reporthdr != NULL ) {
             ReporterData *data = &reporthdr->report;
             data->info.transferID = agent->mSock;
             data->info.groupID = -1;
             reporthdr->agentindex = -1;
             reporthdr->reporterindex = -1;
-        
+
             data->mHost = agent->mHost;
             data->mLocalhost = agent->mLocalhost;
             data->mode = agent->mReportMode;
@@ -509,7 +509,7 @@ void ReportSettings( thread_Settings *agent ) {
              */
             reporthdr->next = NULL;
             process_report ( reporthdr );
-    #endif 
+    #endif
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
@@ -574,7 +574,7 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 	reporthdr->report.connection.size_peer = agent->size_local;
 	reporthdr->report.connection.local = agent->peer;
 	reporthdr->report.connection.size_local = agent->size_peer;
-            
+
 #ifdef HAVE_THREAD
 	/*
 	 * Update the ReportRoot to include this report.
@@ -590,7 +590,7 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 	 */
 	reporthdr->next = NULL;
 	process_report ( reporthdr );
-#endif 
+#endif
     }
 }
 
@@ -640,48 +640,48 @@ again:
                     goto again;
             }
             Condition_Signal( &ReportDoneCond );
-	    /* 
+	    /*
 	     * Suspend the reporter thread for 10 milliseconds
 	     *
 	     * This allows the thread to receive client or server threads'
-	     * packet events in "aggregates."  This can reduce context 
-	     * switching allowing for better CPU utilization, 
+	     * packet events in "aggregates."  This can reduce context
+	     * switching allowing for better CPU utilization,
 	     * which is very noticble on CPU constrained systems.
-	     * 
-	     * If the realtime flag is set, then don't invoke the 
-	     * suspend.  This should give better reporter timing on 
-	     * higher end systems, where a busy-loop thread can be 
+	     *
+	     * If the realtime flag is set, then don't invoke the
+	     * suspend.  This should give better reporter timing on
+	     * higher end systems, where a busy-loop thread can be
 	     * scheduled without impacting other threads.
 	     *
-	     * Note that if the reporter thread is signficantly slower 
-	     * than the Client or Server (traffic) threads this suspend 
-	     * will still be called even though the traffic threads can be 
-	     * blocked on the shared memory being full.  Probably should 
-	     * detect those and avoid the suspend under such conditions.  
-	     * It's not a big deal though because the traffic threads under  
+	     * Note that if the reporter thread is signficantly slower
+	     * than the Client or Server (traffic) threads this suspend
+	     * will still be called even though the traffic threads can be
+	     * blocked on the shared memory being full.  Probably should
+	     * detect those and avoid the suspend under such conditions.
+	     * It's not a big deal though because the traffic threads under
 	     * normal conditions are much slower than the reporter thread.
-	     * The exception is when there are things like sustained 
-	     * write errors. Hence, such an optimization is deferred 
+	     * The exception is when there are things like sustained
+	     * write errors. Hence, such an optimization is deferred
 	     * for a later date.
 	     *
-	     * Also note, a possible better implementation is for the 
+	     * Also note, a possible better implementation is for the
 	     * reporter thread to block on a traffic thread's signal
-	     * instead of a 10 ms suspend.  That implementation 
+	     * instead of a 10 ms suspend.  That implementation
 	     * would have to be profiled against this one to make sure
 	     * it indeed gave better performance.  Again, deferred.
 	     *
-	     * Final note, usleep() is being deprecated for nanosleep(), 
+	     * Final note, usleep() is being deprecated for nanosleep(),
 	     * so use nanosleep if available
 	     */
 	    if ( !isRealtime( thread ) ) {
-#ifdef HAVE_NANOSLEEP 
+#ifdef HAVE_NANOSLEEP
 		{
 		    struct timespec requested;
 		    requested.tv_sec  = 0;
 		    requested.tv_nsec = 10000000L;
 		    nanosleep(&requested, NULL);
 		}
-#else 
+#else
 		usleep(10000);
 #endif
 	    }
@@ -794,9 +794,9 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		if (stats->mUDP == kMode_Server) {
 		    //subsequent packets
 		    double transit;
-		    double deltaTransit;            
+		    double deltaTransit;
 		    transit = TimeDifference( packet->packetTime, packet->sentTime );
-		    // packet loss occured if the datagram numbers aren't sequential 
+		    // packet loss occured if the datagram numbers aren't sequential
 		    if ( packet->packetID != data->PacketID + 1 ) {
 			if (packet->packetID < data->PacketID + 1 ) {
 			    data->cntOutofOrder++;
@@ -827,8 +827,8 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			stats->transit.totmeanTransit = usec_transit;
 			stats->transit.totm2Transit = usec_transit * usec_transit;
 		    } else {
-			// from RFC 1889, Real Time Protocol (RTP) 
-			// J = J + ( | D(i-1,i) | - J ) / 
+			// from RFC 1889, Real Time Protocol (RTP)
+			// J = J + ( | D(i-1,i) | - J ) /
 			// Compute jitter
 			deltaTransit = transit - stats->transit.lastTransit;
 			if ( deltaTransit < 0.0 ) {
@@ -875,11 +875,11 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		stats->tcp.read.bins[bin]++;
 		stats->tcp.read.totbins[bin]++;
 	    } else if (reporthdr->report.mThreadMode == kMode_Client) {
-		if (packet->errwrite) { 
+		if (packet->errwrite) {
 		    stats->tcp.write.WriteErr++;
 		    stats->tcp.write.totWriteErr++;
 		}
-		else { 
+		else {
 		    stats->tcp.write.WriteCnt++;
 		    stats->tcp.write.totWriteCnt++;
 		}
@@ -1011,7 +1011,7 @@ static void gettcpistats (ReporterData *stats) {
 	stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
 	stats->info.tcp.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
 	stats->info.tcp.write.rtt = tcp_internal.tcpi_rtt;
-    } 
+    }
 }
 #endif
 /*
@@ -1066,9 +1066,9 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         if ( isMultipleReport(stats) ) {
             reporter_handle_multiple_reports( multireport, &stats->info, force );
         }
-    } else while ((stats->intervalTime.tv_sec != 0 || 
-                   stats->intervalTime.tv_usec != 0) && 
-                  TimeDifference( stats->nextTime, 
+    } else while ((stats->intervalTime.tv_sec != 0 ||
+                   stats->intervalTime.tv_usec != 0) &&
+                  TimeDifference( stats->nextTime,
                                   stats->packetTime ) < 0 ) {
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 	    gettcpistats(stats);
@@ -1111,7 +1111,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 		} else if (stats->info.mTCP == (char)kMode_Server) {
 		    int ix;
 		    stats->info.tcp.read.cntRead = 0;
-		    for (ix = 0; ix < 8; ix++) { 
+		    for (ix = 0; ix < 8; ix++) {
 			stats->info.tcp.read.bins[ix] = 0;
 		    }
 		}

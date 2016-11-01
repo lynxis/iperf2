@@ -1,48 +1,48 @@
-/*--------------------------------------------------------------- 
- * Copyright (c) 1999,2000,2001,2002,2003                              
- * The Board of Trustees of the University of Illinois            
- * All Rights Reserved.                                           
- *--------------------------------------------------------------- 
- * Permission is hereby granted, free of charge, to any person    
- * obtaining a copy of this software (Iperf) and associated       
- * documentation files (the "Software"), to deal in the Software  
- * without restriction, including without limitation the          
- * rights to use, copy, modify, merge, publish, distribute,        
- * sublicense, and/or sell copies of the Software, and to permit     
+/*---------------------------------------------------------------
+ * Copyright (c) 1999,2000,2001,2002,2003
+ * The Board of Trustees of the University of Illinois
+ * All Rights Reserved.
+ *---------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software (Iperf) and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit
  * persons to whom the Software is furnished to do
- * so, subject to the following conditions: 
+ * so, subject to the following conditions:
  *
- *     
- * Redistributions of source code must retain the above 
- * copyright notice, this list of conditions and 
- * the following disclaimers. 
  *
- *     
- * Redistributions in binary form must reproduce the above 
- * copyright notice, this list of conditions and the following 
- * disclaimers in the documentation and/or other materials 
- * provided with the distribution. 
- * 
- *     
- * Neither the names of the University of Illinois, NCSA, 
- * nor the names of its contributors may be used to endorse 
+ * Redistributions of source code must retain the above
+ * copyright notice, this list of conditions and
+ * the following disclaimers.
+ *
+ *
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimers in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ *
+ * Neither the names of the University of Illinois, NCSA,
+ * nor the names of its contributors may be used to endorse
  * or promote products derived from this Software without
- * specific prior written permission. 
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
- * National Laboratory for Applied Network Research 
- * National Center for Supercomputing Applications 
- * University of Illinois at Urbana-Champaign 
+ * National Laboratory for Applied Network Research
+ * National Center for Supercomputing Applications
+ * University of Illinois at Urbana-Champaign
  * http://www.ncsa.uiuc.edu
- * ________________________________________________________________ 
+ * ________________________________________________________________
  *
  * ReportDefault.c
  * by Kevin Gibbs <kgibbs@nlanr.net>
@@ -73,8 +73,8 @@ void reporter_printstats( Transfer_Info *stats ) {
     byte_snprintf( buffer, sizeof(buffer)/2, (double) stats->TotalLen,
                    toupper( (int)stats->mFormat));
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
-                   (stats->TotalLen > 0) ? 
-		   stats->TotalLen / (stats->endTime - stats->startTime) : 0, 
+                   (stats->TotalLen > 0) ?
+		   stats->TotalLen / (stats->endTime - stats->startTime) : 0,
                    stats->mFormat);
     // TCP reports
     if (!stats->mUDP) {
@@ -83,8 +83,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 		printf( "%s", report_bw_header);
 		header_printed = 1;
 	    }
-	    printf(report_bw_format, stats->transferID, 
-		   stats->startTime, stats->endTime, 
+	    printf(report_bw_format, stats->transferID,
+		   stats->startTime, stats->endTime,
 		   buffer, &buffer[sizeof(buffer)/2]);
 	} else {
 	    if( !header_printed ) {
@@ -92,8 +92,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 		header_printed = 1;
 	    }
 	    if (stats->mTCP == (char)kMode_Server) {
-		printf(report_bw_read_enhanced_format, 
-		       stats->transferID, stats->startTime, stats->endTime, 
+		printf(report_bw_read_enhanced_format,
+		       stats->transferID, stats->startTime, stats->endTime,
 		       buffer, &buffer[sizeof(buffer)/2],
 		       stats->tcp.read.cntRead,
 		       stats->tcp.read.bins[0],
@@ -105,8 +105,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 		       stats->tcp.read.bins[6],
 		       stats->tcp.read.bins[7]);
 	    } else {
-		printf(report_bw_write_enhanced_format, 
-		       stats->transferID, stats->startTime, stats->endTime, 
+		printf(report_bw_write_enhanced_format,
+		       stats->transferID, stats->startTime, stats->endTime,
 		       buffer, &buffer[sizeof(buffer)/2],
 		       stats->tcp.write.WriteCnt,
 		       stats->tcp.write.WriteErr,
@@ -114,15 +114,15 @@ void reporter_printstats( Transfer_Info *stats ) {
 		       stats->tcp.write.cwnd,
 		       stats->tcp.write.rtt);
 	    }
-	}	
+	}
     } else if ( stats->mUDP == (char)kMode_Client ) {
 	// UDP Client reporting
 	if( !header_printed ) {
 	    printf( "%s", (stats->mEnhanced ? report_bw_pps_enhanced_header : report_bw_header));
 	    header_printed = 1;
 	}
-	printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID, 
-		stats->startTime, stats->endTime, 
+	printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID,
+		stats->startTime, stats->endTime,
 		buffer, &buffer[sizeof(buffer)/2],
 		(stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
     } else {
@@ -133,20 +133,20 @@ void reporter_printstats( Transfer_Info *stats ) {
         }
 	if (stats->IPGcnt) {
 	    if (stats->mEnhanced) {
-		// If the min latency is out of bounds of a realistic value 
-		// assume the clocks are not synched and suppress the 
+		// If the min latency is out of bounds of a realistic value
+		// assume the clocks are not synched and suppress the
 		// latency output
 		if ((stats->transit.minTransit > UNREALISTIC_LATENCYMINMAX) ||
 		    (stats->transit.minTransit < UNREALISTIC_LATENCYMINMIN)) {
 		    printf( report_bw_jitter_loss_suppress_enhanced_format, stats->transferID,
-			    stats->startTime, stats->endTime, 
+			    stats->startTime, stats->endTime,
 			    buffer, &buffer[sizeof(buffer)/2],
 			    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
 			    (100.0 * stats->cntError) / stats->cntDatagrams,
 			    (stats->IPGcnt / stats->IPGsum));
-		} else { 
-		    printf( report_bw_jitter_loss_enhanced_format, stats->transferID, 
-			    stats->startTime, stats->endTime, 
+		} else {
+		    printf( report_bw_jitter_loss_enhanced_format, stats->transferID,
+			    stats->startTime, stats->endTime,
 			    buffer, &buffer[sizeof(buffer)/2],
 			    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
 			    (100.0 * stats->cntError) / stats->cntDatagrams,
@@ -157,27 +157,27 @@ void reporter_printstats( Transfer_Info *stats ) {
 			    (stats->IPGcnt / stats->IPGsum));
 		}
 	    } else {
-		printf( report_bw_jitter_loss_format, stats->transferID, 
-			stats->startTime, stats->endTime, 
+		printf( report_bw_jitter_loss_format, stats->transferID,
+			stats->startTime, stats->endTime,
 			buffer, &buffer[sizeof(buffer)/2],
 			stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
 			(100.0 * stats->cntError) / stats->cntDatagrams);
 	    }
 	} else {
-	    printf( stats->mEnhanced ? report_bw_jitter_loss_suppress_enhanced_format : report_bw_jitter_loss_format , stats->transferID, 
-		    stats->startTime, stats->endTime, 
+	    printf( stats->mEnhanced ? report_bw_jitter_loss_suppress_enhanced_format : report_bw_jitter_loss_format , stats->transferID,
+		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
-		    0.0, stats->cntError, 
-		    stats->cntDatagrams, 
+		    0.0, stats->cntError,
+		    stats->cntDatagrams,
 		    0.0,0.0,0.0,0.0,0.0,0.0);
 	}
 	if ( stats->cntOutofOrder > 0 ) {
 	    printf( report_outoforder,
-		    stats->transferID, stats->startTime, 
+		    stats->transferID, stats->startTime,
 		    stats->endTime, stats->cntOutofOrder );
 	}
     }
-    // Reset the enhanced stats for the next report interval 
+    // Reset the enhanced stats for the next report interval
     if (stats->mEnhanced) {
 	if (stats->mUDP) {
 	    stats->transit.minTransit=stats->transit.lastTransit;
@@ -189,9 +189,9 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    stats->transit.m2Transit = 0;
 	}
     }
- 
+
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
-        printf( report_datagrams, stats->transferID, stats->cntDatagrams ); 
+        printf( report_datagrams, stats->transferID, stats->cntDatagrams );
     }
 }
 
@@ -204,42 +204,42 @@ void reporter_multistats( Transfer_Info *stats ) {
     byte_snprintf( buffer, sizeof(buffer)/2, (double) stats->TotalLen,
                    toupper( (int)stats->mFormat));
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
-                   stats->TotalLen / (stats->endTime - stats->startTime), 
+                   stats->TotalLen / (stats->endTime - stats->startTime),
                    stats->mFormat);
 
     if (!stats->mEnhanced) {
 	if (stats->mUDP == (char)kMode_Server) {
         // UDP Reporting
-	    printf(report_sum_bw_jitter_loss_format, 
-                stats->startTime, stats->endTime, 
+	    printf(report_sum_bw_jitter_loss_format,
+                stats->startTime, stats->endTime,
                 buffer, &buffer[sizeof(buffer)/2],
                 stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
 		   (100.0 * stats->cntError) / stats->cntDatagrams);
 	} else {
         // TCP Reporting
-	    printf(report_sum_bw_format, 
-		    stats->startTime, stats->endTime, 
+	    printf(report_sum_bw_format,
+		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2]);
 	}
     } else {
 	if (stats->mUDP) {
 	    // UDP Enhanced Reporting
-	    printf( report_sum_bw_pps_enhanced_format, 
-		    stats->startTime, stats->endTime, 
+	    printf( report_sum_bw_pps_enhanced_format,
+		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
 	} else {
 	    // TCP Enhanced Reporting
 	    if (stats->mTCP == (char)kMode_Client) {
 		printf( report_sum_bw_write_enhanced_format,
-			stats->startTime, stats->endTime, 
+			stats->startTime, stats->endTime,
 			buffer, &buffer[sizeof(buffer)/2],
 			stats->tcp.write.WriteCnt,
 			stats->tcp.write.WriteErr,
 			stats->tcp.write.TCPretry);
 	    } else {
 		printf( report_sum_bw_read_enhanced_format,
-			stats->startTime, stats->endTime, 
+			stats->startTime, stats->endTime,
 			buffer, &buffer[sizeof(buffer)/2],
 			stats->tcp.read.cntRead,
 			stats->tcp.read.bins[0],
@@ -250,16 +250,16 @@ void reporter_multistats( Transfer_Info *stats ) {
 			stats->tcp.read.bins[5],
 			stats->tcp.read.bins[6],
 			stats->tcp.read.bins[7]);
-	    }		    
+	    }
 	}
     }
     if ((stats->mUDP == kMode_Server) && stats->cntOutofOrder > 0 ) {
             printf( report_sum_outoforder,
-                    stats->startTime, 
+                    stats->startTime,
                     stats->endTime, stats->cntOutofOrder );
     }
     if ((stats->free == 1) && (stats->mUDP == (char)kMode_Client)) {
-        printf( report_sum_datagrams, stats->cntDatagrams ); 
+        printf( report_sum_datagrams, stats->cntDatagrams );
     }
 }
 
@@ -305,14 +305,14 @@ void reporter_reportsettings( ReporterData *data ) {
 
 	if (data->mThreadMode != kMode_Listener) {
 	    double delay_target;
-	    if (data->mUDPRateUnits == kRate_BW) { 
+	    if (data->mUDPRateUnits == kRate_BW) {
 		delay_target = (double) ( data->mBufLen * 8000000.0 / data->mUDPRate);
 	    } else {
 		delay_target = (1e6 / data->mUDPRate);
 	    }
 #ifdef HAVE_KALMAN
 	    printf(client_datagram_size_kalman, data->mBufLen, delay_target);
-#else 	
+#else
 	    printf(client_datagram_size, data->mBufLen, delay_target);
 #endif
 	} else {
@@ -324,7 +324,7 @@ void reporter_reportsettings( ReporterData *data ) {
     }
     byte_snprintf( buffer, sizeof(buffer), win,
                    toupper( (int)data->info.mFormat));
-    printf( "%s: %s", (isUDP( data ) ? 
+    printf( "%s: %s", (isUDP( data ) ?
                                 udp_buffer_size : tcp_window_size), buffer );
 
     if ( win_requested == 0 ) {
@@ -347,29 +347,29 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
         char remote_addr[ REPORT_ADDRLEN ];
         struct sockaddr *local = ((struct sockaddr*)&stats->local);
         struct sockaddr *peer = ((struct sockaddr*)&stats->peer);
-    
+
         if ( local->sa_family == AF_INET ) {
-            inet_ntop( AF_INET, &((struct sockaddr_in*)local)->sin_addr, 
+            inet_ntop( AF_INET, &((struct sockaddr_in*)local)->sin_addr,
                        local_addr, REPORT_ADDRLEN);
         }
 #ifdef HAVE_IPV6
           else {
-            inet_ntop( AF_INET6, &((struct sockaddr_in6*)local)->sin6_addr, 
+            inet_ntop( AF_INET6, &((struct sockaddr_in6*)local)->sin6_addr,
                        local_addr, REPORT_ADDRLEN);
         }
 #endif
-    
+
         if ( peer->sa_family == AF_INET ) {
-            inet_ntop( AF_INET, &((struct sockaddr_in*)peer)->sin_addr, 
+            inet_ntop( AF_INET, &((struct sockaddr_in*)peer)->sin_addr,
                        remote_addr, REPORT_ADDRLEN);
         }
 #ifdef HAVE_IPV6
           else {
-            inet_ntop( AF_INET6, &((struct sockaddr_in6*)peer)->sin6_addr, 
+            inet_ntop( AF_INET6, &((struct sockaddr_in6*)peer)->sin6_addr,
                        remote_addr, REPORT_ADDRLEN);
         }
 #endif
-    
+
         printf( report_peer,
                 ID,
                 local_addr,  ( local->sa_family == AF_INET ?

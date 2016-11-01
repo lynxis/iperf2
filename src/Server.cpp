@@ -1,48 +1,48 @@
-/*--------------------------------------------------------------- 
- * Copyright (c) 1999,2000,2001,2002,2003                              
- * The Board of Trustees of the University of Illinois            
- * All Rights Reserved.                                           
- *--------------------------------------------------------------- 
- * Permission is hereby granted, free of charge, to any person    
- * obtaining a copy of this software (Iperf) and associated       
- * documentation files (the "Software"), to deal in the Software  
- * without restriction, including without limitation the          
- * rights to use, copy, modify, merge, publish, distribute,        
- * sublicense, and/or sell copies of the Software, and to permit     
+/*---------------------------------------------------------------
+ * Copyright (c) 1999,2000,2001,2002,2003
+ * The Board of Trustees of the University of Illinois
+ * All Rights Reserved.
+ *---------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software (Iperf) and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit
  * persons to whom the Software is furnished to do
- * so, subject to the following conditions: 
+ * so, subject to the following conditions:
  *
- *     
- * Redistributions of source code must retain the above 
- * copyright notice, this list of conditions and 
- * the following disclaimers. 
  *
- *     
- * Redistributions in binary form must reproduce the above 
- * copyright notice, this list of conditions and the following 
- * disclaimers in the documentation and/or other materials 
- * provided with the distribution. 
- * 
- *     
- * Neither the names of the University of Illinois, NCSA, 
- * nor the names of its contributors may be used to endorse 
+ * Redistributions of source code must retain the above
+ * copyright notice, this list of conditions and
+ * the following disclaimers.
+ *
+ *
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimers in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ *
+ * Neither the names of the University of Illinois, NCSA,
+ * nor the names of its contributors may be used to endorse
  * or promote products derived from this Software without
- * specific prior written permission. 
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
- * National Laboratory for Applied Network Research 
- * National Center for Supercomputing Applications 
- * University of Illinois at Urbana-Champaign 
+ * National Laboratory for Applied Network Research
+ * National Center for Supercomputing Applications
+ * University of Illinois at Urbana-Champaign
  * http://www.ncsa.uiuc.edu
- * ________________________________________________________________ 
+ * ________________________________________________________________
  *
  * Server.cpp
  * by Mark Gates <mgates@nlanr.net>
@@ -96,13 +96,13 @@ Server::~Server() {
 
 void Server::Sig_Int( int inSigno ) {
 }
-/* ------------------------------------------------------------------- 
+/* -------------------------------------------------------------------
  * Receive TCP data from the (connected) socket.
- * Sends termination flag several times at the end. 
- * Does not close the socket. 
- * ------------------------------------------------------------------- */ 
+ * Sends termination flag several times at the end.
+ * Does not close the socket.
+ * ------------------------------------------------------------------- */
 void Server::RunTCP( void ) {
-    long currLen; 
+    long currLen;
     max_size_t totLen = 0;
     ReportStruct *reportstruct = NULL;
     int running;
@@ -116,12 +116,12 @@ void Server::RunTCP( void ) {
 #ifdef HAVE_SCHED_SETSCHEDULER
 	if ( isRealtime( mSettings ) ) {
 	    struct sched_param sp;
-	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+	    sp.sched_priority = sched_get_priority_max(SCHED_RR);
 	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
 		perror("Client set scheduler");
 #ifdef HAVE_MLOCKALL
-	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
 		// lock the threads memory
 		perror ("mlockall");
 #endif // MLOCK
@@ -135,18 +135,18 @@ void Server::RunTCP( void ) {
 	}
         do {
 	    reportstruct->emptyreport=0;
-	    // perform read 
+	    // perform read
 	    currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
 #ifdef HAVE_CLOCK_GETTIME
 	    {
-		struct timespec t1; 
+		struct timespec t1;
 		clock_gettime(CLOCK_REALTIME, &t1);
 		reportstruct->packetTime.tv_sec = t1.tv_sec;
 		reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
 	    }
-#else 
+#else
 	    gettimeofday( &(reportstruct->packetTime), NULL );
-#endif  // GETTIME  
+#endif  // GETTIME
 	    if (currLen <= 0) {
 		reportstruct->emptyreport=1;
 		// End loop on 0 read or socket error
@@ -156,7 +156,7 @@ void Server::RunTCP( void ) {
 		    (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
 		    (errno != EAGAIN && errno != EWOULDBLOCK)
-#endif // WIN32		     
+#endif // WIN32
 		    ) {
 		    running = 0;
 		}
@@ -168,19 +168,19 @@ void Server::RunTCP( void ) {
 		running = 0;
 	    }
 	    ReportPacket( mSettings->reporthdr, reportstruct );
-        } while (running); 
-                
-        // stop timing 
+        } while (running);
+
+        // stop timing
 #ifdef HAVE_CLOCK_GETTIME
        {
-	   struct timespec t1; 
+	   struct timespec t1;
 	   clock_gettime(CLOCK_REALTIME, &t1);
 	   reportstruct->packetTime.tv_sec = t1.tv_sec;
 	   reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
        }
-#else 
+#else
         gettimeofday( &(reportstruct->packetTime), NULL );
-#endif // GETTIME           
+#endif // GETTIME
 
 	if(0.0 == mSettings->mInterval) {
 	    reportstruct->packetLen = totLen;
@@ -191,23 +191,23 @@ void Server::RunTCP( void ) {
         FAIL(1, "Out of memory! Closing server thread\n", mSettings);
     }
 
-    Mutex_Lock( &clients_mutex );     
-    Iperf_delete( &(mSettings->peer), &clients ); 
+    Mutex_Lock( &clients_mutex );
+    Iperf_delete( &(mSettings->peer), &clients );
     Mutex_Unlock( &clients_mutex );
 
     DELETE_PTR( reportstruct );
     EndReport( mSettings->reporthdr );
-} 
+}
 
-/* ------------------------------------------------------------------- 
+/* -------------------------------------------------------------------
  * Receive UDP data from the (connected) socket.
- * Sends termination flag several times at the end. 
- * Does not close the socket. 
- * ------------------------------------------------------------------- */ 
+ * Sends termination flag several times at the end.
+ * Does not close the socket.
+ * ------------------------------------------------------------------- */
 void Server::RunUDP( void ) {
-    long currLen; 
+    long currLen;
     max_size_t totLen = 0;
-    struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf; 
+    struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) mBuf;
     ReportStruct *reportstruct = NULL;
     int running;
     bool mMode_Time = isServerModeTime( mSettings );
@@ -271,12 +271,12 @@ void Server::RunUDP( void ) {
 #ifdef HAVE_SCHED_SETSCHEDULER
 	if ( isRealtime( mSettings ) ) {
 	    struct sched_param sp;
-	    sp.sched_priority = sched_get_priority_max(SCHED_RR); 
+	    sp.sched_priority = sched_get_priority_max(SCHED_RR);
 	    // SCHED_OTHER, SCHED_FIFO, SCHED_RR
 	    if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
 		perror("Client set scheduler");
 #ifdef HAVE_MLOCKALL
-	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { 
+	    } else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
 		// lock the threads memory
 		perror ("mlockall");
 #endif
@@ -291,7 +291,7 @@ void Server::RunUDP( void ) {
         do {
 	    reportstruct->emptyreport=0;
 #if HAVE_DECL_SO_TIMESTAMP
-            // perform read 
+            // perform read
             currLen = recvmsg( mSettings->mSock, &message, 0 );
 	    if (currLen <= 0) {
 		// Socket read timeout or read error
@@ -304,7 +304,7 @@ void Server::RunUDP( void ) {
 		    (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
 		    (errno != EAGAIN && errno != EWOULDBLOCK)
-#endif		     
+#endif
 		    ) {
 		    WARN_errno( currLen, "recvmsg" );
 		    running = 0;
@@ -313,10 +313,10 @@ void Server::RunUDP( void ) {
 	    }
 
             if (!reportstruct->emptyreport) {
-                // read the datagram ID and sentTime out of the buffer 
-                reportstruct->packetID = ntohl( mBuf_UDP->id ); 
+                // read the datagram ID and sentTime out of the buffer
+                reportstruct->packetID = ntohl( mBuf_UDP->id );
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
-                reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
+                reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
 		reportstruct->packetLen = currLen;
 		if (cmsg->cmsg_level == SOL_SOCKET &&
 		    cmsg->cmsg_type  == SCM_TIMESTAMP &&
@@ -327,7 +327,7 @@ void Server::RunUDP( void ) {
 		}
             }
 #else
-            // perform read 
+            // perform read
             currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
 	    if (currLen <= 0) {
 		reportstruct->emptyreport=1;
@@ -338,7 +338,7 @@ void Server::RunUDP( void ) {
 		    (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
 		    (errno != EAGAIN && errno != EWOULDBLOCK)
-#endif		     
+#endif
 		    ) {
 		    running = 0;
 		}
@@ -347,85 +347,85 @@ void Server::RunUDP( void ) {
             if (!reportstruct->emptyreport) {
 #ifdef HAVE_CLOCK_GETTIME
 		{
-		    struct timespec t1; 
+		    struct timespec t1;
 		    clock_gettime(CLOCK_REALTIME, &t1);
 		    reportstruct->packetTime.tv_sec = t1.tv_sec;
 		    reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
 		}
-#else 
+#else
 		gettimeofday( &(reportstruct->packetTime), NULL );
-#endif    
+#endif
 		reportstruct->packetLen = currLen;
-                // read the datagram ID and sentTime out of the buffer 
-		reportstruct->packetID = ntohl( mBuf_UDP->id ); 
+                // read the datagram ID and sentTime out of the buffer
+		reportstruct->packetID = ntohl( mBuf_UDP->id );
 		reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
-		reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec ); 
+		reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
             }
 #endif
 	    totLen += currLen;
-            // terminate when datagram begins with negative index 
-            // the datagram ID should be correct, just negated 
+            // terminate when datagram begins with negative index
+            // the datagram ID should be correct, just negated
             if ( reportstruct->packetID < 0 ) {
                 reportstruct->packetID = -reportstruct->packetID;
                 currLen = -1;
-		running = 0; 
+		running = 0;
             }
 	    if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
 		running = 0;
 	    }
 	    ReportPacket( mSettings->reporthdr, reportstruct );
-        } while (running); 
-                
-        // stop timing 
+        } while (running);
+
+        // stop timing
 #ifdef HAVE_CLOCK_GETTIME
        {
-	   struct timespec t1; 
+	   struct timespec t1;
 	   clock_gettime(CLOCK_REALTIME, &t1);
 	   reportstruct->packetTime.tv_sec = t1.tv_sec;
 	   reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
        }
-#else 
+#else
         gettimeofday( &(reportstruct->packetTime), NULL );
-#endif            
+#endif
         CloseReport( mSettings->reporthdr, reportstruct );
-        
-        // send a acknowledgement back only if we're NOT receiving multicast 
+
+        // send a acknowledgement back only if we're NOT receiving multicast
         if (!isMulticast( mSettings ) ) {
-            // send back an acknowledgement of the terminating datagram 
-            write_UDP_AckFIN( ); 
+            // send back an acknowledgement of the terminating datagram
+            write_UDP_AckFIN( );
         }
     } else {
         FAIL(1, "Out of memory! Closing server thread\n", mSettings);
     }
 
-    Mutex_Lock( &clients_mutex );     
-    Iperf_delete( &(mSettings->peer), &clients ); 
+    Mutex_Lock( &clients_mutex );
+    Iperf_delete( &(mSettings->peer), &clients );
     Mutex_Unlock( &clients_mutex );
 
     DELETE_PTR( reportstruct );
     EndReport( mSettings->reporthdr );
-} 
-// end Recv 
+}
+// end Recv
 
-/* ------------------------------------------------------------------- 
- * Send an AckFIN (a datagram acknowledging a FIN) on the socket, 
- * then select on the socket for some time. If additional datagrams 
- * come in, probably our AckFIN was lost and they are re-transmitted 
- * termination datagrams, so re-transmit our AckFIN. 
- * ------------------------------------------------------------------- */ 
+/* -------------------------------------------------------------------
+ * Send an AckFIN (a datagram acknowledging a FIN) on the socket,
+ * then select on the socket for some time. If additional datagrams
+ * come in, probably our AckFIN was lost and they are re-transmitted
+ * termination datagrams, so re-transmit our AckFIN.
+ * ------------------------------------------------------------------- */
 
 void Server::write_UDP_AckFIN( ) {
 
-    int rc; 
+    int rc;
 
-    fd_set readSet; 
-    FD_ZERO( &readSet ); 
+    fd_set readSet;
+    FD_ZERO( &readSet );
 
-    struct timeval timeout; 
+    struct timeval timeout;
 
-    int count = 0; 
+    int count = 0;
     while ( count < 10 ) {
-        count++; 
+        count++;
 
         UDP_datagram *UDP_Hdr;
         server_hdr *hdr;
@@ -464,33 +464,33 @@ void Server::write_UDP_AckFIN( ) {
 	    hdr->extend.IPGsum = htonl(1);
         }
 
-        // write data 
-        write( mSettings->mSock, mBuf, mSettings->mBufLen ); 
+        // write data
+        write( mSettings->mSock, mBuf, mSettings->mBufLen );
 
-        // wait until the socket is readable, or our timeout expires 
-        FD_SET( mSettings->mSock, &readSet ); 
-        timeout.tv_sec  = 1; 
-        timeout.tv_usec = 0; 
+        // wait until the socket is readable, or our timeout expires
+        FD_SET( mSettings->mSock, &readSet );
+        timeout.tv_sec  = 1;
+        timeout.tv_usec = 0;
 
-        rc = select( mSettings->mSock+1, &readSet, NULL, NULL, &timeout ); 
-        FAIL_errno( rc == SOCKET_ERROR, "select", mSettings ); 
+        rc = select( mSettings->mSock+1, &readSet, NULL, NULL, &timeout );
+        FAIL_errno( rc == SOCKET_ERROR, "select", mSettings );
 
         if ( rc == 0 ) {
-            // select timed out 
-            return; 
+            // select timed out
+            return;
         } else {
-            // socket ready to read 
-            rc = read( mSettings->mSock, mBuf, mSettings->mBufLen ); 
+            // socket ready to read
+            rc = read( mSettings->mSock, mBuf, mSettings->mBufLen );
             WARN_errno( rc < 0, "read" );
             if ( rc <= 0 ) {
                 // Connection closed or errored
                 // Stop using it.
                 return;
             }
-        } 
-    } 
+        }
+    }
 
-    fprintf( stderr, warn_ack_failed, mSettings->mSock, count ); 
-} 
-// end write_UDP_AckFIN 
+    fprintf( stderr, warn_ack_failed, mSettings->mSock, count );
+}
+// end write_UDP_AckFIN
 

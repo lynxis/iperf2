@@ -39,7 +39,7 @@ extern "C" {
  * author:
  *      Paul Vixie, 1996.
  */
-const char* 
+const char*
 inet_ntop(int af, const void *src, char *dst, socklen_t size) {
     switch ( af ) {
         case AF_INET:

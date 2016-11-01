@@ -17,7 +17,7 @@ m4_include([m4/dast.m4])
 m4_include([m4/acx_pthread.m4])
 
 AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--disable-ipv6],
-	    [disable ipv6 support (default is autodetect)]), 
+	    [disable ipv6 support (default is autodetect)]),
 	ac_cv_have_ipv6=$enable_ipv6,)
 
 AC_ARG_ENABLE(multicast, AC_HELP_STRING([--disable-multicast],
@@ -60,7 +60,7 @@ dnl ===================================================================
 AC_CHECK_LIB([rt], [clock_gettime])
 
 dnl check for -lpthread
- 
+
 if test "$enable_threads" != no; then
   ACX_PTHREAD()
     if test "$acx_pthread_ok" = yes; then
@@ -80,7 +80,7 @@ AC_SEARCH_LIBS([socket], [socket], [],
   LIBS="-lws2_32 $LIBS"],
   [],
   [#include <windows.h>])])
- 
+
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h libintl.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h signal.h])
@@ -262,7 +262,7 @@ if test -e "/proc/web100/header"; then
 if test -f "/proc/web100/header"; then
 if test -r "/proc/web100/header"; then
 AM_PATH_WEB100()
-if test "$web100_success" = yes; then 
+if test "$web100_success" = yes; then
 AC_DEFINE([HAVE_WEB100], 1, [Define if Web100 is desired and available])
 fi fi fi fi fi fi
 fi
@@ -273,7 +273,7 @@ fi
 
 dnl Static link on MINGW for standalone DOS executable
 case "$ac_cv_host" in
-*-mingw32) 
+*-mingw32)
     LIBS="$LIBS -static-libstdc++ -static";;
 esac
 

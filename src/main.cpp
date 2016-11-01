@@ -1,48 +1,48 @@
-/*--------------------------------------------------------------- 
- * Copyright (c) 1999,2000,2001,2002,2003                              
- * The Board of Trustees of the University of Illinois            
- * All Rights Reserved.                                           
- *--------------------------------------------------------------- 
- * Permission is hereby granted, free of charge, to any person    
- * obtaining a copy of this software (Iperf) and associated       
- * documentation files (the "Software"), to deal in the Software  
- * without restriction, including without limitation the          
- * rights to use, copy, modify, merge, publish, distribute,        
- * sublicense, and/or sell copies of the Software, and to permit     
+/*---------------------------------------------------------------
+ * Copyright (c) 1999,2000,2001,2002,2003
+ * The Board of Trustees of the University of Illinois
+ * All Rights Reserved.
+ *---------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software (Iperf) and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit
  * persons to whom the Software is furnished to do
- * so, subject to the following conditions: 
+ * so, subject to the following conditions:
  *
- *     
- * Redistributions of source code must retain the above 
- * copyright notice, this list of conditions and 
- * the following disclaimers. 
  *
- *     
- * Redistributions in binary form must reproduce the above 
- * copyright notice, this list of conditions and the following 
- * disclaimers in the documentation and/or other materials 
- * provided with the distribution. 
- * 
- *     
- * Neither the names of the University of Illinois, NCSA, 
- * nor the names of its contributors may be used to endorse 
+ * Redistributions of source code must retain the above
+ * copyright notice, this list of conditions and
+ * the following disclaimers.
+ *
+ *
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimers in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ *
+ * Neither the names of the University of Illinois, NCSA,
+ * nor the names of its contributors may be used to endorse
  * or promote products derived from this Software without
- * specific prior written permission. 
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
- * National Laboratory for Applied Network Research 
- * National Center for Supercomputing Applications 
- * University of Illinois at Urbana-Champaign 
+ * National Laboratory for Applied Network Research
+ * National Center for Supercomputing Applications
+ * University of Illinois at Urbana-Champaign
  * http://www.ncsa.uiuc.edu
- * ________________________________________________________________ 
+ * ________________________________________________________________
  * main.cpp
  * by Mark Gates <mgates@nlanr.net>
  * &  Ajay Tirumala <tirumala@ncsa.uiuc.edu>
@@ -73,7 +73,7 @@
 
 #ifdef WIN32
 #include "service.h"
-#endif 
+#endif
 
 /* -------------------------------------------------------------------
  * prototypes
@@ -87,7 +87,7 @@ void cleanup( void );
 extern "C" {
     // Global flag to signal a user interrupt
     int sInterupted = 0;
-    // Global ID that we increment to be used 
+    // Global ID that we increment to be used
     // as identifier for SUM reports
     int groupID = 0;
     // Mutex to protect access to the above ID
@@ -105,7 +105,7 @@ extern "C" {
 // Used to ensure that if multiple threads receive the
 // signal we do not prematurely exit
 nthread_t sThread;
-// The main thread uses this function to wait 
+// The main thread uses this function to wait
 // for all other threads to complete
 void waitUntilQuit( void );
 
@@ -167,7 +167,7 @@ int main( int argc, char **argv ) {
     Settings_ParseCommandLine( argc, argv, ext_gSettings );
 
     // Check for either having specified client or server
-    if ( ext_gSettings->mThreadMode == kMode_Client 
+    if ( ext_gSettings->mThreadMode == kMode_Client
          || ext_gSettings->mThreadMode == kMode_Listener ) {
 #ifdef WIN32
         // Start the server as a daemon
@@ -197,11 +197,11 @@ int main( int argc, char **argv ) {
 	    if (daemon(1, 1) < 0) {
 	        perror("daemon");
 	    }
-	    fprintf( stderr, "Running Iperf Server as a daemon\n"); 
-	    fprintf( stderr, "The Iperf daemon process ID : %d\n",((int)getpid())); 
+	    fprintf( stderr, "Running Iperf Server as a daemon\n");
+	    fprintf( stderr, "The Iperf daemon process ID : %d\n",((int)getpid()));
 	    fclose(stdout);
-	    fclose(stderr); 
-	    fclose(stdin); 
+	    fclose(stderr);
+	    fclose(stdin);
 	}
 #endif
         // initialize client(s)
@@ -219,7 +219,7 @@ int main( int argc, char **argv ) {
 
             // Have the reporter launch the client or listener
             into->runNow = ext_gSettings;
-            
+
             // Start all the threads that are ready to go
             thread_start( into );
         }
@@ -253,7 +253,7 @@ int main( int argc, char **argv ) {
 
     // wait for other (client, server) threads to complete
     thread_joinall();
-    
+
     // all done!
     return 0;
 } // end main
@@ -278,10 +278,10 @@ void Sig_Interupt( int inSigno ) {
 
     // Note:  ignore alarms per setitimer
 #if HAVE_DECL_SIGALRM
-    if (inSigno != SIGALRM) 
+    if (inSigno != SIGALRM)
 #endif
 	// with threads, stop waiting for non-terminating threads
-	// (ie Listener Thread) 
+	// (ie Listener Thread)
 	thread_release_nonterm( inSigno );
 
 #else
@@ -313,11 +313,11 @@ void cleanup( void ) {
  *
  * each time starting the service, this is the entry point of the service.
  * Start the service, certainly it is on server-mode
- * 
+ *
  *-------------------------------------------------------------------- */
 VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
     thread_Settings* ext_gSettings;
- 
+
     // report the status to the service control manager.
     //
     if ( !ReportStatusToSCMgr(
@@ -359,7 +359,7 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
                              NO_ERROR,              // exit code
                              3000) )                 // wait hint
         goto clean;
-    
+
     // initialize client(s)
     if ( ext_gSettings->mThreadMode == kMode_Client ) {
         client_init( ext_gSettings );
@@ -377,7 +377,7 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
 #endif
         thread_start( into );
     }
-    
+
     // report the status to the service control manager.
     //
     if ( !ReportStatusToSCMgr(
@@ -410,7 +410,7 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv) {
 //    stop code, and return.  Otherwise, the
 //    ServiceControlManager will believe that
 //    the service has stopped responding.
-//    
+//
 VOID ServiceStop() {
 #ifdef HAVE_THREAD
     Sig_Interupt( 1 );

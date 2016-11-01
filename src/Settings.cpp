@@ -1,48 +1,48 @@
-/*--------------------------------------------------------------- 
- * Copyright (c) 1999,2000,2001,2002,2003                              
- * The Board of Trustees of the University of Illinois            
- * All Rights Reserved.                                           
- *--------------------------------------------------------------- 
- * Permission is hereby granted, free of charge, to any person    
- * obtaining a copy of this software (Iperf) and associated       
- * documentation files (the "Software"), to deal in the Software  
- * without restriction, including without limitation the          
- * rights to use, copy, modify, merge, publish, distribute,        
- * sublicense, and/or sell copies of the Software, and to permit     
+/*---------------------------------------------------------------
+ * Copyright (c) 1999,2000,2001,2002,2003
+ * The Board of Trustees of the University of Illinois
+ * All Rights Reserved.
+ *---------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software (Iperf) and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit
  * persons to whom the Software is furnished to do
- * so, subject to the following conditions: 
+ * so, subject to the following conditions:
  *
- *     
- * Redistributions of source code must retain the above 
- * copyright notice, this list of conditions and 
- * the following disclaimers. 
  *
- *     
- * Redistributions in binary form must reproduce the above 
- * copyright notice, this list of conditions and the following 
- * disclaimers in the documentation and/or other materials 
- * provided with the distribution. 
- * 
- *     
- * Neither the names of the University of Illinois, NCSA, 
- * nor the names of its contributors may be used to endorse 
+ * Redistributions of source code must retain the above
+ * copyright notice, this list of conditions and
+ * the following disclaimers.
+ *
+ *
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimers in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ *
+ * Neither the names of the University of Illinois, NCSA,
+ * nor the names of its contributors may be used to endorse
  * or promote products derived from this Software without
- * specific prior written permission. 
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE CONTIBUTORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
- * National Laboratory for Applied Network Research 
- * National Center for Supercomputing Applications 
- * University of Illinois at Urbana-Champaign 
+ * National Laboratory for Applied Network Research
+ * National Center for Supercomputing Applications
+ * University of Illinois at Urbana-Champaign
  * http://www.ncsa.uiuc.edu
- * ________________________________________________________________ 
+ * ________________________________________________________________
  *
  * Settings.cpp
  * by Mark Gates <mgates@nlanr.net>
@@ -226,7 +226,7 @@ void Settings_Initialize( thread_Settings *main ) {
     main->mMode         = kTest_Normal;  // -d,  mMode == kTest_DualTest
     main->mFormat       = 'a';           // -f,  adaptive bits
     // skip help                         // -h,
-    //main->mBufLenSet  = false;         // -l,	
+    //main->mBufLenSet  = false;         // -l,
     main->mBufLen       = 128 * 1024;      // -l,  8 Kbyte
     //main->mInterval     = 0;           // -i,  ie. no periodic bw reports
     //main->mPrintMSS   = false;         // -m,  don't print MSS
@@ -246,7 +246,7 @@ void Settings_Initialize( thread_Settings *main ) {
     //main->mCompat     = false;         // -C,  run in Compatibility mode
     //main->mDaemon     = false;         // -D,  run as a daemon
     //main->mFileInput  = false;         // -F,
-    //main->mFileName     = NULL;        // -F,  filename 
+    //main->mFileName     = NULL;        // -F,  filename
     //main->mStdin      = false;         // -I,  default not stdin
     //main->mListenPort   = 0;           // -L,  listen port
     //main->mMSS          = 0;           // -M,  ie. don't set MSS
@@ -416,7 +416,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             mExtSettings->mMode = kTest_TradeOff;
 #endif
             break;
-        case 'e': // Use enhanced reports 
+        case 'e': // Use enhanced reports
             setEnhanced( mExtSettings );
             break;
         case 'f': // format to print in
@@ -593,13 +593,13 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 			strcpy( mExtSettings->mLocalhost, results );
 			if ((results = strtok_r(NULL, ":",&saveptr)) != NULL)
 			    mExtSettings->mBindPort = atoi(results);
-		    } 
+		    }
 		} else if (parsedopts[0]=='[' && (results = strtok_r(parsedopts, "]",&saveptr)) != NULL) {
 		    mExtSettings->mLocalhost = new char[strlen(results)];
 		    // skip the first bracket
 		    results++;
 		    strcpy(mExtSettings->mLocalhost, results);
-		    if ((results = strtok_r(NULL, ":",&saveptr)) != NULL) 
+		    if ((results = strtok_r(NULL, ":",&saveptr)) != NULL)
 			mExtSettings->mBindPort = atoi(results);
 		}
 	    }
@@ -713,7 +713,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
         case 'V': // IPv6 Domain
             setIPV6( mExtSettings );
-            if ( mExtSettings->mThreadMode == kMode_Server 
+            if ( mExtSettings->mThreadMode == kMode_Server
                  && mExtSettings->mLocalhost != NULL ) {
                 // Test for Multicast
                 iperf_sockaddr temp;
@@ -767,7 +767,7 @@ void Settings_GetUpperCaseArg(const char *inarg, char *outarg) {
     int len = strlen(inarg);
     strcpy(outarg,inarg);
 
-    if ( (len > 0) && (inarg[len-1] >='a') 
+    if ( (len > 0) && (inarg[len-1] >='a')
          && (inarg[len-1] <= 'z') )
         outarg[len-1]= outarg[len-1]+'A'-'a';
 }
@@ -777,7 +777,7 @@ void Settings_GetLowerCaseArg(const char *inarg, char *outarg) {
     int len = strlen(inarg);
     strcpy(outarg,inarg);
 
-    if ( (len > 0) && (inarg[len-1] >='A') 
+    if ( (len > 0) && (inarg[len-1] >='A')
          && (inarg[len-1] <= 'Z') )
         outarg[len-1]= outarg[len-1]-'A'+'a';
 }
@@ -786,9 +786,9 @@ void Settings_GetLowerCaseArg(const char *inarg, char *outarg) {
  * Settings_GenerateListenerSettings
  * Called to generate the settings to be passed to the Listener
  * instance that will handle dual testings from the client side
- * this should only return an instance if it was called on 
- * the thread_Settings instance generated from the command line 
- * for client side execution 
+ * this should only return an instance if it was called on
+ * the thread_Settings instance generated from the command line
+ * for client side execution
  */
 void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings **listener ) {
     if ( !isCompat( client ) && \
@@ -825,12 +825,12 @@ void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings
  * Settings_GenerateSpeakerSettings
  * Called to generate the settings to be passed to the Speaker
  * instance that will handle dual testings from the server side
- * this should only return an instance if it was called on 
- * the thread_Settings instance generated from the command line 
+ * this should only return an instance if it was called on
+ * the thread_Settings instance generated from the command line
  * for server side execution. This should be an inverse operation
- * of GenerateClientHdr. 
+ * of GenerateClientHdr.
  */
-void Settings_GenerateClientSettings( thread_Settings *server, 
+void Settings_GenerateClientSettings( thread_Settings *server,
                                       thread_Settings **client,
                                       client_hdr *hdr ) {
     int extendflags = 0;
@@ -881,12 +881,12 @@ void Settings_GenerateClientSettings( thread_Settings *server,
         }
         (*client)->mHost = new char[REPORT_ADDRLEN];
         if ( ((sockaddr*)&server->peer)->sa_family == AF_INET ) {
-            inet_ntop( AF_INET, &((sockaddr_in*)&server->peer)->sin_addr, 
+            inet_ntop( AF_INET, &((sockaddr_in*)&server->peer)->sin_addr,
                        (*client)->mHost, REPORT_ADDRLEN);
         }
 #ifdef HAVE_IPV6
 	else {
-            inet_ntop( AF_INET6, &((sockaddr_in6*)&server->peer)->sin6_addr, 
+            inet_ntop( AF_INET6, &((sockaddr_in6*)&server->peer)->sin6_addr,
                        (*client)->mHost, REPORT_ADDRLEN);
         }
 #endif

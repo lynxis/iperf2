@@ -22,7 +22,7 @@ def testloop(loop):
 #tcp.stop()
 
 count=10
-iperffromsrc = '../src/iperf' 
+iperffromsrc = '../src/iperf'
 if shutil.which(iperffromsrc) is not None :
     flows.iperf = iperffromsrc
 flows = [iperf_flow(name="TCP" + str(i)) for i in range(count)]
@@ -34,7 +34,7 @@ try :
         # Careful here, sequential vs concurrent
     loop.run_until_complete(testloop(loop))
 
-finally : 
+finally :
     for flow in flows :
         flow.stop()
 loop.close()
