@@ -349,21 +349,6 @@ typedef struct thread_Settings {
 #define HDRXACKMAX 2500000 // default 2.5 seconds, units microseconds
 #define HDRXACKMIN   10000 // default 10 ms, units microseconds
 
-// used to reference the 4 byte ID number we place in UDP datagrams
-// use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90)
-typedef struct UDP_datagram {
-#ifdef HAVE_INT32_T
-    int32_t id;
-    u_int32_t tv_sec;
-    u_int32_t tv_usec;
-#else
-    signed   int id      : 32;
-    unsigned int tv_sec  : 32;
-    unsigned int tv_usec : 32;
-#endif
-} UDP_datagram;
-
-
 /*
  * Structures used for test messages which
  * are exchanged between the client and the Server/Listener
@@ -375,6 +360,25 @@ typedef enum MsgType {
     SERVERHDRACK
 } MsgType;
 
+/*
+ * Structures below will be passed as network i/o
+ * between the client, listener and server
+ * and must be packed by the compilers
+ */
+#pragma pack(push,1)
+typedef struct UDP_datagram {
+// used to reference the 4 byte ID number we place in UDP datagrams
+// use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90)
+#ifdef HAVE_INT32_T
+    int32_t id;
+    u_int32_t tv_sec;
+    u_int32_t tv_usec;
+#else
+    signed   int id      : 32;
+    unsigned int tv_sec  : 32;
+    unsigned int tv_usec : 32;
+#endif
+} UDP_datagram;
 typedef struct hdr_typelen {
 #ifdef HAVE_INT32_T
     int32_t type;
@@ -546,6 +550,11 @@ typedef struct server_hdr {
     server_hdr_v1 base;
     server_hdr_extension extend;
 } server_hdr;
+
+#pragma pack(pop)
+#define SIZEOF_TCPHDRMSG ((sizeof(client_hdr) > sizeof(server_hdr)) ? (int) sizeof(client_hdr) : (int) sizeof(server_hdr))
+#define SIZEOF_UDPHDRMSG (((sizeof(client_hdr) + sizeof(UDP_datagram)) > sizeof(server_hdr)) ? (int) (sizeof(client_hdr) + sizeof(UDP_datagram)) : (int) sizeof(server_hdr))
+#define SIZEOF_MAXHDRMSG ((SIZEOF_TCPHDRMSG > SIZEOF_UDPHDRMSG) ? SIZEOF_TCPHDRMSG : SIZEOF_UDPHDRMSG)
 
 // set to defaults
 void Settings_Initialize( thread_Settings* main );
