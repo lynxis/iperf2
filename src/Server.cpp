@@ -75,9 +75,12 @@
 Server::Server( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
-
+    if (isUDP(inSettings) && (inSettings->mBufLen < (int) sizeof(UDP_datagram))) {
+	mSettings->mBufLen = sizeof( UDP_datagram );
+	fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+    }
     // initialize buffer
-    mBuf = new char[ mSettings->mBufLen ];
+    mBuf = new char[(mSettings->mBufLen > (int)(sizeof(server_hdr)+1)) ? mSettings->mBufLen : (sizeof(server_hdr)+1)];
     FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
 }
 
