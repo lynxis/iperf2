@@ -522,7 +522,9 @@ void ReportSettings( thread_Settings *agent ) {
  * side.
  */
 void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
-    if (isServerReport(agent) && ((ntohl(server->base.flags) & HEADER_VERSION1) != 0)) {
+    unsigned int flags = ntohl(server->base.flags);
+    // printf("Server flags = 0x%X\n", flags);
+    if (isServerReport(agent) && ((flags & HEADER_VERSION1) != 0)) {
 	/*
 	 * Create in one big chunk
 	 */
@@ -552,7 +554,8 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 	stats->cntError = ntohl( server->base.error_cnt );
 	stats->cntOutofOrder = ntohl( server->base.outorder_cnt );
 	stats->cntDatagrams = ntohl( server->base.datagrams );
-	if ( (ntohl(server->base.flags) & HEADER_EXTEND) != 0) {
+	if ((flags & HEADER_EXTEND) != 0) {
+	    stats->mEnhanced = 1;
 	    stats->transit.minTransit = ntohl( server->extend.minTransit1 );
 	    stats->transit.minTransit += ntohl( server->extend.minTransit2 ) / (double)rMillion;
 	    stats->transit.maxTransit = ntohl( server->extend.maxTransit1 );

@@ -394,7 +394,7 @@ const char warn_implied_compatibility[] =
 "WARNING: option -%c has implied compatibility mode\n";
 
 const char warn_buffer_too_small[] =
-"WARNING: UDP buffer size (-l value) increased to %d bytes for proper operation\n";
+"WARNING: %s UDP buffer size (-l value) increased to %d bytes for proper operation\n";
 
 const char warn_invalid_single_threaded[] =
 "WARNING: option -%c is not valid in single threaded versions\n";
@@ -412,10 +412,10 @@ const char warn_test_exchange_failed[] =
 "WARNING: client/server version exchange failed\n";
 
 const char warn_len_too_small_peer_exchange[] =
-"WARNING: Option -l value of %d is too small for peer exchange (suggested min value is %d bytes)\n";
+"WARNING: %s option -l value of %d is too small for peer exchange (suggested min value is %d bytes)\n";
 
 const char warn_compat_and_peer_exchange[] =
-"WARNING: Options of '-C' '--compatibility' AND '-X' '--peerdetect' are mutually exclusive, both ignored\n";
+"WARNING: Options of '-C' '--compatibility' AND '-X' '--peerdetect' are mutually exclusive, --peerdetect ignored\n";
 
 #ifdef __cplusplus
 } /* end extern "C" */

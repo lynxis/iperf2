@@ -78,24 +78,29 @@ Client::Client( thread_Settings *inSettings ) {
 
     if (isCompat(inSettings) && isPeerVerDetect(inSettings)) {
 	fprintf(stderr, warn_compat_and_peer_exchange);
-	unsetCompat(inSettings);
 	unsetPeerVerDetect(inSettings);
     }
     if (isUDP(inSettings)) {
-	if (!isCompat(inSettings) && isPeerVerDetect(inSettings) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr)))) {
-	    mSettings->mBufLen = (sizeof(UDP_datagram) + sizeof(client_hdr));
-	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
-	} else if (!isCompat(inSettings) &&(inSettings->mMode != kTest_Normal) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr_v1)))) {
-	    mSettings->mBufLen = (sizeof(UDP_datagram) + sizeof(client_hdr_v1));
-	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
-	} else if (inSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
+	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) | (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_UDPHDRMSG)) {
+	    mSettings->mBufLen = SIZEOF_UDPHDRMSG;
+	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen);
+	} else if (mSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
 	    mSettings->mBufLen = sizeof( UDP_datagram );
-	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen );
+	}
+	if (mSettings->mBufLen < SIZEOF_UDPHDRMSG) {
+	    fprintf(stderr, warn_len_too_small_peer_exchange,  mSettings->mBufLen, SIZEOF_UDPHDRMSG);
+	}
+    } else {
+	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) | (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
+	    mSettings->mBufLen = SIZEOF_TCPHDRMSG;
+	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen);
 	}
     }
     // initialize buffer
-    mBuf = new char[(mSettings->mBufLen > (int)(sizeof(client_hdr)+1)) ? mSettings->mBufLen : (sizeof(client_hdr)+1)];
-    pattern( mBuf, mSettings->mBufLen );
+    mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
+    FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
+    pattern( mBuf, ((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG));
     if ( isFileInput( mSettings ) ) {
         if ( !isSTDIN( mSettings ) )
             Extractor_Initialize( mSettings->mFileName, mSettings->mBufLen, mSettings );
@@ -675,7 +680,7 @@ void Client::Run( void ) {
         mBuf_UDP->tv_usec = htonl( reportstruct->packetTime.tv_usec );
 
         if ( isMulticast( mSettings ) ) {
-            write( mSettings->mSock, mBuf, mSettings->mBufLen );
+            write(mSettings->mSock, mBuf, mSettings->mBufLen);
         } else {
             write_UDP_FIN( );
         }
@@ -764,7 +769,7 @@ void Client::HdrXchange(int flags) {
 	    // UDP header message must be mBufLen so server/Listener will read it
 	    // because the Listener read length uses  mBufLen
 	    if ((sizeof(UDP_datagram) + (sizeof(client_hdr)) - len) > 0) {
-		fprintf( stderr, warn_len_too_small_peer_exchange, (sizeof(UDP_datagram) + sizeof(client_hdr)));
+		fprintf( stderr, warn_len_too_small_peer_exchange, "Client", (sizeof(UDP_datagram) + sizeof(client_hdr)));
 	    }
 #ifdef HAVE_CLOCK_GETTIME
 	    struct timespec t1;
@@ -835,8 +840,8 @@ void Client::HdrXchange(int flags) {
 	}
     } else if (flags & HEADER_VERSION1) {
 	if (isUDP(mSettings)) {
-	    if (((sizeof(UDP_datagram) + sizeof(client_hdr_v1)) - mSettings->mBufLen) > 0) {
-		fprintf( stderr, warn_len_too_small_peer_exchange, mSettings->mBufLen, (sizeof(UDP_datagram) + sizeof(client_hdr_v1)));
+	    if ((int) (sizeof(UDP_datagram) + sizeof(client_hdr_v1)) > mSettings->mBufLen) {
+		fprintf( stderr, warn_len_too_small_peer_exchange, "Client", mSettings->mBufLen, (sizeof(UDP_datagram) + sizeof(client_hdr_v1)));
 	    }
 	    // UDP version1 header message is sent as part of normal traffic per Client::Run
 	} else {
@@ -847,7 +852,7 @@ void Client::HdrXchange(int flags) {
 	     * and issue a warning in case the server is version 2.0.5
 	     */
 	    if (((int)sizeof(client_hdr_v1) - mSettings->mBufLen) > 0) {
-		fprintf( stderr, warn_len_too_small_peer_exchange, mSettings->mBufLen, sizeof(client_hdr_v1));
+		fprintf( stderr, warn_len_too_small_peer_exchange, "Client", mSettings->mBufLen, sizeof(client_hdr_v1));
 	    }
 	    // Send TCP version1 header message now
 	    currLen = send( mSettings->mSock, mBuf, sizeof(client_hdr_v1), 0 );

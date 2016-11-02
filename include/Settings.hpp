@@ -364,8 +364,9 @@ typedef enum MsgType {
  * Structures below will be passed as network i/o
  * between the client, listener and server
  * and must be packed by the compilers
+ * Align on 32 bits (4 bytes)
  */
-#pragma pack(push,1)
+#pragma pack(push,4)
 typedef struct UDP_datagram {
 // used to reference the 4 byte ID number we place in UDP datagrams
 // use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90)
@@ -510,7 +511,6 @@ typedef struct server_hdr_v1 {
 } server_hdr_v1;
 
 typedef struct server_hdr_extension {
-    hdr_typelen typelen;
 #ifdef HAVE_INT32_T
     int32_t minTransit1;
     int32_t minTransit2;
@@ -552,9 +552,11 @@ typedef struct server_hdr {
 } server_hdr;
 
 #pragma pack(pop)
-#define SIZEOF_TCPHDRMSG ((sizeof(client_hdr) > sizeof(server_hdr)) ? (int) sizeof(client_hdr) : (int) sizeof(server_hdr))
-#define SIZEOF_UDPHDRMSG (((sizeof(client_hdr) + sizeof(UDP_datagram)) > sizeof(server_hdr)) ? (int) (sizeof(client_hdr) + sizeof(UDP_datagram)) : (int) sizeof(server_hdr))
-#define SIZEOF_MAXHDRMSG ((SIZEOF_TCPHDRMSG > SIZEOF_UDPHDRMSG) ? SIZEOF_TCPHDRMSG : SIZEOF_UDPHDRMSG)
+
+#define SIZEOF_UDPCLIENTMSG (sizeof(client_hdr) + sizeof(UDP_datagram))
+#define SIZEOF_TCPHDRMSG (int) ((sizeof(client_hdr) > sizeof(server_hdr)) ? (int) sizeof(client_hdr) : (int) sizeof(server_hdr))
+#define SIZEOF_UDPHDRMSG (int) ((SIZEOF_UDPCLIENTMSG > sizeof(server_hdr)) ? SIZEOF_UDPCLIENTMSG : sizeof(server_hdr))
+#define SIZEOF_MAXHDRMSG (int) ((SIZEOF_TCPHDRMSG > SIZEOF_UDPHDRMSG) ? SIZEOF_TCPHDRMSG : SIZEOF_UDPHDRMSG)
 
 // set to defaults
 void Settings_Initialize( thread_Settings* main );

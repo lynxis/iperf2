@@ -816,6 +816,7 @@ void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings
             (*listener)->mLocalhost = new char[strlen( client->mLocalhost ) + 1];
             strcpy( (*listener)->mLocalhost, client->mLocalhost );
         }
+	(*listener)->mBufLen   = client->mBufLen;
     } else {
         *listener = NULL;
     }

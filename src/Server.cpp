@@ -75,12 +75,8 @@
 Server::Server( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
-    if (isUDP(inSettings) && (inSettings->mBufLen < (int) sizeof(UDP_datagram))) {
-	mSettings->mBufLen = sizeof( UDP_datagram );
-	fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
-    }
-    // initialize buffer
-    mBuf = new char[(mSettings->mBufLen > (int)(sizeof(server_hdr)+1)) ? mSettings->mBufLen : (sizeof(server_hdr)+1)];
+    // initialize buffer, length checking done by the Listener
+    mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
     FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
 }
 
@@ -435,12 +431,11 @@ void Server::write_UDP_AckFIN( ) {
 
         UDP_Hdr = (UDP_datagram*) mBuf;
 
-        if ( mSettings->mBufLen > (int) ( sizeof( UDP_datagram )
-                                          + sizeof( server_hdr ) ) ) {
+        if (mSettings->mBufLen > (int) (sizeof(UDP_datagram) + sizeof(server_hdr))) {
+	    int flags = (!isEnhanced(mSettings) ? HEADER_VERSION1 : (HEADER_VERSION1 | HEADER_EXTEND));
             Transfer_Info *stats = GetReport( mSettings->reporthdr );
             hdr = (server_hdr*) (UDP_Hdr+1);
-
-            hdr->base.flags        = htonl( (long) (HEADER_VERSION1 | HEADER_EXTEND ));
+	    hdr->base.flags        = htonl((long) flags);
             hdr->base.total_len1   = htonl( (long) (stats->TotalLen >> 32) );
             hdr->base.total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
             hdr->base.stop_sec     = htonl( (long) stats->endTime );
@@ -450,21 +445,23 @@ void Server::write_UDP_AckFIN( ) {
             hdr->base.datagrams    = htonl( stats->cntDatagrams );
             hdr->base.jitter1      = htonl( (long) stats->jitter );
             hdr->base.jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) * rMillion) );
-            hdr->extend.minTransit1  = htonl( (long) stats->transit.totminTransit );
-            hdr->extend.minTransit2  = htonl( (long) ((stats->transit.totminTransit - (long)stats->transit.totminTransit) * rMillion) );
-            hdr->extend.maxTransit1  = htonl( (long) stats->transit.totmaxTransit );
-            hdr->extend.maxTransit2  = htonl( (long) ((stats->transit.totmaxTransit - (long)stats->transit.totmaxTransit) * rMillion) );
-            hdr->extend.sumTransit1  = htonl( (long) stats->transit.totsumTransit );
-            hdr->extend.sumTransit2  = htonl( (long) ((stats->transit.totsumTransit - (long)stats->transit.totsumTransit) * rMillion) );
-            hdr->extend.meanTransit1  = htonl( (long) stats->transit.totmeanTransit );
-            hdr->extend.meanTransit2  = htonl( (long) ((stats->transit.totmeanTransit - (long)stats->transit.totmeanTransit) * rMillion) );
-            hdr->extend.m2Transit1  = htonl( (long) stats->transit.totm2Transit );
-            hdr->extend.m2Transit2  = htonl( (long) ((stats->transit.totm2Transit - (long)stats->transit.totm2Transit) * rMillion) );
-            hdr->extend.vdTransit1  = htonl( (long) stats->transit.totvdTransit );
-            hdr->extend.vdTransit2  = htonl( (long) ((stats->transit.totvdTransit - (long)stats->transit.totvdTransit) * rMillion) );
-            hdr->extend.cntTransit   = htonl( stats->transit.totcntTransit );
-	    hdr->extend.IPGcnt = htonl( (long) (stats->cntDatagrams / (stats->endTime - stats->startTime)));
-	    hdr->extend.IPGsum = htonl(1);
+	    if (flags & HEADER_EXTEND) {
+		hdr->extend.minTransit1  = htonl( (long) stats->transit.totminTransit );
+		hdr->extend.minTransit2  = htonl( (long) ((stats->transit.totminTransit - (long)stats->transit.totminTransit) * rMillion) );
+		hdr->extend.maxTransit1  = htonl( (long) stats->transit.totmaxTransit );
+		hdr->extend.maxTransit2  = htonl( (long) ((stats->transit.totmaxTransit - (long)stats->transit.totmaxTransit) * rMillion) );
+		hdr->extend.sumTransit1  = htonl( (long) stats->transit.totsumTransit );
+		hdr->extend.sumTransit2  = htonl( (long) ((stats->transit.totsumTransit - (long)stats->transit.totsumTransit) * rMillion) );
+		hdr->extend.meanTransit1  = htonl( (long) stats->transit.totmeanTransit );
+		hdr->extend.meanTransit2  = htonl( (long) ((stats->transit.totmeanTransit - (long)stats->transit.totmeanTransit) * rMillion) );
+		hdr->extend.m2Transit1  = htonl( (long) stats->transit.totm2Transit );
+		hdr->extend.m2Transit2  = htonl( (long) ((stats->transit.totm2Transit - (long)stats->transit.totm2Transit) * rMillion) );
+		hdr->extend.vdTransit1  = htonl( (long) stats->transit.totvdTransit );
+		hdr->extend.vdTransit2  = htonl( (long) ((stats->transit.totvdTransit - (long)stats->transit.totvdTransit) * rMillion) );
+		hdr->extend.cntTransit   = htonl( stats->transit.totcntTransit );
+		hdr->extend.IPGcnt = htonl( (long) (stats->cntDatagrams / (stats->endTime - stats->startTime)));
+		hdr->extend.IPGsum = htonl(1);
+	    }
         }
 
         // write data

@@ -90,22 +90,37 @@ Listener::Listener( thread_Settings *inSettings ) {
 
     mClients = inSettings->mThreads;
     mBuf = NULL;
+    /*
+     * These thread settings are stored in three places
+     *
+     * 1) Listener thread
+     * 2) Reporter Thread (per the ReportSettings())
+     * 3) Server thread
+     */
     mSettings = inSettings;
 
-    // initialize buffer
-    mBuf = new char[(mSettings->mBufLen > (int)(sizeof(client_hdr)+1)) ? mSettings->mBufLen : (sizeof(client_hdr)+1)];
-
-    // open listening socket
-    Listen( );
-    if (isUDP(inSettings)) {
-	if (!isCompat(inSettings) && (inSettings->mBufLen < (int) (sizeof(UDP_datagram) + sizeof(client_hdr)))) {
-	    fprintf(stderr, warn_len_too_small_peer_exchange, mSettings->mBufLen, (sizeof(UDP_datagram) + sizeof(client_hdr)));
+    // initialize buffer for packets
+    mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
+    FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
+    /*
+     *  Perform listener threads length checks
+     */
+    if (isUDP(mSettings)) {
+	if (!isCompat(inSettings) && (mSettings->mBufLen < SIZEOF_UDPHDRMSG)) {
+	    fprintf(stderr, warn_len_too_small_peer_exchange, "Listener",  mSettings->mBufLen, SIZEOF_UDPHDRMSG);
 	}
-	if (inSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
+	if (mSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
 	    mSettings->mBufLen = sizeof( UDP_datagram );
-	    fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
+	    fprintf( stderr, warn_buffer_too_small, "Listener", mSettings->mBufLen );
+	}
+    } else {
+	if (!isCompat(mSettings) && (mSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
+	    fprintf(stderr, warn_len_too_small_peer_exchange, "Listener", mSettings->mBufLen, SIZEOF_TCPHDRMSG);
 	}
     }
+    // Now hang the listening on the socket
+    Listen( );
+
     ReportSettings( inSettings );
 } // end Listener
 
