@@ -124,7 +124,6 @@ Client::Client( thread_Settings *inSettings ) {
             mSettings->multihdr->report->connection.size_local = mSettings->size_local;
         }
     }
-
 } // end Client
 
 /* -------------------------------------------------------------------
@@ -551,6 +550,7 @@ void Client::Run( void ) {
     reportstruct->errwrite=0;
     reportstruct->socket = mSettings->mSock;
 
+    // reportstruct->packetID = (0x80000000L - 3);
     lastPacketTime.setnow();
     // Set this to > 0 so first loop iteration will delay the IPG
     currLen = 1;
@@ -573,13 +573,21 @@ void Client::Run( void ) {
 #else
         gettimeofday( &(reportstruct->packetTime), NULL );
 #endif
-        if ( isUDP( mSettings ) ) {
+        if (isUDP(mSettings)) {
             // store datagram ID into buffer
-            mBuf_UDP->id      = htonl( (reportstruct->packetID)++ );
-            mBuf_UDP->tv_sec  = htonl( reportstruct->packetTime.tv_sec );
-            mBuf_UDP->tv_usec = htonl( reportstruct->packetTime.tv_usec );
-
-            // Adjustment for the running delay
+	    mBuf_UDP->id      = htonl((reportstruct->packetID & 0xFFFFFFFFL));
+	    if (isSeqNo64b(mSettings)) {
+		mBuf_UDP->id2      = htonl(((reportstruct->packetID & 0xFFFFFFFF00000000LL) >> 32));
+	    }
+	    mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
+	    mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
+	    reportstruct->packetID++;
+	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
+		// seqno wrapped
+		fprintf(stderr, warn_seqno_wrap);
+		break;
+	    }
+	    // Adjustment for the running delay
 	    // o measure how long the last loop iteration took
 	    // o calculate the delay adjust
 	    //   - If write succeeded, adjust = target IPG - the loop time
@@ -588,12 +596,12 @@ void Client::Run( void ) {
 	    // Note: adjust units are nanoseconds,
 	    //       packet timestamps are microseconds
 	    if (currLen > 0)
-	      adjust = delay_target + \
-		       (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime ));
+		adjust = delay_target + \
+		    (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime ));
 	    else
-	      adjust = 1000.0 * lastPacketTime.subUsec( reportstruct->packetTime );
+		adjust = 1000.0 * lastPacketTime.subUsec( reportstruct->packetTime );
 
-            lastPacketTime.set( reportstruct->packetTime.tv_sec,
+	    lastPacketTime.set( reportstruct->packetTime.tv_sec,
 				reportstruct->packetTime.tv_usec );
 	    // Since linux nanosleep/busyloop can exceed delay
 	    // there are two possible equilibriums
@@ -607,20 +615,19 @@ void Client::Run( void ) {
 	    if (delay < delay_lower_bounds) {
 		delay = delay_target;
 	    }
+	}
 
-        }
+	// Read the next data block from
+	// the file if it's file input
+	if ( isFileInput( mSettings ) ) {
+	    Extractor_getNextDataBlock( readAt, mSettings );
+	    canRead = Extractor_canRead( mSettings ) != 0;
+	} else
+	    canRead = true;
 
-        // Read the next data block from
-        // the file if it's file input
-        if ( isFileInput( mSettings ) ) {
-            Extractor_getNextDataBlock( readAt, mSettings );
-            canRead = Extractor_canRead( mSettings ) != 0;
-        } else
-            canRead = true;
-
-        // perform write
-        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
-        if ( currLen < 0 ) {
+	// perform write
+	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+	if ( currLen < 0 ) {
 	    reportstruct->errwrite = 1;
 	    reportstruct->packetID--;
 	    reportstruct->emptyreport=1;
@@ -635,30 +642,30 @@ void Client::Run( void ) {
 		errno != ENOBUFS
 #endif
 		) {
-	        WARN_errno( 1, "write" );
-	        break;
+		WARN_errno( 1, "write" );
+		break;
 	    }
 	}
 
-        // report packets
-        reportstruct->packetLen = (unsigned long) currLen;
-        ReportPacket( mSettings->reporthdr, reportstruct );
+	// report packets
+	reportstruct->packetLen = (unsigned long) currLen;
+	ReportPacket( mSettings->reporthdr, reportstruct );
 
 	// Insert delay here only if the running delay is greater than 1 usec,
-        // otherwise don't delay and immediately continue with the next tx.
-        if ( delay >= 1000 ) {
+	// otherwise don't delay and immediately continue with the next tx.
+	if ( delay >= 1000 ) {
 	    // Convert from nanoseconds to microseconds
 	    // and invoke the microsecond delay
 	    delay_loop((unsigned long) (delay / 1000));
-        }
-        if ( !mMode_Time ) {
-            /* mAmount may be unsigned, so don't let it underflow! */
-            if( mSettings->mAmount >= (unsigned long) currLen ) {
-                mSettings->mAmount -= (unsigned long) currLen;
-            } else {
-                mSettings->mAmount = 0;
-            }
-        }
+	}
+	if ( !mMode_Time ) {
+	    /* mAmount may be unsigned, so don't let it underflow! */
+	    if( mSettings->mAmount >= (unsigned long) currLen ) {
+		mSettings->mAmount -= (unsigned long) currLen;
+	    } else {
+		mSettings->mAmount = 0;
+	    }
+	}
 
     } while ( ! (sInterupted  ||
                  (mMode_Time   &&  mEndTime.before( reportstruct->packetTime ))  ||
@@ -675,8 +682,12 @@ void Client::Run( void ) {
         // The negative datagram ID signifies termination to the server.
 
         // store datagram ID into buffer
-        mBuf_UDP->id      = htonl( -(reportstruct->packetID)  );
-        mBuf_UDP->tv_sec  = htonl( reportstruct->packetTime.tv_sec );
+	if (isSeqNo64b(mSettings)) {
+	    mBuf_UDP->id      = htonl((reportstruct->packetID & 0xFFFFFFFFFL));
+	    mBuf_UDP->id2     = htonl((((reportstruct->packetID & 0xFFFFFFFF00000000LL) >> 32) | 0x80000000L));
+	} else {
+	    mBuf_UDP->id      = htonl(((reportstruct->packetID & 0xFFFFFFFFL) | 0x80000000L));
+	}
         mBuf_UDP->tv_usec = htonl( reportstruct->packetTime.tv_usec );
 
         if ( isMulticast( mSettings ) ) {

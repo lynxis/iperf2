@@ -106,7 +106,7 @@ ARFLAGS = cru
 AM_V_AR = $(am__v_AR_@AM_V@)
 am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
 am__v_AR_0 = @echo "  AR      " $@;
-am__v_AR_1 =
+am__v_AR_1 = 
 libcompat_a_AR = $(AR) $(ARFLAGS)
 libcompat_a_LIBADD =
 am_libcompat_a_OBJECTS = Thread.$(OBJEXT) error.$(OBJEXT) \
@@ -121,11 +121,11 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 =
+am__v_GEN_1 = 
 AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
-am__v_at_1 =
+am__v_at_1 = 
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -135,13 +135,13 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 AM_V_CC = $(am__v_CC_@AM_V@)
 am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
 am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 =
+am__v_CC_1 = 
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 =
+am__v_CCLD_1 = 
 SOURCES = $(libcompat_a_SOURCES)
 DIST_SOURCES = $(libcompat_a_SOURCES)
 am__can_run_installinfo = \
@@ -339,7 +339,7 @@ $(am__aclocal_m4_deps):
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 
-libcompat.a: $(libcompat_a_OBJECTS) $(libcompat_a_DEPENDENCIES) $(EXTRA_libcompat_a_DEPENDENCIES)
+libcompat.a: $(libcompat_a_OBJECTS) $(libcompat_a_DEPENDENCIES) $(EXTRA_libcompat_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libcompat.a
 	$(AM_V_AR)$(libcompat_a_AR) libcompat.a $(libcompat_a_OBJECTS) $(libcompat_a_LIBADD)
 	$(AM_V_at)$(RANLIB) libcompat.a

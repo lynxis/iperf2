@@ -230,6 +230,7 @@ extern const char warn_len_too_small_peer_exchange[];
 
 extern const char warn_compat_and_peer_exchange[];
 
+extern const char warn_seqno_wrap[];
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif

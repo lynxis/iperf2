@@ -85,6 +85,7 @@
 #include <float.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #ifdef WIN32
 
@@ -201,8 +202,23 @@ typedef struct sockaddr_in iperf_sockaddr;
 // from the gnu archive
 
 #include <iperf-int.h>
-typedef uint64_t max_size_t;
-
+#ifdef HAVE_QUAD_SUPPORT
+#ifdef HAVE_INT64_T
+typedef int64_t max_size_t;
+typedef u_int64_t umax_size_t;
+#else
+typedef long long max_size_t;
+typedef unsigned long long umax_size_t;
+#endif // 64
+#else
+#ifdef HAVE_INT32_T
+typedef int32_t max_size_t;
+typedef u_int32_t umax_size_t;
+#else
+typedef long max_size_t;
+typedef unsigned long umax_size_t;
+#endif // 32
+#endif
 /* in case the OS doesn't have these, we provide our own implementations */
 #include "gettimeofday.h"
 #include "inet_aton.h"

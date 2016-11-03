@@ -553,7 +553,12 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 	stats->endTime += ntohl( server->base.stop_usec ) / (double)rMillion;
 	stats->cntError = ntohl( server->base.error_cnt );
 	stats->cntOutofOrder = ntohl( server->base.outorder_cnt );
+#ifndef HAVE_SEQNO64b
 	stats->cntDatagrams = ntohl( server->base.datagrams );
+#else
+	stats->cntDatagrams = (((max_size_t) ntohl( server->base.datagrams2 )) << 32) + \
+	    ntohl( server->base.datagrams );
+#endif
 	if ((flags & HEADER_EXTEND) != 0) {
 	    stats->mEnhanced = 1;
 	    stats->transit.minTransit = ntohl( server->extend.minTransit1 );

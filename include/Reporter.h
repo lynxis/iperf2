@@ -121,8 +121,8 @@ typedef struct WriteStats {
  * recieving thread.
  */
 typedef struct ReportStruct {
-    int packetID;
-    max_size_t packetLen;
+    max_size_t packetID;
+    umax_size_t packetLen;
     struct timeval packetTime;
     struct timeval sentTime;
     int errwrite;
@@ -150,15 +150,15 @@ typedef struct Transfer_Info {
     void *reserved_delay;
     int transferID;
     int groupID;
-    int cntError;
-    int cntOutofOrder;
-    int cntDatagrams;
-    int IPGcnt;
+    max_size_t cntError;
+    max_size_t cntOutofOrder;
+    max_size_t cntDatagrams;
+    max_size_t IPGcnt;
     int socket;
     TransitStats transit;
     TCPStats tcp;
     // Hopefully int64_t's
-    max_size_t TotalLen;
+    umax_size_t TotalLen;
     double jitter;
     double startTime;
     double endTime;
@@ -185,13 +185,14 @@ typedef struct ReporterData {
     char*  mLocalhost;              // -B
     // int's
     int type;
-    int cntError;
-    int lastError;
-    int cntOutofOrder;
-    int lastOutofOrder;
-    int cntDatagrams;
-    int lastDatagrams;
-    int PacketID;
+    max_size_t cntError;
+    max_size_t lastError;
+    max_size_t cntOutofOrder;
+    max_size_t lastOutofOrder;
+    max_size_t cntDatagrams;
+    max_size_t lastDatagrams;
+    max_size_t PacketID;
+
     int mBufLen;                    // -l
     int mMSS;                       // -M
     int mTCPWin;                    // -w
@@ -215,8 +216,8 @@ typedef struct ReporterData {
     // enums (which should be special int's)
     ThreadMode mThreadMode;         // -s or -c
     ReportMode mode;
-    max_size_t TotalLen;
-    max_size_t lastTotal;
+    umax_size_t TotalLen;
+    umax_size_t lastTotal;
     // doubles
     // shorts
     unsigned short mPort;           // -p

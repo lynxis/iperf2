@@ -313,7 +313,11 @@ void Server::RunUDP( void ) {
 
             if (!reportstruct->emptyreport) {
                 // read the datagram ID and sentTime out of the buffer
-                reportstruct->packetID = ntohl( mBuf_UDP->id );
+		if (isSeqNo64b(mSettings)) {
+		    reportstruct->packetID = (((max_size_t) (ntohl(mBuf_UDP->id2)) << 32) | ntohl(mBuf_UDP->id));
+		} else {
+		    reportstruct->packetID = ntohl(mBuf_UDP->id);
+		}
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
 		reportstruct->packetLen = currLen;
@@ -364,17 +368,20 @@ void Server::RunUDP( void ) {
 	    totLen += currLen;
             // terminate when datagram begins with negative index
             // the datagram ID should be correct, just negated
-            if ( reportstruct->packetID < 0 ) {
-                reportstruct->packetID = -reportstruct->packetID;
+	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
+                reportstruct->packetID = (reportstruct->packetID & 0x7FFFFFFFL);
                 currLen = -1;
 		running = 0;
-            }
+            } else if (isSeqNo64b(mSettings) && (reportstruct->packetID & 0x8000000000000000LL)) {
+		reportstruct->packetID = (reportstruct->packetID & 0x7FFFFFFFFFFFFFFFLL);
+		currLen = -1;
+		running = 0;
+	    }
 	    if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
 		running = 0;
 	    }
 	    ReportPacket( mSettings->reporthdr, reportstruct );
         } while (running);
-
         // stop timing
 #ifdef HAVE_CLOCK_GETTIME
        {
@@ -386,7 +393,7 @@ void Server::RunUDP( void ) {
 #else
         gettimeofday( &(reportstruct->packetTime), NULL );
 #endif
-        CloseReport( mSettings->reporthdr, reportstruct );
+	CloseReport( mSettings->reporthdr, reportstruct );
 
         // send a acknowledgement back only if we're NOT receiving multicast
         if (!isMulticast( mSettings ) ) {
@@ -396,7 +403,6 @@ void Server::RunUDP( void ) {
     } else {
         FAIL(1, "Out of memory! Closing server thread\n", mSettings);
     }
-
     Mutex_Lock( &clients_mutex );
     Iperf_delete( &(mSettings->peer), &clients );
     Mutex_Unlock( &clients_mutex );
@@ -442,7 +448,12 @@ void Server::write_UDP_AckFIN( ) {
             hdr->base.stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime) * rMillion));
             hdr->base.error_cnt    = htonl( stats->cntError );
             hdr->base.outorder_cnt = htonl( stats->cntOutofOrder );
+#ifndef HAVE_SEQNO64b
             hdr->base.datagrams    = htonl( stats->cntDatagrams );
+#else
+            hdr->base.datagrams2   = htonl( (long) (stats->cntDatagrams >> 32) );
+            hdr->base.datagrams    = htonl( (long) (stats->cntDatagrams & 0xFFFFFFFF) );
+#endif
             hdr->base.jitter1      = htonl( (long) stats->jitter );
             hdr->base.jitter2      = htonl( (long) ((stats->jitter - (long)stats->jitter) * rMillion) );
 	    if (flags & HEADER_EXTEND) {
@@ -493,4 +504,3 @@ void Server::write_UDP_AckFIN( ) {
     fprintf( stderr, warn_ack_failed, mSettings->mSock, count );
 }
 // end write_UDP_AckFIN
-

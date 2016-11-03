@@ -50,6 +50,7 @@
  * -------------------------------------------------------------------
  * Strings and other stuff that is locale specific.
  * ------------------------------------------------------------------- */
+#include <inttypes.h>
 #include "version.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -83,8 +84,11 @@ Client/Server:\n\
   -m, --print_mss          print TCP maximum segment size (MTU - TCP/IP header)\n\
   -o, --output    <filename> output the report or error message to this specified file\n\
   -p, --port      #        server port to listen on/connect to\n\
-  -u, --udp                use UDP rather than TCP\n\
-  -w, --window    #[KM]    TCP window size (socket buffer size)\n"
+  -u, --udp                use UDP rather than TCP\n"
+#ifdef HAVE_SEQNO64b
+"      --udp-counters-64bit use 64 bit sequence numbers with UDP \n"
+#endif
+"  -w, --window    #[KM]    TCP window size (socket buffer size)\n"
 #ifdef HAVE_SCHED_SETSCHEDULER
 "  -z, --realtime           request realtime scheduler\n"
 #endif
@@ -216,10 +220,10 @@ const char report_sum_bw_format[] =
 const char report_bw_jitter_loss_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams\n";
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
+"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)\n";
 
 const char report_sum_bw_jitter_loss_format[] =
-"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)\n";
+"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)\n";
 
 /* -------------------------------------------------------------------
  * Enhanced reports (per -e)
@@ -275,13 +279,13 @@ const char report_bw_jitter_loss_enhanced_header[] =
  Latency avg/min/max/stdev PPS\n";
 
 const char report_bw_jitter_loss_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
 
 const char report_sum_bw_jitter_loss_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%)  %4.0f pps\n";
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)  %4.0f pps\n";
 
 const char report_bw_jitter_loss_suppress_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4d/%5d (%.2g%%) -/-/-/- ms %4.0f pps\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) -/-/-/- ms %4.0f pps\n";
 
 /* -------------------------------------------------------------------
  * Misc reports
@@ -416,6 +420,10 @@ const char warn_len_too_small_peer_exchange[] =
 
 const char warn_compat_and_peer_exchange[] =
 "WARNING: Options of '-C' '--compatibility' AND '-X' '--peerdetect' are mutually exclusive, --peerdetect ignored\n";
+
+const char warn_seqno_wrap[] =
+"WARNING: Client UDP sequence number wrapped, suggest --udp-counters-64bit on both client and server\n";
+
 
 #ifdef __cplusplus
 } /* end extern "C" */

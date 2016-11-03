@@ -166,7 +166,7 @@ typedef struct thread_Settings {
     // Hopefully int64_t's
     max_size_t mUDPRate;            // -b or -u
     RateUnits mUDPRateUnits;        // -b is either bw or pps
-    max_size_t mAmount;             // -n or -t
+    umax_size_t mAmount;             // -n or -t
     // doubles
     double mInterval;               // -i
     // shorts
@@ -370,15 +370,23 @@ typedef enum MsgType {
 typedef struct UDP_datagram {
 // used to reference the 4 byte ID number we place in UDP datagrams
 // use int32_t if possible, otherwise a 32 bit bitfield (e.g. on J90)
+// Support 64 bit seqno on machines that support them
 #ifdef HAVE_INT32_T
-    int32_t id;
+    u_int32_t id;
     u_int32_t tv_sec;
     u_int32_t tv_usec;
 #else
-    signed   int id      : 32;
+    unsigned int id      : 32;
     unsigned int tv_sec  : 32;
     unsigned int tv_usec : 32;
-#endif
+#endif //32
+#ifdef HAVE_SEQNO64b
+#ifdef HAVE_INT32_T
+    u_int32_t id2;
+#else
+    unsigned int id2      : 32;
+#endif // 32
+#endif //SEQNO64b
 } UDP_datagram;
 typedef struct hdr_typelen {
 #ifdef HAVE_INT32_T
@@ -494,9 +502,12 @@ typedef struct server_hdr_v1 {
     int32_t error_cnt;
     int32_t outorder_cnt;
     int32_t datagrams;
+#ifdef HAVE_SEQNO64b
+    int32_t datagrams2;
+#endif // SEQ
     int32_t jitter1;
     int32_t jitter2;
-#else
+#else // Int32
     signed int flags        : 32;
     signed int total_len1   : 32;
     signed int total_len2   : 32;
@@ -505,6 +516,9 @@ typedef struct server_hdr_v1 {
     signed int error_cnt    : 32;
     signed int outorder_cnt : 32;
     signed int datagrams    : 32;
+#ifdef HAVE_SEQNO64b
+    signed int datagrams2   : 32;
+#endif // SEQ
     signed int jitter1      : 32;
     signed int jitter2      : 32;
 #endif

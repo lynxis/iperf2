@@ -690,7 +690,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 #else
         case 'R':
-	    fprintf(stderr, "Reverse not yet implemented\n");
+	    fprintf( stderr, "The --reverse option is currently not supported\n");
 	    exit(1);
 	    setReverse(mExtSettings);
             break;
@@ -752,9 +752,15 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
         case 0:
 	    if (seqno64b) {
+#ifdef HAVE_SEQNO64b
 		setSeqNo64b(mExtSettings);
+#else
+		fprintf( stderr, "WARNING: 64 bit sequence numbers not supported\n");
+#endif
 	    }
 	    if (reversetest) {
+		fprintf( stderr, "WARNING: The --reverse option is currently not supported\n");
+		exit(1);
 		setReverse(mExtSettings);
 	    }
         default: // ignore unknown
@@ -908,10 +914,6 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
     int flags = 0, extendflags = 0;
     if (isPeerVerDetect(client)) {
 	flags |= HEADER_EXTEND;
-    }
-    if ( isSeqNo64b( client ) ) {
-	flags |= HEADER_EXTEND;
-	extendflags |=  SEQNO64B;
     }
     if ( client->mMode != kTest_Normal ) {
 	flags |= HEADER_VERSION1;
