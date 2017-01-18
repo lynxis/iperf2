@@ -809,7 +809,7 @@ void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings
             (*listener)->mPort   = client->mPort;
         }
 	if (client->mMode == kTest_TradeOff)
-	    (*listener)->mAmount   = 2 * client->Amount;
+	    (*listener)->mAmount   = 2 * client->mAmount;
         (*listener)->mFileName   = NULL;
         (*listener)->mHost       = NULL;
         (*listener)->mLocalhost  = NULL;
