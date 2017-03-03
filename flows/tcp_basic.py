@@ -1,40 +1,23 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.5
 #
 # Author Robert J. McMahon
-# Date April 2016
-import flows
-import asyncio
+# Date March 2017
 import shutil
+import logging
+import flows
 
 from flows import *
 
-@asyncio.coroutine
-def testloop(loop):
-    yield from asyncio.sleep(5)
-    return
+logging.basicConfig(filename='test.log', level=logging.DEBUG, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
 
-#tcp.start()
-#loop.run_until_complete(testloop(loop))
-#tcp.tx.pause()
-#loop.run_until_complete(testloop(loop))
-#tcp.tx.resume()
-#print(tcp.rx.results, time.time())
-#tcp.stop()
-
-count=10
-iperffromsrc = '../src/iperf'
-if shutil.which(iperffromsrc) is not None :
-    flows.iperf = iperffromsrc
-flows = [iperf_flow(name="TCP" + str(i)) for i in range(count)]
+logging.getLogger('asyncio').setLevel(logging.DEBUG)
+root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 loop.set_debug(False)
-try :
-    for flow in flows :
-        flow.start()
-        # Careful here, sequential vs concurrent
-    loop.run_until_complete(testloop(loop))
 
-finally :
-    for flow in flows :
-        flow.stop()
-loop.close()
+count = 1
+time = 10
+
+iperf_flow.cleanup(hosts=['hera', 'zeus'])
+flows = [iperf_flow(name="TCP{}".format(str(i)), loop=loop, user='root', server='zeus', client='hera', dst='192.168.100.34', proto='TCP', interval="0.01") for i in range(count)]
+iperf_flow.run(time=time, flows='all')
