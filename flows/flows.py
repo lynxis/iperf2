@@ -46,9 +46,7 @@ class iperf_flow(object):
             iperf_flow.loop = loop
         elif os.name == 'nt':
             # On Windows, the ProactorEventLoop is necessary to listen on pipes
-            loop = asyncio.ProactorEventLoop()
-            # asyncio.set_event_loop(loop)
-            iperf_flow.loop = asyncio.get_event_loop()
+            iperf_flow.loop = asyncio.ProactorEventLoop()
         else:
             loop = asyncio.get_event_loop() 
             iperf_flow.loop = asyncio.get_event_loop()
