@@ -892,6 +892,14 @@ void Client::write_UDP_FIN( ) {
         // write data
         write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	// decrement the packet count
+	//
+	// Note: a negative packet id is used to tell the server
+        // this UDP stream is terminating.  The server will remove
+        // the sign.  So a decrement will be seen as increments by
+	// the server (e.g, -1000, -1001, -1002 as 1000, 1001, 1002) 
+        // If the retries weren't decrement here the server can get out
+        // of order packets per these retries actually being received
+        // by the server (e.g. -1000, -1000, -1000)
 	packetid = ntohl(mBuf_UDP->id);
         mBuf_UDP->id = htonl(--packetid);
 
