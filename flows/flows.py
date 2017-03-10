@@ -26,7 +26,8 @@ class iperf_flow(object):
     iperf = '/usr/bin/iperf'
     instances = weakref.WeakSet()
     loop = None
-
+    flowinfo = ("flowstats")
+        
     @classmethod
     def sleep(cls, time=0, text=None) :
         loop = asyncio.get_event_loop() 
@@ -122,6 +123,7 @@ class iperf_flow(object):
 
             
     def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5):
+            
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -137,7 +139,9 @@ class iperf_flow(object):
         self.dst = dst
         self.interval = interval
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
-        self.ber = {'rxbytes' : None , 'txbytes' : None } 
+        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'rxtx_byteperc' : None}
+        # use python composition for the server and client
+        # i.e. a flow has a server and a client
         self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, user=self.user, host=self.server, flow=self)
         self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, user=self.user, host=self.client, flow=self)
 
@@ -155,8 +159,6 @@ class iperf_flow(object):
         logging.debug('{} {}'.format(self.name, 'traffic check invoked'))
         await self.rx.traffic_event.wait()
         await self.tx.traffic_event.wait()
-        byte_err_rate = round((self.rx.lastbytes / self.tx.lastbytes), 2)
-        logging.info('{} {}'.format(self.name, 'traffic check ber={0:.2f}'.format(byte_err_rate)))
 
     async def stop(self):
         self.tx.stop()
@@ -166,17 +168,31 @@ class iperf_flow(object):
         logging.info('stats')
 
                 
-class iperf_server(iperf_flow):
+class iperf_server(object):
 
     class IperfServerProtocol(asyncio.SubprocessProtocol):
-        def __init__(self, server):
+
+        def __init__(self, server, flow):
+            self.__dict__['flow'] = flow
             self._exited = False
             self._closed_stdout = False
             self._closed_stderr = False
             self._server = server
             self._stdoutbuffer = ""
             self._stderrbuffer = ""
-            
+        
+        def __setattr__(self, attr, value):
+            if attr in iperf_flow.flowinfo:
+                self.flow.__setattr__(self.flow, attr, value)
+            else:
+                self.__dict__[attr] = value
+
+        # methods and attributes not here are handled by the flow object,
+        # aka, the flow object delegates to this object per composition
+        def __getattr__(self, attr):
+            if attr in iperf_flow.flowinfo:
+                return getattr(self.flow, attr)
+                
         @property
         def finished(self):
             return self._exited and self._closed_stdout and self._closed_stderr
@@ -207,17 +223,22 @@ class iperf_server(iperf_flow):
                     else :
                         m = self._server.regex_traffic.match(line)
                         if m :
-                            self._server.lastbytes = int(m.group('bytes'))
-                            if self._server.ber['txbytes'] :
-                                byte_err_rate = round((self._server.lastbytes / self._server.ber['txbytes']), 2)
-                                logging.info('{} flow ber={0:.2f}'.format(self._server.flowname, byte_err_rate))
-                                self.ber = {'rxbytes' : None , 'txbytes' : None }
-                            else :
-                                self._server.ber['rxbytes'] = self._server.lastbytes
-                                logging.info('{} dict={}'.format(self._server.flowname, self._server.ber))
-                                
                             if not self._server.traffic_event.is_set() :
                                 self._server.traffic_event.set()
+
+                            bytes = float(m.group('bytes'))
+                            if self.flowstats['current_rxbytes'] :
+                                rxtx_byteperc = round((bytes / self.flowstats['current_txbytes']), 2)
+                                # *consume* the current *txbytes* where the client pipe will repopulate on its next sample
+                                # do this by setting the value to None
+                                self.flowstats['current_txbytes'] = None
+                                logging.debug('{} flow  ratio={:.2f}'.format(self._server.name, rxtx_byteperc))
+                                self.flowstats['rxtx_byteperc'] = rxtx_byteperc
+                            else :
+                                # *produce* the current *rxbytes* so the client pipe can know this event occurred
+                                # indicate this by setting the value to value
+                                self.flowstats['current_rxbytes'] = bytes
+                                # logging.debug('{} dict={}'.format(self._server.name, self.flowstats))
 
 
             elif fd == 2:
@@ -245,6 +266,7 @@ class iperf_server(iperf_flow):
 
     
     def __init__(self, name='Server', loop=None, user='root', host='localhost', flow=None):
+        self.__dict__['flow'] = flow
         self.loop = iperf_flow.loop
         self.name = name
         self.iperf = '/usr/local/bin/iperf'
@@ -273,11 +295,9 @@ class iperf_server(iperf_flow):
             return
 
         self.remotepid = None
-        self.lastbytes = None
-        self.ber = {'rxbytes' : None , 'txbytes' : None } 
         self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t 60', '-z', '-fb']
         logging.info('{}'.format(str(self.sshcmd)))
-        self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self), *self.sshcmd)
+        self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
         self.closed.clear()
         
@@ -310,10 +330,13 @@ class iperf_server(iperf_flow):
         
 
                 
-class iperf_client(iperf_flow):
+class iperf_client(object):
+
     # Asycnio protocol for subprocess transport
     class IperfClientProtocol(asyncio.SubprocessProtocol):
-        def __init__(self, client):
+
+        def __init__(self, client, flow):
+            self.__dict__['flow'] = flow
             self._exited = False
             self._closed_stdout = False
             self._closed_stderr = False
@@ -321,8 +344,15 @@ class iperf_client(iperf_flow):
             self._stdoutbuffer = ""
             self._stderrbuffer = ""
 
+        def __setattr__(self, attr, value):
+            if attr in iperf_flow.flowinfo:
+                self.flow.__setattr__(self.flow, attr, value)
+            else:
+                self.__dict__[attr] = value
+
         def __getattr__(self, attr):
-            return getattr(self._client, attr)
+            if attr in iperf_flow.flowinfo:
+                return getattr(self.flow, attr)
     
         @property
         def finished(self):
@@ -354,16 +384,22 @@ class iperf_client(iperf_flow):
                     else :
                         m = self._client.regex_traffic.match(data)
                         if m :
-                            self._client.lastbytes = int(m.group('bytes'))
-                            if self._client.ber['rxbytes'] :
-                                byte_err_rate = round((self._client.ber['rxbytes'] / self._client.lastbytes), 2)
-                                logging.info('{} flow ber={0:.2f}'.format(self._client.flowname, byte_err_rate))
-                                self.ber = {'rxbytes' : None , 'txbytes' : None }
-                            else :
-                                self._client.ber['txbytes'] = self._client.lastbytes
-                                logging.info('{} dict={}'.format(self._client.flowname, self._client.ber))
                             if not self._client.traffic_event.is_set() :
                                 self._client.traffic_event.set()
+
+                            bytes = float(m.group('bytes'))
+                            if self.flowstats['current_rxbytes'] :
+                                rxtx_byteperc = round((self.flowstats['current_rxbytes'] / bytes), 2)
+                                # *consume* the current *rxbytes* where the server pipe will repopulate on its next sample
+                                # do this by setting the value to None
+                                self.flowstats['current_rxbytes'] = None
+                                logging.debug('{} flow ratio={:.2f}'.format(self._client.name, rxtx_byteperc))
+                                self.flowstats['rxtx_byteperc'] = rxtx_byteperc
+                            else :
+                                # *produce* the current txbytes so the server pipe can know this event occurred
+                                # indicate this by setting the value to value
+                                self.flowstats['current_txbytes'] = bytes
+                                # logging.debug('{} dict={}'.format(self._client.name, self.flowstats))
 
             elif fd == 2:
                 self._stderrbuffer += data
@@ -386,6 +422,7 @@ class iperf_client(iperf_flow):
             self.signal_exit()
 
     def __init__(self, name='Client', loop=None, user='root', host='localhost', flow = None):
+        self.__dict__['flow'] = flow
         self.loop = loop
         self.opened = asyncio.Event(loop=self.loop)
         self.closed = asyncio.Event(loop=self.loop)
@@ -395,8 +432,6 @@ class iperf_client(iperf_flow):
         self.ssh = '/usr/bin/ssh'
         self.host = host
         self.user = user
-        self.flow = flow
-        self.lastbytes = None
         self._transport = None
         self._protocol = None
         # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
@@ -414,7 +449,7 @@ class iperf_client(iperf_flow):
         self.remotepid = None
         self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t 5', '-b 100M', '-z', '-fb']
         logging.info('{}'.format(str(self.sshcmd)))
-        self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self), *self.sshcmd)
+        self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
         self.closed.clear()
 
@@ -432,45 +467,6 @@ class iperf_client(iperf_flow):
     def resume(self) :
         self.childprocess.send_signal(signal.SIGCONT)
 
-    def client_stdout_event(self):
-        trailer = '{}({})'.format(self.childprocess.pid, self.childprocess.stdout.name)
-        while True :
-            data = self.childprocess.stdout.readline()
-            if data :
-                logging.info('{} {} {}'.format(self.name, str(data).strip('\r\n'), trailer))
-                trailer = ''
-                if not self.opened.is_set() :
-                    m = self.regex_open_pid.match(data)
-                    if m :
-                        logging.debug('remote pid match {}'.format(m.group('pid')))
-                        self.opened.set()
-                        self.remotepid = m.group('pid')
-                    else :
-                        pass
-                else :
-                    m = self.regex_traffic.match(data)
-            else :
-                break
-
-        self.childprocess.poll()
-        if self.childprocess.returncode is not None :
-            logging.debug('{} closed: pid={}'.format(self.name, self.childprocess.pid))
-            self.loop.remove_reader(self.childprocess.stdout)
-            self.closed.set()
-
-    def client_stderr_event(self):
-        data = self.childprocess.stderr.readline()
-        if data :
-            logging.info(str(data).strip('\r\n'))
-            if not self.opened.is_set() :
-                self.opened.set()
-            else :
-                pass
-
-        self.childprocess.poll()
-        if self.childprocess.returncode is not None :
-            self.loop.remove_reader(self.childprocess.stderr)
-            self.closed.set()
 
     def remotesignal(self, signal='INT') :
         if self.remotepid :
