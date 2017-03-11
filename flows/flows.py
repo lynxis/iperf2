@@ -61,7 +61,7 @@ class iperf_flow(object):
             return
         tasks = [asyncio.ensure_future(flow.rx.start(), loop=iperf_flow.loop) for flow in flows]
         try :
-            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10))
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise        
@@ -100,14 +100,14 @@ class iperf_flow(object):
         iperf_flow.set_loop(loop=loop)
         tasks = [asyncio.ensure_future(flow.tx.stop(), loop=loop) for flow in flows]
         try :
-            loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=loop))
+            loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise
 
         tasks = [asyncio.ensure_future(flow.rx.stop(), loop=loop) for flow in flows]
         try :
-            loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=loop))
+            loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise
@@ -123,7 +123,6 @@ class iperf_flow(object):
 
             
     def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5):
-            
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -171,7 +170,6 @@ class iperf_flow(object):
 class iperf_server(object):
 
     class IperfServerProtocol(asyncio.SubprocessProtocol):
-
         def __init__(self, server, flow):
             self.__dict__['flow'] = flow
             self._exited = False
@@ -227,7 +225,7 @@ class iperf_server(object):
                                 self._server.traffic_event.set()
 
                             bytes = float(m.group('bytes'))
-                            if self.flowstats['current_rxbytes'] :
+                            if self.flowstats['current_txbytes'] :
                                 rxtx_byteperc = round((bytes / self.flowstats['current_txbytes']), 2)
                                 # *consume* the current *txbytes* where the client pipe will repopulate on its next sample
                                 # do this by setting the value to None
@@ -334,7 +332,6 @@ class iperf_client(object):
 
     # Asycnio protocol for subprocess transport
     class IperfClientProtocol(asyncio.SubprocessProtocol):
-
         def __init__(self, client, flow):
             self.__dict__['flow'] = flow
             self._exited = False

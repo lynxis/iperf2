@@ -15,7 +15,7 @@ root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 loop.set_debug(True)
 
-count = 1
+count = 2
 time = 10
 
 iperf_flow.cleanup(hosts=['hera', 'zeus'])
