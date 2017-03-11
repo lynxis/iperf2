@@ -57,7 +57,7 @@ class iperf_flow(object):
         if not flows:
             logging.warn('flow run method called with no flows instantiated')
             return
-
+        logging.info('flow run invoked')
         tasks = [asyncio.ensure_future(flow.rx.start(), loop=iperf_flow.loop) for flow in flows]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
@@ -98,9 +98,17 @@ class iperf_flow(object):
         except asyncio.TimeoutError:
             logging.error('flow rx stop timeout')
             raise
-        iperf_flow.sleep(time=1, text="Stopping traffic")
+
+        tasks = [asyncio.ensure_future(flow.is_closed(), loop=iperf_flow.loop) for flow in flows]
+        try :
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+        except asyncio.TimeoutError:
+            logging.error('flow closed timeout')
+            raise
+
         iperf_flow.loop.close()
-        
+        logging.info('flow run finished')
+
     @classmethod
     def stop(cls, flows='all') :
         loop = asyncio.get_event_loop()
@@ -168,6 +176,11 @@ class iperf_flow(object):
         logging.debug('{} {}'.format(self.name, 'traffic check invoked'))
         await self.rx.traffic_event.wait()
         await self.tx.traffic_event.wait()
+
+    async def is_closed(self) :
+        logging.debug('{} {}'.format(self.name, 'await subprocess closed'))
+        await self.rx.closed.wait()
+        await self.tx.closed.wait()
 
     async def stop(self):
         self.tx.stop()
