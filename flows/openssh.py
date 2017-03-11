@@ -25,22 +25,23 @@ import os, fcntl
 logger = logging.getLogger(__name__)
 
 class ssh_session:
-    def __init__(self, loop=None, user='root', host='localhost'):
+    def __init__(self, loop=None, user='root', host='localhost', cmd='pwd'):
         self.IO_TIMEOUT = 2.0
         self.CMD_TIMEOUT = 30
         self.ssh = "/usr/bin/ssh"
         self.host = host
         self.user = user
+        self.cmd = cmd
         if loop is not None:
             self.loop = loop
         else:
             self.loop = asyncio.get_event_loop()
         self.done = asyncio.Event(loop=loop)
 
-    async def rexec(self, cmd ="pwd"):
+    async def rexec(self):
         self.done.clear()
         try:
-            sshcmd = [self.ssh, self.user + "@" + self.host, *cmd]
+            sshcmd = [self.ssh, self.user + "@" + self.host, self.cmd]
             logging.info('{}({}) {}'.format(self.user, self.host, str(sshcmd)))
             self.childprocess = subprocess.Popen(sshcmd, bufsize=1, universal_newlines = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
             self.loop.add_reader(self.childprocess.stdout, self.stdout_event)

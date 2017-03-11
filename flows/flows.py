@@ -10,16 +10,13 @@ import asyncio, sys
 import time
 import locale
 import signal
-import os, fcntl
 import openssh
 import weakref
+import os
 
 from openssh import *
-from fcntl import fcntl, F_GETFL, F_SETFL
-from os import O_NONBLOCK
 
 logger = logging.getLogger(__name__)
-
 
 class iperf_flow(object):
     port = 61000
@@ -83,24 +80,27 @@ class iperf_flow(object):
             logging.error('flow traffic check timeout')
             raise
 
-        iperf_flow.sleep(time=time, text="Running traffic start", stoptext="Traffic stopped")
+        iperf_flow.sleep(time=time, text="Running traffic start", stoptext="Sending stop")
 
         # Signal the remote iperf sessions to stop them
-        tasks = [asyncio.ensure_future(session.rexec(host=flow.tx.host, cmd='kill -{} {}'.format('HUP', flow.tx.remotepid))) for flow in flows]
+        sessions = [ssh_session(host=flow.tx.host, cmd='kill -{} {}'.format('HUP', flow.tx.remotepid), loop=iperf_flow.loop) for flow in flows]
+        tasks = [asyncio.ensure_future(session.rexec()) for session in sessions]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow tx stop timeout')
             raise
 
-        tasks = [asyncio.ensure_future(session.rexec(host=flow.rx.host, cmd='kill -{} {}'.format('HUP', flow.rx.remotepid))) for flow in flows]
+        sessions = [ssh_session(host=flow.rx.host, cmd='kill -{} {}'.format('HUP', flow.rx.remotepid), loop=iperf_flow.loop) for flow in flows]
+        tasks = [asyncio.ensure_future(session.rexec()) for session in sessions]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow rx stop timeout')
             raise
         iperf_flow.sleep(time=1, text="Stopping traffic")
-
+        iperf_flow.loop.close()
+        
     @classmethod
     def stop(cls, flows='all') :
         loop = asyncio.get_event_loop()
@@ -126,8 +126,8 @@ class iperf_flow(object):
     def cleanup(cls, hosts=None) :
         if hosts :
             iperf_flow.set_loop()
-            sessions = [ssh_session(host=host, loop=iperf_flow.loop) for host in hosts]
-            tasks = [asyncio.ensure_future(session.rexec(cmd=['/usr/bin/pkill iperf'])) for session in sessions]
+            sessions = [ssh_session(host=host, cmd='/usr/bin/pkill iperf', loop=iperf_flow.loop) for host in hosts]
+            tasks = [asyncio.ensure_future(session.rexec()) for session in sessions]
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks))
 
 
@@ -303,7 +303,7 @@ class iperf_server(object):
             return
 
         self.remotepid = None
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t' + str(self.remotetime), '-z', '-fb']
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t ' + str(self.remotetime), '-z', '-fb']
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
@@ -332,7 +332,6 @@ class iperf_server(object):
 
         if self.remotepid is None :
             return
-
 
 
 class iperf_client(object):
@@ -450,7 +449,7 @@ class iperf_client(object):
             return
 
         self.remotepid = None
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t' + str(self.remotetime), '-b 100M', '-z', '-fb']
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t ' + str(self.remotetime), '-b 100M', '-z', '-fb']
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
