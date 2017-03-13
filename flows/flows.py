@@ -266,10 +266,10 @@ class iperf_server(object):
         def pipe_connection_lost(self, fd, exc):
             if fd == 1:
                 self._closed_stdout = True
-                logging.debug('stdout pipe to {} closed (exception={})'.format(self._server.name, self.exc))
+                logging.debug('stdout pipe to {} closed (exception={})'.format(self._server.name, exc))
             elif fd == 2:
                 self._closed_stderr = True
-                logging.debug('stderr pipe to {} closed (exception={})'.format(self._server.name, self.exc))
+                logging.debug('stderr pipe to {} closed (exception={})'.format(self._server.name, exc))
             if self._closed_stdout and self._closed_stderr :
                 self.remotepid = None;
             self.signal_exit()
@@ -406,10 +406,10 @@ class iperf_client(object):
 
         def pipe_connection_lost(self, fd, exc):
             if fd == 1:
-                logging.debug('stdout pipe to {} closed (exception={})'.format(self._client.name, self.exc))
+                logging.debug('stdout pipe to {} closed (exception={})'.format(self._client.name, exc))
                 self._closed_stdout = True
             elif fd == 2:
-                logging.debug('stderr pipe to {} closed (exception={})'.format(self._client.name, self.exc))
+                logging.debug('stderr pipe to {} closed (exception={})'.format(self._client.name, exc))
                 self._closed_stderr = True
             self.signal_exit()
 
