@@ -97,7 +97,7 @@ class iperf_flow(object):
         except asyncio.TimeoutError:
             logging.error('flow tx stop timeout')
             raise
-
+        
         # Now signal the remote iperf server sessions to stop them
         tasks = [asyncio.ensure_future(flow.rx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
         try :
@@ -128,7 +128,6 @@ class iperf_flow(object):
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise
-
 
     @classmethod
     async def cleanup(cls, host=None, sshcmd='/usr/bin/ssh', user='root') :
@@ -163,7 +162,6 @@ class iperf_flow(object):
         # i.e. a flow has a server and a client
         self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, user=self.user, host=self.server, flow=self)
         self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, user=self.user, host=self.client, flow=self)
-
 
     def destroy(self) :
         iperf_flow.instances.remove(self)
@@ -260,8 +258,6 @@ class iperf_server(object):
                                 # *produce* the current *rxbytes* so the client pipe can know this event occurred
                                 # indicate this by setting the value to value
                                 self.flowstats['current_rxbytes'] = bytes
-
-
             elif fd == 2:
                 self._stderrbuffer += data
                 while "\n" in self._stderrbuffer:
@@ -286,7 +282,6 @@ class iperf_server(object):
             self._mypid = None
             self.signal_exit()
 
-
     def __init__(self, name='Server', loop=None, user='root', host='localhost', flow=None):
         self.__dict__['flow'] = flow
         self.loop = iperf_flow.loop
@@ -308,7 +303,6 @@ class iperf_server(object):
         self.regex_open_pid = re.compile('^Server listening on {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.port)))
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile('\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
-
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -334,23 +328,6 @@ class iperf_server(object):
                 logging.info('{}({}) {}'.format(self.user, self.host, stdout))
             if not self.closed.is_set() :
                 await self.closed.wait()
-
-    def pause(self) :
-        self.childprocess.send_signal(signal.SIGSTOP)
-
-    def resume(self) :
-        self.childprocess.send_signal(signal.SIGCONT)
-
-    def stop(self):
-        if self.remotepid :
-            self.remotesignal(signal=INT)
-
-        if self.childprocess :
-            self.childprocess.send_signal(signal.SIGHUP)
-
-        if self.remotepid is None :
-            return
-
 
 class iperf_client(object):
 
@@ -423,13 +400,11 @@ class iperf_client(object):
                                 # *produce* the current txbytes so the server pipe can know this event occurred
                                 # indicate this by setting the value to value
                                 self.flowstats['current_txbytes'] = bytes
-
             elif fd == 2:
                 self._stderrbuffer += data
                 while "\n" in self._stderrbuffer:
                     line, self._stderrbuffer = self._stderrbuffer.split("\n", 1)
                     logging.info('{} {} (stderr)'.format(self._client.name, line))
-
 
         def pipe_connection_lost(self, fd, exc):
             if fd == 1:
@@ -493,8 +468,22 @@ class iperf_client(object):
             if not self.closed.is_set():
                 await self.closed.wait()
 
-    def pause(self) :
-        self.childprocess.send_signal(signal.SIGSTOP)
+    async def signal_pause(self):
+        if self.remotepid :
+            childprocess = await asyncio.create_subprocess_exec(self.ssh, '{}@{}'.format(self.user, self.host), 'kill', '-STOP', '{}'.format(self.remotepid), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=self.loop)
+            logging.debug('({}) sending signal STOP to {} (pid={})'.format(self.user, self.host, self.remotepid))
+            stdout, _ = await childprocess.communicate()
+            if stdout:
+                logging.info('{}({}) {}'.format(self.user, self.host, stdout))
+            if not self.closed.is_set():
+                await self.closed.wait()
 
-    def resume(self) :
-        self.childprocess.send_signal(signal.SIGCONT)
+    async def signal_resume(self):
+        if self.remotepid :
+            childprocess = await asyncio.create_subprocess_exec(self.ssh, '{}@{}'.format(self.user, self.host), 'kill', '-CONT', '{}'.format(self.remotepid), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=self.loop)
+            logging.debug('({}) sending signal CONT to {} (pid={})'.format(self.user, self.host, self.remotepid))
+            stdout, _ = await childprocess.communicate()
+            if stdout:
+                logging.info('{}({}) {}'.format(self.user, self.host, stdout))
+            if not self.closed.is_set():
+                await self.closed.wait()
