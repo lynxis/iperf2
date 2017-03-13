@@ -106,7 +106,6 @@ class iperf_flow(object):
             logging.error('flow tx stop timeout')
             raise
 
-        # iperf_flow.loop.run_forever()
         iperf_flow.loop.close()
         logging.info('flow run finished')
 
