@@ -17,8 +17,6 @@ loop.set_debug(False)
 
 count = 2
 time = 10
-iperftimer = time + 10
 
-iperf_flow.cleanup(hosts=['hera', 'zeus'])
-flows = [iperf_flow(name="TCP{}".format(str(i)), user='root', server='zeus', client='hera', dst='192.168.100.34', proto='TCP', interval=0.1, remotetime=iperftimer) for i in range(count)]
-iperf_flow.run(time=time, flows='all')
+flows = [iperf_flow(name="TCP{}".format(str(i)), user='root', server='zeus', client='hera', dst='192.168.100.34', proto='TCP', interval=0.1, flowtime=time) for i in range(count)]
+iperf_flow.run(time=time, flows='all', preclean=False)

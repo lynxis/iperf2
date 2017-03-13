@@ -38,7 +38,7 @@ class ssh_session:
             self.loop = asyncio.get_event_loop()
         self.done = asyncio.Event(loop=loop)
 
-    async def rexec(self):
+    async def rexec(self, cmd=None):
         self.done.clear()
         try:
             sshcmd = [self.ssh, self.user + "@" + self.host, self.cmd]

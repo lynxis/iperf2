@@ -10,11 +10,8 @@ import asyncio, sys
 import time
 import locale
 import signal
-import openssh
 import weakref
 import os
-
-from openssh import *
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +20,7 @@ class iperf_flow(object):
     iperf = '/usr/bin/iperf'
     instances = weakref.WeakSet()
     loop = None
-    flowinfo = ("flowstats")
+    flow_scope = ("flowstats")
 
     @classmethod
     def sleep(cls, time=0, text=None, stoptext=None) :
@@ -49,22 +46,33 @@ class iperf_flow(object):
             loop = asyncio.get_event_loop()
             iperf_flow.loop = asyncio.get_event_loop()
 
-
     @classmethod
-    def run(cls, time=None, flows='all') :
+    def run(cls, time=None, flows='all', preclean=False) :
         if flows == 'all' :
             flows = iperf_flow.get_instances()
         if not flows:
             logging.warn('flow run method called with no flows instantiated')
             return
+
+        if preclean:
+            hosts = [flow.server for flow in flows]
+            hosts.extend([flow.client for flow in flows])
+            hosts=list(set(hosts))
+            tasks = [asyncio.ensure_future(iperf_flow.cleanup(user='root', host=host)) for host in hosts]
+            try :
+                iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+            except asyncio.TimeoutError:
+                logging.error('preclean timeout')
+            raise
+
         logging.info('flow run invoked')
-        tasks = [asyncio.ensure_future(flow.rx.start(), loop=iperf_flow.loop) for flow in flows]
+        tasks = [asyncio.ensure_future(flow.rx.start(time=time), loop=iperf_flow.loop) for flow in flows]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise
-        tasks = [asyncio.ensure_future(flow.tx.start(), loop=iperf_flow.loop) for flow in flows]
+        tasks = [asyncio.ensure_future(flow.tx.start(time=time), loop=iperf_flow.loop) for flow in flows]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
@@ -80,32 +88,25 @@ class iperf_flow(object):
             logging.error('flow traffic check timeout')
             raise
 
-        iperf_flow.sleep(time=time, text="Running traffic start", stoptext="Sending stop")
+        iperf_flow.sleep(time=time, text="Running traffic start", stoptext="Stopping flows")
 
-        # Signal the remote iperf sessions to stop them
-        sessions = [ssh_session(host=flow.tx.host, cmd='kill -{} {}'.format('HUP', flow.tx.remotepid), loop=iperf_flow.loop) for flow in flows]
-        tasks = [asyncio.ensure_future(session.rexec()) for session in sessions]
+        # Signal the remote iperf client sessions to stop them
+        tasks = [asyncio.ensure_future(flow.tx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
         try :
-            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=3, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
             logging.error('flow tx stop timeout')
             raise
 
-        sessions = [ssh_session(host=flow.rx.host, cmd='kill -{} {}'.format('HUP', flow.rx.remotepid), loop=iperf_flow.loop) for flow in flows]
-        tasks = [asyncio.ensure_future(session.rexec()) for session in sessions]
+        # Now signal the remote iperf server sessions to stop them
+        tasks = [asyncio.ensure_future(flow.rx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
         try :
-            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=3, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
-            logging.error('flow rx stop timeout')
+            logging.error('flow tx stop timeout')
             raise
 
-        tasks = [asyncio.ensure_future(flow.is_closed(), loop=iperf_flow.loop) for flow in flows]
-        try :
-            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
-        except asyncio.TimeoutError:
-            logging.error('flow closed timeout')
-            raise
-
+        # iperf_flow.loop.run_forever()
         iperf_flow.loop.close()
         logging.info('flow run finished')
 
@@ -131,15 +132,17 @@ class iperf_flow(object):
 
 
     @classmethod
-    def cleanup(cls, hosts=None) :
-        if hosts :
-            iperf_flow.set_loop()
-            sessions = [ssh_session(host=host, cmd='/usr/bin/pkill iperf', loop=iperf_flow.loop) for host in hosts]
-            tasks = [asyncio.ensure_future(session.rexec()) for session in sessions]
-            iperf_flow.loop.run_until_complete(asyncio.wait(tasks))
+    async def cleanup(cls, host=None, sshcmd='/usr/bin/ssh', user='root') :
+        if host:
+            logging.info('ssh {}@{} pkill iperf'.format(user, host))
+            childprocess = await asyncio.create_subprocess_exec(sshcmd, '{}@{}'.format(user, host), 'pkill', 'iperf', stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=iperf_flow.loop)
+            logging.info('await communicate')
+            stdout, _ = await childprocess.communicate()
+            logging.info('await stdoout')
+            if stdout:
+                logging.info('cleanup: host({}) stdout={} '.format(host, stdout))
 
-
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, remotetime=10):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -156,7 +159,7 @@ class iperf_flow(object):
         self.interval = interval
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
         self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'rxtx_byteperc' : None}
-        self.remotetime = remotetime
+        self.flowtime = flowtime
         # use python composition for the server and client
         # i.e. a flow has a server and a client
         self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, user=self.user, host=self.server, flow=self)
@@ -177,11 +180,6 @@ class iperf_flow(object):
         await self.rx.traffic_event.wait()
         await self.tx.traffic_event.wait()
 
-    async def is_closed(self) :
-        logging.debug('{} {}'.format(self.name, 'await subprocess closed'))
-        await self.rx.closed.wait()
-        await self.tx.closed.wait()
-
     async def stop(self):
         self.tx.stop()
         self.rx.stop()
@@ -198,12 +196,13 @@ class iperf_server(object):
             self._exited = False
             self._closed_stdout = False
             self._closed_stderr = False
+            self._mypid = None
             self._server = server
             self._stdoutbuffer = ""
             self._stderrbuffer = ""
 
         def __setattr__(self, attr, value):
-            if attr in iperf_flow.flowinfo:
+            if attr in iperf_flow.flow_scope:
                 self.flow.__setattr__(self.flow, attr, value)
             else:
                 self.__dict__[attr] = value
@@ -211,7 +210,7 @@ class iperf_server(object):
         # methods and attributes not here are handled by the flow object,
         # aka, the flow object delegates to this object per composition
         def __getattr__(self, attr):
-            if attr in iperf_flow.flowinfo:
+            if attr in iperf_flow.flow_scope:
                 return getattr(self.flow, attr)
 
         @property
@@ -225,7 +224,9 @@ class iperf_server(object):
             self._server.opened.clear()
 
         def connection_made(self, trans):
-            logging.debug('connection made {}'.format(trans))
+            self._server.closed.clear()
+            self._mypid = trans.get_pid()
+            logging.debug('server connection made pid=({})'.format(self._mypid))
 
         def pipe_data_received(self, fd, data):
             # logging.debug('{} {}'.format(fd, data))
@@ -234,14 +235,14 @@ class iperf_server(object):
                 self._stdoutbuffer += data
                 while "\n" in self._stdoutbuffer:
                     line, self._stdoutbuffer = self._stdoutbuffer.split("\n", 1)
-                    logging.info('{} {} (stdout)'.format(self._server.name, line))
+                    logging.info('{} {} (stdout,{})'.format(self._server.name, line, self._server.remotepid))
                     if not self._server.opened.is_set() :
                         m = self._server.regex_open_pid.match(line)
                         if m :
-                            logging.debug('remote pid match {}'.format(m.group('pid')))
+                            # logging.debug('remote pid match {}'.format(m.group('pid')))
                             self._server.remotepid = m.group('pid')
                             self._server.opened.set()
-                            self._server.closed.clear()
+
                     else :
                         m = self._server.regex_traffic.match(line)
                         if m :
@@ -254,7 +255,7 @@ class iperf_server(object):
                                 # *consume* the current *txbytes* where the client pipe will repopulate on its next sample
                                 # do this by setting the value to None
                                 self.flowstats['current_txbytes'] = None
-                                logging.debug('{} flow  ratio={:.2f}'.format(self._server.name, rxtx_byteperc))
+                                # logging.debug('{} flow  ratio={:.2f}'.format(self._server.name, rxtx_byteperc))
                                 self.flowstats['rxtx_byteperc'] = rxtx_byteperc
                             else :
                                 # *produce* the current *rxbytes* so the client pipe can know this event occurred
@@ -270,18 +271,20 @@ class iperf_server(object):
 
 
         def pipe_connection_lost(self, fd, exc):
-            logging.debug('lost {} {}'.format(fd, exc))
             if fd == 1:
                 self._closed_stdout = True
+                logging.debug('stdout pipe to {} closed (exception={})'.format(self._server.name, self.exc))
             elif fd == 2:
                 self._closed_stderr = True
+                logging.debug('stderr pipe to {} closed (exception={})'.format(self._server.name, self.exc))
             if self._closed_stdout and self._closed_stderr :
                 self.remotepid = None;
             self.signal_exit()
 
         def process_exited(self):
-            logging.debug('process exit')
+            logging.debug('subprocess with pid={} closed'.format(self._mypid))
             self._exited = True
+            self._mypid = None
             self.signal_exit()
 
 
@@ -296,6 +299,7 @@ class iperf_server(object):
         self.flow = flow
         self.opened = asyncio.Event(loop=self.loop)
         self.closed = asyncio.Event(loop=self.loop)
+        self.closed.set()
         self.traffic_event = asyncio.Event(loop=self.loop)
         self._transport = None
         self._protocol = None
@@ -306,29 +310,31 @@ class iperf_server(object):
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile('\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
 
-        # self.sshcmd=[self.ssh, self.user + '@' + self.host, '/usr/local/src/timestamp', '-c 180', '-n 3', '-d 1']
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
 
-    async def start(self):
-        if self.opened.is_set() :
+    async def start(self, time=time):
+        if not self.closed.is_set() :
             return
 
+        self.opened.clear()
         self.remotepid = None
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t ' + str(self.remotetime), '-z', '-fb']
+        iperftime = time + 30
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t ' + str(iperftime), '-z', '-fb']
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
 
-    def stop(self):
+    async def signal_stop(self):
         if self.remotepid :
-            logging.info('{} Sending signal {} to {} on host {}'.format(self.name, signal, self.remotepid, self.host))
-            session = ssh_session(host=self.host)
-
-        if self.childprocess :
-            logging.info('{} {} {}'.format(self.name, 'SIGINT', self.childprocess.pid))
-            self.childprocess.send_signal(signal.SIGHUP)
+            childprocess = await asyncio.create_subprocess_exec(self.ssh, '{}@{}'.format(self.user, self.host), 'kill', '-HUP', '{}'.format(self.remotepid), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=self.loop)
+            logging.debug('({}) sending signal HUP to {} (pid={})'.format(self.user, self.host, self.remotepid))
+            stdout, _ = await childprocess.communicate()
+            if stdout:
+                logging.info('{}({}) {}'.format(self.user, self.host, stdout))
+            if not self.closed.is_set() :
+                await self.closed.wait()
 
     def pause(self) :
         self.childprocess.send_signal(signal.SIGSTOP)
@@ -356,18 +362,19 @@ class iperf_client(object):
             self._exited = False
             self._closed_stdout = False
             self._closed_stderr = False
+            self._mypid = None
             self._client = client
             self._stdoutbuffer = ""
             self._stderrbuffer = ""
 
         def __setattr__(self, attr, value):
-            if attr in iperf_flow.flowinfo:
+            if attr in iperf_flow.flow_scope:
                 self.flow.__setattr__(self.flow, attr, value)
             else:
                 self.__dict__[attr] = value
 
         def __getattr__(self, attr):
-            if attr in iperf_flow.flowinfo:
+            if attr in iperf_flow.flow_scope:
                 return getattr(self.flow, attr)
 
         @property
@@ -381,7 +388,9 @@ class iperf_client(object):
             self._client.opened.clear()
 
         def connection_made(self, trans):
-            logging.debug('connection made {}'.format(trans))
+            self._client.closed.clear()
+            self._mypid = trans.get_pid()
+            logging.debug('client connection made pid=({})'.format(self._mypid))
 
         def pipe_data_received(self, fd, data):
             # logging.debug('{} {}'.format(fd, data))
@@ -390,11 +399,11 @@ class iperf_client(object):
                 self._stdoutbuffer += data
                 while "\n" in self._stdoutbuffer:
                     line, self._stdoutbuffer = self._stdoutbuffer.split("\n", 1)
-                    logging.info('{} {} (stdout)'.format(self._client.name, line))
+                    logging.info('{} {} (stdout,{})'.format(self._client.name, line, self._client.remotepid))
                     if not self._client.opened.is_set() :
                         m = self._client.regex_open_pid.match(line)
                         if m :
-                            logging.debug('remote pid match {}'.format(m.group('pid')))
+                            # logging.debug('remote pid match {}'.format(m.group('pid')))
                             self._client.opened.set()
                             self._client.remotepid = m.group('pid')
                     else :
@@ -409,7 +418,7 @@ class iperf_client(object):
                                 # *consume* the current *rxbytes* where the server pipe will repopulate on its next sample
                                 # do this by setting the value to None
                                 self.flowstats['current_rxbytes'] = None
-                                logging.debug('{} flow ratio={:.2f}'.format(self._client.name, rxtx_byteperc))
+                                # logging.debug('{} flow ratio={:.2f}'.format(self._client.name, rxtx_byteperc))
                                 self.flowstats['rxtx_byteperc'] = rxtx_byteperc
                             else :
                                 # *produce* the current txbytes so the server pipe can know this event occurred
@@ -424,16 +433,18 @@ class iperf_client(object):
 
 
         def pipe_connection_lost(self, fd, exc):
-            logging.debug('lost {} {}'.format(fd, exc))
             if fd == 1:
+                logging.debug('stdout pipe to {} closed (exception={})'.format(self._client.name, self.exc))
                 self._closed_stdout = True
             elif fd == 2:
+                logging.debug('stderr pipe to {} closed (exception={})'.format(self._client.name, self.exc))
                 self._closed_stderr = True
             self.signal_exit()
 
-        def process_exited(self):
-            logging.debug('process exit')
+        def process_exited(self,):
+            logging.debug('subprocess with pid={} closed'.format(self._mypid))
             self._exited = True
+            self._mypid = None
             self.signal_exit()
 
     def __init__(self, name='Client', loop=None, user='root', host='localhost', flow = None):
@@ -441,6 +452,7 @@ class iperf_client(object):
         self.loop = loop
         self.opened = asyncio.Event(loop=self.loop)
         self.closed = asyncio.Event(loop=self.loop)
+        self.closed.set()
         self.traffic_event = asyncio.Event(loop=self.loop)
         self.name = name
         self.iperf = '/usr/local/bin/iperf'
@@ -457,35 +469,33 @@ class iperf_client(object):
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
 
-    async def start(self):
-        if self.opened.is_set() :
+    async def start(self, time=time):
+        if not self.closed.is_set() :
             return
 
+        self.opened.clear()
         self.remotepid = None
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t ' + str(self.remotetime), '-b 100M', '-z', '-fb']
+        if time:
+            iperftime = time + 30
+        else :
+            ipertime = self.time + 30
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-i ' + str(round(self.interval,3)), '-t ' + str(iperftime), '-b 100M', '-z', '-fb']
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
-        self.closed.clear()
 
-    def stop(self):
-        if self.remotepid and self.opened.is_set() :
-            self.remotesignal(signal='HUP')
-
-        if self.childprocess :
-            logging.info('{} {} {}'.format(self.name, 'SIGINT', self.childprocess.pid))
-            self.childprocess.send_signal(signal.SIGHUP)
+    async def signal_stop(self):
+        if self.remotepid :
+            childprocess = await asyncio.create_subprocess_exec(self.ssh, '{}@{}'.format(self.user, self.host), 'kill', '-HUP', '{}'.format(self.remotepid), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=self.loop)
+            logging.debug('({}) sending signal HUP to {} (pid={})'.format(self.user, self.host, self.remotepid))
+            stdout, _ = await childprocess.communicate()
+            if stdout:
+                logging.info('{}({}) {}'.format(self.user, self.host, stdout))
+            if not self.closed.is_set():
+                await self.closed.wait()
 
     def pause(self) :
         self.childprocess.send_signal(signal.SIGSTOP)
 
     def resume(self) :
         self.childprocess.send_signal(signal.SIGCONT)
-
-
-    def remotesignal(self, signal='INT') :
-        if self.remotepid :
-            logging.info('{} Sending signal {} to {} on host {}'.format(self.name, signal, self.remotepid, self.host))
-            loop = asyncio.get_event_loop()
-            session = ssh_session(host=self.host)
-            loop.run_until_complete(session.rexec(cmd='kill -{} {}'.format(signal, self.remotepid)))
