@@ -134,9 +134,7 @@ class iperf_flow(object):
         if host:
             logging.info('ssh {}@{} pkill iperf'.format(user, host))
             childprocess = await asyncio.create_subprocess_exec(sshcmd, '{}@{}'.format(user, host), 'pkill', 'iperf', stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=iperf_flow.loop)
-            logging.info('await communicate')
             stdout, _ = await childprocess.communicate()
-            logging.info('await stdoout')
             if stdout:
                 logging.info('cleanup: host({}) stdout={} '.format(host, stdout))
 
