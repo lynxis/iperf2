@@ -7,11 +7,13 @@ import re
 import subprocess
 import logging
 import asyncio, sys
-import time
+import time, datetime
 import locale
 import signal
 import weakref
 import os
+
+from datetime import datetime as datetime
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +99,7 @@ class iperf_flow(object):
         except asyncio.TimeoutError:
             logging.error('flow tx stop timeout')
             raise
-        
+
         # Now signal the remote iperf server sessions to stop them
         tasks = [asyncio.ensure_future(flow.rx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
         try :
@@ -108,6 +110,13 @@ class iperf_flow(object):
 
         iperf_flow.loop.close()
         logging.info('flow run finished')
+
+    @classmethod
+    def plot(cls, flows='all') :
+        if flows == 'all' :
+            flows = iperf_flow.get_instances()
+        for flow in flows:
+            print(flow.flowstats)
 
     @classmethod
     def stop(cls, flows='all') :
@@ -154,12 +163,25 @@ class iperf_flow(object):
         self.dst = dst
         self.interval = interval
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
-        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'rxtx_byteperc' : None}
+        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None}
         self.flowtime = flowtime
         # use python composition for the server and client
         # i.e. a flow has a server and a client
         self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, user=self.user, host=self.server, flow=self)
         self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, user=self.user, host=self.client, flow=self)
+        # Initialize the flow stats dictionary
+        self.flowstats['txdatetime']=[]
+        self.flowstats['txbytes']=[]
+        self.flowstats['txthroughput']=[]
+        self.flowstats['writes']=[]
+        self.flowstats['errwrites']=[]
+        self.flowstats['retry']=[]
+        self.flowstats['cwnd']=[]
+        self.flowstats['rtt']=[]
+        self.flowstats['rxdatetime']=[]
+        self.flowstats['rxbytes']=[]
+        self.flowstats['rxthroughput']=[]
+        self.flowstats['reads']=[]
 
     def destroy(self) :
         iperf_flow.instances.remove(self)
@@ -241,21 +263,27 @@ class iperf_server(object):
                     else :
                         m = self._server.regex_traffic.match(line)
                         if m :
+                            timestamp = datetime.now()
                             if not self._server.traffic_event.is_set() :
                                 self._server.traffic_event.set()
 
                             bytes = float(m.group('bytes'))
                             if self.flowstats['current_txbytes'] :
-                                rxtx_byteperc = round((bytes / self.flowstats['current_txbytes']), 2)
+                                flowrate = round((bytes / self.flowstats['current_txbytes']), 2)
                                 # *consume* the current *txbytes* where the client pipe will repopulate on its next sample
                                 # do this by setting the value to None
                                 self.flowstats['current_txbytes'] = None
-                                # logging.debug('{} flow  ratio={:.2f}'.format(self._server.name, rxtx_byteperc))
-                                self.flowstats['rxtx_byteperc'] = rxtx_byteperc
+                                # logging.debug('{} flow  ratio={:.2f}'.format(self._server.name, flowrate))
+                                self.flowstats['flowrate'] = flowrate
                             else :
                                 # *produce* the current *rxbytes* so the client pipe can know this event occurred
                                 # indicate this by setting the value to value
                                 self.flowstats['current_rxbytes'] = bytes
+
+                            self.flowstats['rxdatetime'].append(timestamp)
+                            self.flowstats['rxbytes'].append(m.group('bytes'))
+                            self.flowstats['rxthroughput'].append(m.group('throughput'))
+                            self.flowstats['reads'].append(m.group('reads'))
             elif fd == 2:
                 self._stderrbuffer += data
                 while "\n" in self._stderrbuffer:
@@ -383,21 +411,32 @@ class iperf_client(object):
                     else :
                         m = self._client.regex_traffic.match(data)
                         if m :
+                            timestamp = datetime.now()
                             if not self._client.traffic_event.is_set() :
                                 self._client.traffic_event.set()
 
                             bytes = float(m.group('bytes'))
                             if self.flowstats['current_rxbytes'] :
-                                rxtx_byteperc = round((self.flowstats['current_rxbytes'] / bytes), 2)
+                                flowrate = round((self.flowstats['current_rxbytes'] / bytes), 2)
                                 # *consume* the current *rxbytes* where the server pipe will repopulate on its next sample
                                 # do this by setting the value to None
                                 self.flowstats['current_rxbytes'] = None
-                                # logging.debug('{} flow ratio={:.2f}'.format(self._client.name, rxtx_byteperc))
-                                self.flowstats['rxtx_byteperc'] = rxtx_byteperc
+                                # logging.debug('{} flow ratio={:.2f}'.format(self._client.name, flowrate))
+                                self.flowstats['flowrate'] = flowrate
                             else :
                                 # *produce* the current txbytes so the server pipe can know this event occurred
                                 # indicate this by setting the value to value
                                 self.flowstats['current_txbytes'] = bytes
+
+                            self.flowstats['txdatetime'].append(timestamp)
+                            self.flowstats['txbytes'].append(m.group('bytes'))
+                            self.flowstats['txthroughput'].append(m.group('throughput'))
+                            self.flowstats['writes'].append(m.group('writes'))
+                            self.flowstats['errwrites'].append(m.group('errwrites'))
+                            self.flowstats['retry'].append(m.group('retry'))
+                            self.flowstats['cwnd'].append(m.group('cwnd'))
+                            self.flowstats['rtt'].append(m.group('rtt'))
+
             elif fd == 2:
                 self._stderrbuffer += data
                 while "\n" in self._stderrbuffer:
