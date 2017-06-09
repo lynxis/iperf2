@@ -824,7 +824,7 @@ void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings
             (*listener)->mLocalhost = new char[strlen( client->mLocalhost ) + 1];
             strcpy( (*listener)->mLocalhost, client->mLocalhost );
         }
-	(*listener)->mBufLen   = client->mBufLen;
+	(*listener)->mBufLen   = kDefault_UDPBufLen;
     } else {
         *listener = NULL;
     }
@@ -914,7 +914,7 @@ void Settings_GenerateClientSettings( thread_Settings *server,
  */
 int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
     int flags = 0, extendflags = 0;
-    if (isPeerVerDetect(client)) {
+    if (isPeerVerDetect(client) || (client->mMode != kTest_Normal && isBWSet(client))) {
 	flags |= HEADER_EXTEND;
     }
     if ( client->mMode != kTest_Normal ) {
@@ -945,7 +945,7 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
      */
     hdr->base.flags = htonl(flags);
     if (flags & HEADER_EXTEND) {
-	if (!isBWSet(client)) {
+	if (isBWSet(client)) {
 	    hdr->extend.mRate = htonl(client->mUDPRate);
 	}
 	if (client->mUDPRateUnits == kRate_PPS) {

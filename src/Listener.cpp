@@ -857,7 +857,7 @@ int Listener::ClientHeaderAck(void) {
 	}
     }
     if (isUDP(server) && (server->mBufLen < (int) sizeof(client_hdr_ack))) {
-	fprintf( stderr, warn_len_too_small_peer_exchange, sizeof(client_hdr_ack));
+        fprintf( stderr, warn_len_too_small_peer_exchange, "Server", server->mBufLen, sizeof(client_hdr_ack));
     }
     if ((rc = send(server->mSock, &ack, sizeof(client_hdr_ack),0)) < 0) {
 	WARN_errno( rc <= 0, "send_ack" );

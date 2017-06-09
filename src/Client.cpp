@@ -81,7 +81,7 @@ Client::Client( thread_Settings *inSettings ) {
 	unsetPeerVerDetect(inSettings);
     }
     if (isUDP(inSettings)) {
-	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) | (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_UDPHDRMSG)) {
+	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_UDPHDRMSG)) {
 	    mSettings->mBufLen = SIZEOF_UDPHDRMSG;
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen);
 	} else if (mSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
@@ -89,10 +89,10 @@ Client::Client( thread_Settings *inSettings ) {
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen );
 	}
 	if (mSettings->mBufLen < SIZEOF_UDPHDRMSG) {
-	    fprintf(stderr, warn_len_too_small_peer_exchange,  mSettings->mBufLen, SIZEOF_UDPHDRMSG);
+	    fprintf(stderr, warn_len_too_small_peer_exchange, "Client",  mSettings->mBufLen, SIZEOF_UDPHDRMSG);
 	}
     } else {
-	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) | (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
+	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
 	    mSettings->mBufLen = SIZEOF_TCPHDRMSG;
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen);
 	}
@@ -779,8 +779,8 @@ void Client::HdrXchange(int flags) {
 	    len = mSettings->mBufLen;
 	    // UDP header message must be mBufLen so server/Listener will read it
 	    // because the Listener read length uses  mBufLen
-	    if ((sizeof(UDP_datagram) + (sizeof(client_hdr)) - len) > 0) {
-		fprintf( stderr, warn_len_too_small_peer_exchange, "Client", (sizeof(UDP_datagram) + sizeof(client_hdr)));
+	    if ((int) (sizeof(UDP_datagram) + sizeof(client_hdr)) > len) {
+	        fprintf( stderr, warn_len_too_small_peer_exchange, "Client", len, (sizeof(UDP_datagram) + sizeof(client_hdr)));
 	    }
 #ifdef HAVE_CLOCK_GETTIME
 	    struct timespec t1;
