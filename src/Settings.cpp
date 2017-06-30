@@ -345,7 +345,6 @@ void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSetting
  * ------------------------------------------------------------------- */
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings ) {
-    char outarg[100];
     char *parsedopts;
     char *results = NULL;
     max_size_t theNum;
@@ -446,8 +445,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'l': // length of each buffer
-            Settings_GetUpperCaseArg(optarg,outarg);
-            mExtSettings->mBufLen = byte_atoi( outarg );
+            mExtSettings->mBufLen = byte_atoi( optarg );
             setBuflenSet( mExtSettings );
             break;
 
@@ -458,8 +456,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
         case 'n': // bytes of data
             // amount mode (instead of time mode)
             unsetModeTime( mExtSettings );
-            Settings_GetUpperCaseArg(optarg,outarg);
-            mExtSettings->mAmount = byte_atoi( outarg );
+            mExtSettings->mAmount = byte_atoi( optarg );
             break;
 
         case 'o' : // output the report and other messages into the file
@@ -522,8 +519,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'w': // TCP window size (socket buffer size)
-            Settings_GetUpperCaseArg(optarg,outarg);
-            mExtSettings->mTCPWin = byte_atoi(outarg);
+            mExtSettings->mTCPWin = byte_atoi(optarg);
 
             if ( mExtSettings->mTCPWin < 2048 ) {
                 fprintf( stderr, warn_window_small, mExtSettings->mTCPWin );
@@ -664,9 +660,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'M': // specify TCP MSS (maximum segment size)
-            Settings_GetUpperCaseArg(optarg,outarg);
-
-            mExtSettings->mMSS = byte_atoi( outarg );
+            mExtSettings->mMSS = byte_atoi( optarg );
             break;
 
         case 'N': // specify TCP nodelay option (disable Jacobson's Algorithm)
@@ -866,7 +860,9 @@ void Settings_GenerateClientSettings( thread_Settings *server,
             (*client)->mAmount |= 0xFFFFFFFF00000000;
 #endif
             (*client)->mAmount = -(*client)->mAmount;
-        }
+        } else {
+	    unsetModeTime( (*client) );
+	}
         (*client)->mFileName   = NULL;
         (*client)->mHost       = NULL;
         (*client)->mLocalhost  = NULL;

@@ -88,9 +88,6 @@ Client::Client( thread_Settings *inSettings ) {
 	    mSettings->mBufLen = sizeof( UDP_datagram );
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen );
 	}
-	if (mSettings->mBufLen < SIZEOF_UDPHDRMSG) {
-	    fprintf(stderr, warn_len_too_small_peer_exchange, "Client",  mSettings->mBufLen, SIZEOF_UDPHDRMSG);
-	}
     } else {
 	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
 	    mSettings->mBufLen = SIZEOF_TCPHDRMSG;
