@@ -599,7 +599,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 			mExtSettings->mBindPort = atoi(results);
 		}
 	    }
-	    delete parsedopts;
+	    DELETE_ARRAY(parsedopts);
 	    if (mExtSettings->mLocalhost == NULL) {
 		mExtSettings->mLocalhost = new char[ strlen( optarg ) + 1 ];
 		strcpy( mExtSettings->mLocalhost, optarg );
