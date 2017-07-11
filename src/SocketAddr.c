@@ -185,7 +185,14 @@ void SockAddr_setHostname( const char* inHostname,
         struct addrinfo *res, *itr;
         int ret_ga;
 
-        ret_ga = getaddrinfo(inHostname, NULL, NULL, &res);
+	if ( isIPv6 ) {
+	    struct addrinfo hints;
+	    memset(&hints, 0, sizeof(hints));
+	    hints.ai_family = AF_INET6;
+	    ret_ga = getaddrinfo(inHostname, NULL, &hints, &res);
+	} else {
+	    ret_ga = getaddrinfo(inHostname, NULL, NULL, &res);
+	}
         if ( ret_ga ) {
             fprintf(stderr, "error: %s\n", gai_strerror(ret_ga));
             exit(1);
