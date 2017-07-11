@@ -202,8 +202,8 @@ dnl Check for system services
 
 dnl check for multicast
 if test "$ac_cv_multicast" != no; then
-  AC_CHECK_TYPES(struct ip_mreq,,,[#include "compat/headers_slim.h"])
-  AC_CHECK_DECLS(IP_ADD_MEMBERSHIP,,,[#include "compat/headers_slim.h"])
+  AC_CHECK_TYPES(struct ip_mreq,,,[#include "$srcdir/compat/headers_slim.h"])
+  AC_CHECK_DECLS(IP_ADD_MEMBERSHIP,,,[#include "$srcdir/compat/headers_slim.h"])
   AC_MSG_CHECKING(for multicast support)
   ac_cv_multicast=no
   if test "$ac_cv_have_decl_IP_ADD_MEMBERSHIP" = yes; then
@@ -219,9 +219,9 @@ fi
 
 dnl check for IPv6
 if test "$ac_cv_have_ipv6" != no; then
-  AC_CHECK_TYPES(struct sockaddr_storage,,,[#include "compat/headers_slim.h"])
-  AC_CHECK_TYPES(struct sockaddr_in6,,,[#include "compat/headers_slim.h"])
-  AC_CHECK_DECLS(AF_INET6,,,[#include "compat/headers_slim.h"])
+  AC_CHECK_TYPES(struct sockaddr_storage,,,[#include "$srcdir/compat/headers_slim.h"])
+  AC_CHECK_TYPES(struct sockaddr_in6,,,[#include "$srcdir/compat/headers_slim.h"])
+  AC_CHECK_DECLS(AF_INET6,,,[#include "$srcdir/compat/headers_slim.h"])
   AC_MSG_CHECKING(for IPv6 headers and structures)
   ac_cv_have_ipv6=no
   if test "$ac_cv_type_struct_sockaddr_storage" = yes; then
@@ -237,9 +237,9 @@ fi
 
 if test "$ac_cv_have_ipv6" = yes; then
   if test "$ac_cv_multicast" = yes; then
-    AC_CHECK_TYPES(struct ipv6_mreq,,,[#include "compat/headers_slim.h"])
-    AC_CHECK_DECLS(IPV6_ADD_MEMBERSHIP,,,[#include "compat/headers_slim.h"])
-    AC_CHECK_DECLS(IPV6_MULTICAST_HOPS,,,[#include "compat/headers_slim.h"])
+    AC_CHECK_TYPES(struct ipv6_mreq,,,[#include "$srcdir/compat/headers_slim.h"])
+    AC_CHECK_DECLS(IPV6_ADD_MEMBERSHIP,,,[#include "$srcdir/compat/headers_slim.h"])
+    AC_CHECK_DECLS(IPV6_MULTICAST_HOPS,,,[#include "$srcdir/compat/headers_slim.h"])
     AC_MSG_CHECKING(for IPv6 multicast support)
     ac_cv_have_ipv6_multicast=no
     if test "$ac_cv_type_struct_ipv6_mreq" = yes; then

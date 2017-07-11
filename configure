@@ -7763,7 +7763,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 
 if test "$ac_cv_multicast" != no; then
-  ac_fn_c_check_type "$LINENO" "struct ip_mreq" "ac_cv_type_struct_ip_mreq" "#include \"compat/headers_slim.h\"
+  ac_fn_c_check_type "$LINENO" "struct ip_mreq" "ac_cv_type_struct_ip_mreq" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_type_struct_ip_mreq" = xyes; then :
 
@@ -7774,7 +7774,7 @@ _ACEOF
 
 fi
 
-  ac_fn_c_check_decl "$LINENO" "IP_ADD_MEMBERSHIP" "ac_cv_have_decl_IP_ADD_MEMBERSHIP" "#include \"compat/headers_slim.h\"
+  ac_fn_c_check_decl "$LINENO" "IP_ADD_MEMBERSHIP" "ac_cv_have_decl_IP_ADD_MEMBERSHIP" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_have_decl_IP_ADD_MEMBERSHIP" = xyes; then :
   ac_have_decl=1
@@ -7804,7 +7804,7 @@ $as_echo "#define HAVE_MULTICAST 1" >>confdefs.h
 fi
 
 if test "$ac_cv_have_ipv6" != no; then
-  ac_fn_c_check_type "$LINENO" "struct sockaddr_storage" "ac_cv_type_struct_sockaddr_storage" "#include \"compat/headers_slim.h\"
+  ac_fn_c_check_type "$LINENO" "struct sockaddr_storage" "ac_cv_type_struct_sockaddr_storage" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_type_struct_sockaddr_storage" = xyes; then :
 
@@ -7815,7 +7815,7 @@ _ACEOF
 
 fi
 
-  ac_fn_c_check_type "$LINENO" "struct sockaddr_in6" "ac_cv_type_struct_sockaddr_in6" "#include \"compat/headers_slim.h\"
+  ac_fn_c_check_type "$LINENO" "struct sockaddr_in6" "ac_cv_type_struct_sockaddr_in6" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_type_struct_sockaddr_in6" = xyes; then :
 
@@ -7826,7 +7826,7 @@ _ACEOF
 
 fi
 
-  ac_fn_c_check_decl "$LINENO" "AF_INET6" "ac_cv_have_decl_AF_INET6" "#include \"compat/headers_slim.h\"
+  ac_fn_c_check_decl "$LINENO" "AF_INET6" "ac_cv_have_decl_AF_INET6" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_have_decl_AF_INET6" = xyes; then :
   ac_have_decl=1
@@ -7857,7 +7857,7 @@ fi
 
 if test "$ac_cv_have_ipv6" = yes; then
   if test "$ac_cv_multicast" = yes; then
-    ac_fn_c_check_type "$LINENO" "struct ipv6_mreq" "ac_cv_type_struct_ipv6_mreq" "#include \"compat/headers_slim.h\"
+    ac_fn_c_check_type "$LINENO" "struct ipv6_mreq" "ac_cv_type_struct_ipv6_mreq" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_type_struct_ipv6_mreq" = xyes; then :
 
@@ -7868,7 +7868,7 @@ _ACEOF
 
 fi
 
-    ac_fn_c_check_decl "$LINENO" "IPV6_ADD_MEMBERSHIP" "ac_cv_have_decl_IPV6_ADD_MEMBERSHIP" "#include \"compat/headers_slim.h\"
+    ac_fn_c_check_decl "$LINENO" "IPV6_ADD_MEMBERSHIP" "ac_cv_have_decl_IPV6_ADD_MEMBERSHIP" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_have_decl_IPV6_ADD_MEMBERSHIP" = xyes; then :
   ac_have_decl=1
@@ -7880,7 +7880,7 @@ cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_IPV6_ADD_MEMBERSHIP $ac_have_decl
 _ACEOF
 
-    ac_fn_c_check_decl "$LINENO" "IPV6_MULTICAST_HOPS" "ac_cv_have_decl_IPV6_MULTICAST_HOPS" "#include \"compat/headers_slim.h\"
+    ac_fn_c_check_decl "$LINENO" "IPV6_MULTICAST_HOPS" "ac_cv_have_decl_IPV6_MULTICAST_HOPS" "#include \"$srcdir/compat/headers_slim.h\"
 "
 if test "x$ac_cv_have_decl_IPV6_MULTICAST_HOPS" = xyes; then :
   ac_have_decl=1
