@@ -32,7 +32,7 @@ traffic).
 Display enhanced output in reports
 .TP
 .BR -f ", " --format " "
-[kmKM]   format to report: Kbits, Mbits, KBytes, MBytes
+[kmgKMG]   format to report: Kbits, Mbits, KBytes, MBytes (see NOTES for more)
 .TP
 .BR -h ", " --help " "
 print a help synopsis
@@ -40,8 +40,8 @@ print a help synopsis
 .BR -i ", " --interval " \fIn\fR"
 pause \fIn\fR seconds between periodic bandwidth reports
 .TP
-.BR -l ", " --len " \fIn\fR[KM]"
-set length read/write buffer to \fIn\fR (default 128 KB)
+.BR -l ", " --len " \fIn\fR[kmKM]"
+set read/write buffer size (TCP) or length (UDP) to \fIn\fR (TCP default 128K, UDP default 1470)
 .TP
 .BR -m ", " --print_mss " "
 print TCP maximum segment size (MTU - TCP/IP header)
@@ -58,7 +58,7 @@ use UDP rather than TCP
 .BR "    --udp-counters-64bit "
 use 64 bit UDP sequence numbers
 .TP
-.BR -w ", " --window " \fIn\fR[KM]"
+.BR -w ", " --window " \fIn\fR[kmKM]"
 TCP window size (socket buffer size)
 .TP
 .BR -z ", " --realtime " "
@@ -102,7 +102,7 @@ run the server as a daemon.  On Windows this will also install the IPerfService.
 remove the IPerfService (Windows only).
 .SH "CLIENT SPECIFIC OPTIONS"
 .TP
-.BR -b ", " --bandwidth " \fIn\fR[KMG] | \fIn\fRpps"
+.BR -b ", " --bandwidth " \fIn\fR[kmgKMG] | \fIn\fRpps"
 set target bandwidth to \fIn\fR bits/sec (default 1 Mbit/sec) or
 \fIn\fR packets per sec.  This may be used with TCP or UDP.
 .TP
@@ -112,7 +112,7 @@ run in client mode, connecting to \fIhost\fR
 .BR -d ", " --dualtest " "
 Do a bidirectional test simultaneously
 .TP
-.BR -n ", " --num " \fIn\fR[KM]"
+.BR -n ", " --num " \fIn\fR[kmKM]"
 number of bytes to transmit (instead of -t)
 .TP
 .BR -r ", " --tradeoff " "
@@ -151,11 +151,12 @@ set TCP congestion control algorithm (Linux only)
 .TP
 .BR TCP_WINDOW_SIZE
 Controls the size of TCP buffers.
+.SH NOTES
+Some numeric options support format characters per '<value>\fIc\fR' (e.g. 10M) where the \fIc\fR format characters are k,m,g,K,M,G.  Lowercase format characters are 10^3 based and uppercase are 2^n based, e.g. 1k = 1000, 1K = 1024, 1m = 1,000,000 and 1M = 1,048,576
 .SH DIAGNOSTICS
 This section needs to be filled in.
 .SH BUGS
-Exit statuses are inconsistent.
-The threading implementation is rather heinous.
+See https://sourceforge.net/p/iperf2/tickets/
 .SH AUTHORS
 Iperf2, based from iperf (originally written by Mark Gates and Alex Warshavsky), has a goal of maintainence with some feature enhancement.
 Other contributions from Ajay Tirumala, Jim Ferguson, Jon Dugan <jdugan at x1024 dot net>,
