@@ -819,7 +819,7 @@ void Client::HdrXchange(int flags) {
 	    }
 #ifdef WIN32
             // Windows SO_RCVTIMEO uses ms
-	    DWORD timeout = (double) sorcvtimer / 1e3;
+	    DWORD timeout = (double) sotimer / 1e3;
 #else
 	    struct timeval timeout;
 	    timeout.tv_sec = sotimer / 1000000;

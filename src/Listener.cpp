@@ -841,7 +841,7 @@ int Listener::ClientHeaderAck(void) {
 	}
 #ifdef WIN32
 	// Windows SO_RCVTIMEO uses ms
-	DWORD timeout = (double) sorcvtimer / 1e3;
+	DWORD timeout = (double) sotimer / 1e3;
 #else
 	struct timeval timeout;
 	timeout.tv_sec = sotimer / 1000000;
@@ -859,7 +859,7 @@ int Listener::ClientHeaderAck(void) {
     if (isUDP(server) && (server->mBufLen < (int) sizeof(client_hdr_ack))) {
         fprintf( stderr, warn_len_too_small_peer_exchange, "Server", server->mBufLen, sizeof(client_hdr_ack));
     }
-    if ((rc = send(server->mSock, &ack, sizeof(client_hdr_ack),0)) < 0) {
+    if ((rc = send(server->mSock, (const char*)&ack, sizeof(client_hdr_ack),0)) < 0) {
 	WARN_errno( rc <= 0, "send_ack" );
 	rc = 0;
     }
