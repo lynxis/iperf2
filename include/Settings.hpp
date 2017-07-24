@@ -130,7 +130,11 @@ typedef struct thread_Settings {
     // int's
     int mThreads;                   // -P
     int mTOS;                       // -S
+#if WIN32
+    SOCKET mSock;
+#else
     int mSock;
+#endif
     int Extractor_size;
     int mBufLen;                    // -l
     int mMSS;                       // -M
