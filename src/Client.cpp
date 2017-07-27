@@ -77,7 +77,7 @@ Client::Client( thread_Settings *inSettings ) {
     mBuf = NULL;
 
     if (isCompat(inSettings) && isPeerVerDetect(inSettings)) {
-	fprintf(stderr, warn_compat_and_peer_exchange);
+	fprintf(stderr, "%s", warn_compat_and_peer_exchange);
 	unsetPeerVerDetect(inSettings);
     }
     if (isUDP(inSettings)) {
@@ -581,7 +581,7 @@ void Client::Run( void ) {
 	    reportstruct->packetID++;
 	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
 		// seqno wrapped
-		fprintf(stderr, warn_seqno_wrap);
+		fprintf(stderr, "%s", warn_seqno_wrap);
 		break;
 	    }
 	    // Adjustment for the running delay
