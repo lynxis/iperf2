@@ -76,6 +76,9 @@ static int seqno64b = 0;
 static int reversetest = 0;
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
+// apply compound settings after the command line has been fully parsed
+void Settings_ModalOptions( thread_Settings *mExtSettings );
+
 
 /* -------------------------------------------------------------------
  * command line options
@@ -84,12 +87,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
  * or environment variable ($FOOBAR) to its short option char (f).
  * ------------------------------------------------------------------- */
 #define LONG_OPTIONS()
-
-const struct option long_options_priority1[] =
-{
-    {"ipv6_domain",      no_argument, NULL, 'V'},
-    {0, 0, 0, 0}
-};
 
 const struct option long_options[] =
 {
@@ -192,7 +189,6 @@ const struct option env_options[] =
 
 #define SHORT_OPTIONS()
 
-const char short_options_priority1[] = "-V";
 const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWXZ:";
 
 /* -------------------------------------------------------------------
@@ -202,11 +198,10 @@ const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS
 
 const long kDefault_UDPRate = 1024 * 1024; // -u  if set, 1 Mbit/sec
 const int  kDefault_UDPBufLen = 1470;      // -u  if set, read/write 1470 bytes
-// 1470 bytes is small enough to be sending one packet per datagram on ethernet
-
-// 1450 bytes is small enough to be sending one packet per datagram on ethernet
-//  **** with IPv6 ****
-
+// v4: 1470 bytes UDP payload will fill one and only one ethernet datagram (IPv4 overhead is 20 bytes)
+const int  kDefault_UDPBufLenV6 = 1450;      // -u  if set, read/write 1470 bytes
+// v6: 1450 bytes UDP payload will fill one and only one ethernet datagram (IPv6 overhead is 40 bytes)
+const int kDefault_TCPBufLen = 128 * 1024; // TCP default read/write size
 /* -------------------------------------------------------------------
  * Initialize all settings to defaults.
  * ------------------------------------------------------------------- */
@@ -220,14 +215,14 @@ void Settings_Initialize( thread_Settings *main ) {
     main->mReportMode = kReport_Default;
     // option, defaults
     main->flags         = FLAG_MODETIME | FLAG_STDOUT; // Default time and stdout
-    //main->mUDPRate      = 0;           // -b,  ie. TCP mode
+    //main->mUDPRate      = 0;           // -b,  offered (or rate limited) load (both UDP and TCP)
     main->mUDPRateUnits = kRate_BW;
     //main->mHost         = NULL;        // -c,  none, required for client
     main->mMode         = kTest_Normal;  // -d,  mMode == kTest_DualTest
     main->mFormat       = 'a';           // -f,  adaptive bits
     // skip help                         // -h,
     //main->mBufLenSet  = false;         // -l,
-    main->mBufLen       = 128 * 1024;      // -l,  128 Kbyte
+    main->mBufLen       = kDefault_TCPBufLen; // -l,  Default to TCP read/write size
     //main->mInterval     = 0;           // -i,  ie. no periodic bw reports
     //main->mPrintMSS   = false;         // -m,  don't print MSS
     // mAmount is time also              // -n,  N/A
@@ -319,15 +314,7 @@ void Settings_ParseEnvironment( thread_Settings *mSettings ) {
 
 void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSettings ) {
     int option;
-    gnu_opterr = 0;
-    while ( (option =
-             gnu_getopt_long( argc, argv, short_options_priority1,
-                              long_options_priority1, NULL )) != EOF ) {
-        if (option != '?')
-	    Settings_Interpret( option, gnu_optarg, mSettings );
-    }
-    gnu_opterr = 1;
-    gnu_optind = 1;
+    gnu_opterr = 1; // Fail on an unrecognized command line option
     while ( (option =
              gnu_getopt_long( argc, argv, short_options,
                               long_options, NULL )) != EOF ) {
@@ -337,6 +324,9 @@ void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSetting
     for ( int i = gnu_optind; i < argc; i++ ) {
         fprintf( stderr, "%s: ignoring extra argument -- %s\n", argv[0], argv[i] );
     }
+    // Determine the modal or compound settings now that the full command line has been parsed
+    Settings_ModalOptions( mSettings );
+
 } // end ParseCommandLine
 
 /* -------------------------------------------------------------------
@@ -345,8 +335,6 @@ void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSetting
  * ------------------------------------------------------------------- */
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings ) {
-    char *parsedopts;
-    char *results = NULL;
     max_size_t theNum;
 
     switch ( option ) {
@@ -376,11 +364,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		}
 	    }
             setBWSet( mExtSettings );
-            // if -l has already been processed, mBufLenSet is true
-            // so don't overwrite that value.
-            if ( !isBuflenSet( mExtSettings ) ) {
-                mExtSettings->mBufLen = kDefault_UDPBufLen;
-            }
             break;
 
         case 'c': // client mode w/ server host to connect to
@@ -388,13 +371,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             strcpy( mExtSettings->mHost, optarg );
 
             if ( mExtSettings->mThreadMode == kMode_Unknown ) {
-                // Test for Multicast
-                iperf_sockaddr temp;
-                SockAddr_setHostname( mExtSettings->mHost, &temp,
-                                      (isIPV6( mExtSettings ) ? 1 : 0 ));
-                if ( SockAddr_isMulticast( &temp ) ) {
-                    setMulticast( mExtSettings );
-                }
                 mExtSettings->mThreadMode = kMode_Client;
                 mExtSettings->mThreads = 1;
             }
@@ -498,19 +474,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'u': // UDP instead of TCP
-            // if -b has already been processed, UDP rate will
-            // already be non-zero, so don't overwrite that value
-            if ( !isUDP( mExtSettings ) ) {
-                setUDP( mExtSettings );
-		if ( !isBWSet( mExtSettings ) )
-		    mExtSettings->mUDPRate = kDefault_UDPRate;
-            }
-
-            // if -l has already been processed, mBufLenSet is true
-            // so don't overwrite that value.
-            if ( !isBuflenSet( mExtSettings ) ) {
-                mExtSettings->mBufLen = kDefault_UDPBufLen;
-            }
+	    setUDP( mExtSettings );
             break;
 
         case 'v': // print version and exit
@@ -575,42 +539,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
             // more esoteric options
         case 'B': // specify bind address
-	    parsedopts = new char[ strlen( optarg ) + 1 ];
-	    strcpy(parsedopts, optarg );
-	    mExtSettings->mLocalhost = NULL;
-	    // Check for local port assignment only on the client
-	    if ( mExtSettings->mThreadMode == kMode_Client ) {
-		char *saveptr;
-		// v4 uses a colon as the delimeter for the local bind port, 192.168.1.1:6001
-		// v6 uses bracket notation [2001:e30:1401:2:d46e:b891:3082:b939]:6001
-		if (!isIPV6(mExtSettings)) {
-		    if ((results = strtok_r(parsedopts, ":", &saveptr)) != NULL) {
-			mExtSettings->mLocalhost = new char[ strlen( results ) + 1 ];
-			strcpy( mExtSettings->mLocalhost, results );
-			if ((results = strtok_r(NULL, ":",&saveptr)) != NULL)
-			    mExtSettings->mBindPort = atoi(results);
-		    }
-		} else if (parsedopts[0]=='[' && (results = strtok_r(parsedopts, "]",&saveptr)) != NULL) {
-		    mExtSettings->mLocalhost = new char[strlen(results)];
-		    // skip the first bracket
-		    results++;
-		    strcpy(mExtSettings->mLocalhost, results);
-		    if ((results = strtok_r(NULL, ":",&saveptr)) != NULL)
-			mExtSettings->mBindPort = atoi(results);
-		}
-	    }
-	    DELETE_ARRAY(parsedopts);
 	    if (mExtSettings->mLocalhost == NULL) {
 		mExtSettings->mLocalhost = new char[ strlen( optarg ) + 1 ];
 		strcpy( mExtSettings->mLocalhost, optarg );
 	    }
-            // Test for Multicast
-            iperf_sockaddr temp;
-            SockAddr_setHostname( mExtSettings->mLocalhost, &temp,
-                                  (isIPV6( mExtSettings ) ? 1 : 0 ));
-            if ( SockAddr_isMulticast( &temp ) ) {
-                setMulticast( mExtSettings );
-            }
             break;
 
         case 'C': // Run in Compatibility Mode, i.e. no intial nor final header messaging
@@ -707,22 +639,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
         case 'V': // IPv6 Domain
             setIPV6( mExtSettings );
-            if ( mExtSettings->mThreadMode == kMode_Server
-                 && mExtSettings->mLocalhost != NULL ) {
-                // Test for Multicast
-                iperf_sockaddr temp;
-                SockAddr_setHostname( mExtSettings->mLocalhost, &temp, 1);
-                if ( SockAddr_isMulticast( &temp ) ) {
-                    setMulticast( mExtSettings );
-                }
-            } else if ( mExtSettings->mThreadMode == kMode_Client ) {
-                // Test for Multicast
-                iperf_sockaddr temp;
-                SockAddr_setHostname( mExtSettings->mHost, &temp, 1 );
-                if ( SockAddr_isMulticast( &temp ) ) {
-                    setMulticast( mExtSettings );
-                }
-            }
             break;
 
         case 'W' :
@@ -761,6 +677,77 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
     }
 } // end Interpret
+
+
+//  The commmand line options are position independent and hence some settings become "modal"
+//  i.e. two passes are required to get all the final settings correct.
+//  For example, -V indicates use IPv6 and -u indicates use UDP, and the default socket
+//  read/write (UDP payload) size is different for ipv4 and ipv6.
+//  So in the Settings_Interpret pass there is no guarantee to know all three of (-u and -V and not -l)
+//  while parsing them individually.
+//
+//  Since Settings_Interpret() will set all the *individual* options and flags
+//  then the below code (per the example UDP, v4 or v6, and not -l) can set final
+//  values, e.g. a correct default mBufLen.
+//
+//  Other things that need this are multicast socket or not,
+//  -B local bind port parsing, and when to use the default UDP offered load
+void Settings_ModalOptions( thread_Settings *mExtSettings ) {
+    // Handle default read/write sizes based on v4, v6, UDP or TCP
+    if ( !isBuflenSet( mExtSettings ) ) {
+	if (isUDP(mExtSettings)) {
+	    if (!isIPV6(mExtSettings)) {
+		mExtSettings->mBufLen = kDefault_UDPBufLen;
+	    } else {
+		mExtSettings->mBufLen = kDefault_UDPBufLenV6;
+	    }
+	} else {
+	    mExtSettings->mBufLen = kDefault_TCPBufLen;
+	}
+    }
+    // Handle default UDP offered load (TCP will be max, i.e. no read() or write() rate limiting)
+    if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
+	mExtSettings->mUDPRate = kDefault_UDPRate;
+    }
+    // Check for local port assignment via parsing -B's mLocalhost string
+    // (only supported on the client as server/listener uses -p for this)
+    if ( mExtSettings->mLocalhost != NULL && mExtSettings->mThreadMode == kMode_Client ) {
+	char *results;
+	// v4 uses a colon as the delimeter for the local bind port, e.g. 192.168.1.1:6001
+	if (!isIPV6(mExtSettings)) {
+	    if (((results = strtok(mExtSettings->mLocalhost, ":")) != NULL) && ((results = strtok(NULL, ":")) != NULL)) {
+		mExtSettings->mBindPort = atoi(results);
+	    }
+	// v6 uses bracket notation, e.g. [2001:e30:1401:2:d46e:b891:3082:b939]:6001
+	} else if (mExtSettings->mLocalhost[0] ==  '[') {
+	    if ((results = strtok(mExtSettings->mLocalhost, "]")) != NULL) {
+		results++;
+		strcpy(mExtSettings->mLocalhost, results);
+		if ((results = strtok(NULL, ":")) != NULL) {
+		    mExtSettings->mBindPort = atoi(results);
+		}
+	    }
+	}
+    }
+    //  Check for a multicast
+    if ( mExtSettings->mThreadMode == kMode_Client ) {
+	// For client, check the destination host for multicast
+	iperf_sockaddr tmp;
+	SockAddr_setHostname( mExtSettings->mHost, &tmp,
+			      (isIPV6( mExtSettings ) ? 1 : 0 ));
+	if ( SockAddr_isMulticast( &tmp ) ) {
+	    setMulticast( mExtSettings );
+	}
+    } else if (mExtSettings->mLocalhost != NULL) {
+	// For listener or server, check if a -B bind interface is set and for multicast
+	iperf_sockaddr tmp;
+	SockAddr_setHostname( mExtSettings->mLocalhost, &tmp,
+			      (isIPV6( mExtSettings ) ? 1 : 0 ));
+	if ( SockAddr_isMulticast( &tmp ) ) {
+	    setMulticast( mExtSettings );
+	}
+    }
+}
 
 void Settings_GetUpperCaseArg(const char *inarg, char *outarg) {
 
