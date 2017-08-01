@@ -638,7 +638,12 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             break;
 
         case 'V': // IPv6 Domain
+#ifdef HAVE_IPV6
             setIPV6( mExtSettings );
+#else
+	    fprintf( stderr, "The --ipv6_domain (-V) option is not enabled in this build.\n");
+	    exit(1);
+#endif
             break;
 
         case 'W' :
