@@ -76,11 +76,11 @@ Usage: iperf [-s|-c host] [options]\n\
        iperf [-h|--help] [-v|--version]\n\
 \n\
 Client/Server:\n\
-  -b, --bandwidth #[KMG | pps]  bandwidth to send at in bits/sec or packets per second\n\
+  -b, --bandwidth #[kmgKMG | pps]  bandwidth to send at in bits/sec or packets per second\n\
   -e, --enhancedreports    use enhanced reporting giving more tcp/udp and traffic information\n\
-  -f, --format    [kmKM]   format to report: Kbits, Mbits, KBytes, MBytes\n\
+  -f, --format    [kmgKMG]   format to report: Kbits, Mbits, KBytes, MBytes\n\
   -i, --interval  #        seconds between periodic bandwidth reports\n\
-  -l, --len       #[KM]    length of buffer to read or write (default 128 KB)\n\
+  -l, --len       #[kmKM]    length of buffer in bytes to read or write (Defaults: TCP=128K, v4 UDP=1470, v6 UDP=1450)\n\
   -m, --print_mss          print TCP maximum segment size (MTU - TCP/IP header)\n\
   -o, --output    <filename> output the report or error message to this specified file\n\
   -p, --port      #        server port to listen on/connect to\n\
@@ -96,6 +96,7 @@ Client/Server:\n\
   -C, --compatibility      for use with older versions does not sent extra msgs\n\
   -M, --mss       #        set TCP maximum segment size (MTU - 40 bytes)\n\
   -N, --nodelay            set TCP no delay, disabling Nagle's Algorithm\n\
+  -S, --tos       #        set the socket's IP_TOS (byte) field\n\
   -V, --ipv6_domain        Set the domain to IPv6\n\
 \n\
 Server specific:\n\
@@ -113,7 +114,7 @@ const char usage_long2[] = "\
 Client specific:\n\
   -c, --client    <host>   run in client mode, connecting to <host>\n\
   -d, --dualtest           Do a bidirectional test simultaneously\n\
-  -n, --num       #[KM]    number of bytes to transmit (instead of -t)\n\
+  -n, --num       #[kmgKMG]    number of bytes to transmit (instead of -t)\n\
   -r, --tradeoff           Do a bidirectional test individually\n\
   -t, --time      #        time in seconds to transmit for (default 10 secs)\n\
   -B, --bind [<ip> | <ip:port>] bind src addr(s) from which to originate traffic\n\
@@ -134,7 +135,9 @@ Miscellaneous:\n\
   -h, --help               print this message and quit\n\
   -v, --version            print version information and quit\n\
 \n\
-[KM] Indicates options that support a K or M suffix for kilo- or mega-\n\
+[kmgKMG] Indicates options that support a k,m,g,K,M or G suffix\n\
+Lowercase format characters are 10^3 based and uppercase are 2^n based\n\
+(e.g. 1k = 1000, 1K = 1024, 1m = 1,000,000 and 1M = 1,048,576)\n\
 \n\
 The TCP window size option can be set by the environment variable\n\
 TCP_WINDOW_SIZE. Most other options can be set by an environment variable\n\
