@@ -231,6 +231,11 @@ const char report_sum_bw_jitter_loss_format[] =
 /* -------------------------------------------------------------------
  * Enhanced reports (per -e)
  * ------------------------------------------------------------------- */
+const char client_write_size[] =
+"Write buffer size";
+
+const char server_read_size[] =
+"Read buffer size";
 
 const char report_bw_enhanced_format[] =
 "[%3d] %4.2f-%4.2f sec  %ss  %ss/sec\n";

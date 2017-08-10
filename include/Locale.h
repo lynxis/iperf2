@@ -123,6 +123,9 @@ extern const char report_sum_bw_jitter_loss_format[];
 /* -------------------------------------------------------------------
  * Enhanced reports (per -e)
  * ------------------------------------------------------------------- */
+extern const char client_write_size[];
+
+extern const char server_read_size[];
 
 extern const char report_bw_enhanced_format[];
 

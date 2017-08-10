@@ -89,7 +89,6 @@ void reporter_printstats( Transfer_Info *stats ) {
 	} else {
 	    if( !header_printed ) {
 		printf((stats->mTCP == (char)kMode_Server ? report_bw_read_enhanced_header : report_bw_write_enhanced_header), (stats->tcp.read.binsize/1024.0));
-		header_printed = 1;
 	    }
 	    if (stats->mTCP == (char)kMode_Server) {
 		printf(report_bw_read_enhanced_format,
@@ -326,7 +325,6 @@ void reporter_reportsettings( ReporterData *data ) {
                    toupper( (int)data->info.mFormat));
     printf( "%s: %s", (isUDP( data ) ?
                                 udp_buffer_size : tcp_window_size), buffer );
-
     if ( win_requested == 0 ) {
         printf( " %s", window_default );
     } else if ( win != win_requested ) {
@@ -334,6 +332,13 @@ void reporter_reportsettings( ReporterData *data ) {
                        toupper( (int)data->info.mFormat));
         printf( warn_window_requested, buffer );
     }
+    if (isEnhanced(data)) {
+	byte_snprintf( buffer, sizeof(buffer), data->mBufLen,
+		       toupper( (int)data->info.mFormat));
+	printf("\n%s: %s", ((data->mThreadMode == kMode_Client) ?
+			   client_write_size : server_read_size), buffer);
+    }
+
     printf( "\n%s", separator_line );
  }
 
