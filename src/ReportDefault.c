@@ -320,7 +320,13 @@ void reporter_reportsettings( ReporterData *data ) {
         if ( SockAddr_isMulticast( &data->connection.peer ) ) {
             printf( multicast_ttl, data->info.mTTL);
         }
+    } else if (isEnhanced(data)) {
+	byte_snprintf( buffer, sizeof(buffer), data->mBufLen,
+		       toupper( (int)data->info.mFormat));
+	printf("%s: %s\n", ((data->mThreadMode == kMode_Client) ?
+			   client_write_size : server_read_size), buffer);
     }
+
     byte_snprintf( buffer, sizeof(buffer), win,
                    toupper( (int)data->info.mFormat));
     printf( "%s: %s", (isUDP( data ) ?
@@ -331,12 +337,6 @@ void reporter_reportsettings( ReporterData *data ) {
         byte_snprintf( buffer, sizeof(buffer), win_requested,
                        toupper( (int)data->info.mFormat));
         printf( warn_window_requested, buffer );
-    }
-    if (isEnhanced(data)) {
-	byte_snprintf( buffer, sizeof(buffer), data->mBufLen,
-		       toupper( (int)data->info.mFormat));
-	printf("\n%s: %s", ((data->mThreadMode == kMode_Client) ?
-			   client_write_size : server_read_size), buffer);
     }
 
     printf( "\n%s", separator_line );
