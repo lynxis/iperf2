@@ -86,7 +86,7 @@ Client/Server:\n\
   -p, --port      #        server port to listen on/connect to\n\
   -u, --udp                use UDP rather than TCP\n"
 #ifdef HAVE_SEQNO64b
-"      --udp-counters-64bit use 64 bit sequence numbers with UDP \n"
+"      --udp-counters-64bit use 64 bit sequence numbers with UDP\n"
 #endif
 "  -w, --window    #[KM]    TCP window size (socket buffer size)\n"
 #ifdef HAVE_SCHED_SETSCHEDULER
@@ -97,7 +97,6 @@ Client/Server:\n\
   -M, --mss       #        set TCP maximum segment size (MTU - 40 bytes)\n\
   -N, --nodelay            set TCP no delay, disabling Nagle's Algorithm\n\
   -S, --tos       #        set the socket's IP_TOS (byte) field\n\
-  -V, --ipv6_domain        Set the domain to IPv6\n\
 \n\
 Server specific:\n\
   -s, --server             run in server mode\n\
@@ -107,6 +106,7 @@ Server specific:\n\
 #ifdef WIN32
 "  -R, --remove             remove service in win32\n"
 #endif
+"  -V, --ipv6_domain        Enable IPv6 reception by setting the domain and socket to AF_INET6 (Can receive on both IPv4 and IPv6)\n"
 ;
 
 const char usage_long2[] = "\
@@ -126,6 +126,7 @@ Client specific:\n\
 "  -R, --reverse            reverse the test (client receives, server sends)\n"
 #endif
 "  -T, --ttl       #        time-to-live, for multicast (default 1)\n\
+  -V, --ipv6_domain        Set the domain to IPv6 (send packets over IPv6)\n\
   -X, --peer-detect        perform server version detection and version exchange\n\
   -Z, --linux-congestion <algo>  set TCP congestion control algorithm (Linux only)\n\
 \n\

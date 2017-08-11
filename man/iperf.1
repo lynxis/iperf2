@@ -82,9 +82,6 @@ set the socket's IP_TOS (byte) field
 .BR -v ", " --version " "
 print version information and quit
 .TP
-.BR -V ", " --IPv6Version " "
-Set the domain to IPv6
-.TP
 .BR -x ", " --reportexclude " [CDMSV]"
 exclude C(connection) D(data) M(multicast) S(settings) V(server) reports
 .TP
@@ -95,14 +92,17 @@ if set to C or c report results as CSV (comma separated values)
 .BR -s ", " --server " "
 run in server mode
 .TP
-.BR -U ", " --single_udp " "
-run in single threaded UDP mode
-.TP
 .BR -D ", " --daemon " "
 run the server as a daemon.  On Windows this will also install the IPerfService.
 .TP
 .BR -R ", " --remove " "
 remove the IPerfService (Windows only).
+.TP
+.BR -U ", " --single_udp " "
+run in single threaded UDP mode
+.TP
+.BR -V ", " --ipv6_domain " "
+Enable IPv6 reception by setting the domain and socket to AF_INET6 (Can receive on both IPv4 and IPv6)
 .SH "CLIENT SPECIFIC OPTIONS"
 .TP
 .BR -b ", " --bandwidth " \fIn\fR[kmgKMG] | \fIn\fRpps"
@@ -144,6 +144,9 @@ reverse the traffic flow after header exchange, useful for testing through firew
 .TP
 .BR -T ", " --ttl " \fIn\fR"
 time-to-live, for multicast (default 1)
+.TP
+.BR -V ", " --ipv6_domain " "
+Set the domain to IPv6 (send packets over IPv6)
 .TP
 .BR -X ", " --peerdetect " "
 run server version detection prior to traffic.
