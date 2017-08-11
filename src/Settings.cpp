@@ -701,10 +701,10 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     // Handle default read/write sizes based on v4, v6, UDP or TCP
     if ( !isBuflenSet( mExtSettings ) ) {
 	if (isUDP(mExtSettings)) {
-	    if (!isIPV6(mExtSettings)) {
-		mExtSettings->mBufLen = kDefault_UDPBufLen;
-	    } else {
+	    if (isIPV6(mExtSettings) && mExtSettings->mThreadMode == kMode_Client) {
 		mExtSettings->mBufLen = kDefault_UDPBufLenV6;
+	    } else {
+		mExtSettings->mBufLen = kDefault_UDPBufLen;
 	    }
 	} else {
 	    mExtSettings->mBufLen = kDefault_TCPBufLen;
