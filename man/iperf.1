@@ -65,7 +65,7 @@ TCP window size (socket buffer size)
 Request realtime scheduler, if supported.
 .TP
 .BR -B ", " --bind " \fIhost\fR"
-bind to \fIhost\fR, an interface or multicast address
+bind to \fIhost\fR, ip address or multicast address and optional port (see notes)
 .TP
 .BR -C ", " --compatibility " "
 for use with older versions does not sent extra msgs
@@ -125,7 +125,7 @@ Do a bidirectional test individually
 time in seconds to listen for new traffic connections, receive traffic or transmit traffic (Defaults: transmit is 10 secs while listen and receive are indefinite)
 .TP
 .BR -B ", " --bind " \fIip\fR | \fIip\fR:\fIport\fR | \fIipv6 -V\fR | \fI[ipv6]\fR:\fIport -V\fR"
-bind src addr(s) and ports from which to originate traffic (Note: -V option required for ipv6)
+bind src ip addr and optional port as the source of traffic (see notes)
 .TP
 .BR -F ", " --fileinput " \fIname\fR"
 input the data to be transmitted from a file
@@ -159,6 +159,8 @@ set TCP congestion control algorithm (Linux only)
 Controls the size of TCP buffers.
 .SH NOTES
 Some numeric options support format characters per '<value>\fIc\fR' (e.g. 10M) where the \fIc\fR format characters are k,m,g,K,M,G.  Lowercase format characters are 10^3 based and uppercase are 2^n based, e.g. 1k = 1000, 1K = 1024, 1m = 1,000,000 and 1M = 1,048,576
+.TP
+The -B option affects the bind() system call.  This is typically used to bind to a particular IP address. Only packets destined to that IP address will be received while any transmitted packets will carry that IP address as their source. The bind() does not control anything about the routing of transmitted packets. So, for example, if the IP address of eth0 is used for -B and the routing table for the destination IP address (per -c) resolves the ouput interface to be eth1, then the host will send the packet out device eth1 with the source IP address of eth0.  To affect the physical output interface (e.g. dual homed systems) the host's routing table(s) need to be configured, e.g. configure policy routing per each -B source address.
 .SH DIAGNOSTICS
 This section needs to be filled in.
 .SH BUGS
