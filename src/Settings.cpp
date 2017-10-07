@@ -73,6 +73,9 @@
 #include "gnu_getopt.h"
 
 static int seqno64b = 0;
+#ifdef HAVE_ISOCHRONOUS
+static int isochronous = 0;
+#endif
 static int reversetest = 0;
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
@@ -136,6 +139,9 @@ const struct option long_options[] =
 {"peer-detect",      no_argument, NULL, 'X'},
 {"linux-congestion", required_argument, NULL, 'Z'},
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
+#ifdef HAVE_ISOCHRONOUS
+{"isochronous", required_argument, &isochronous, 1},
+#endif
 #ifdef WIN32
 {"reverse", no_argument, &reversetest, 1},
 #endif
@@ -290,6 +296,9 @@ void Settings_Destroy( thread_Settings *mSettings) {
     DELETE_ARRAY( mSettings->mFileName  );
     DELETE_ARRAY( mSettings->mOutputFileName );
     DELETE_PTR( mSettings );
+#ifdef HAVE_ISOCHRONOUS
+    DELETE_ARRAY( mSettings->mIsochronousStr );
+#endif
 } // end ~Settings
 
 /* -------------------------------------------------------------------
@@ -678,6 +687,14 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		exit(1);
 		setReverse(mExtSettings);
 	    }
+#ifdef HAVE_ISOCHRONOUS
+	    if (isochronous) {
+		setIsochronous(mExtSettings);
+		mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
+		strcpy( mExtSettings->mIsochronousStr, optarg );
+	    }
+	    break;
+#endif
         default: // ignore unknown
             break;
     }
@@ -714,6 +731,11 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
+#ifdef HAVE_ISOCHRONOUS
+    if (isUDP(mExtSettings) && isIsochronous(mExtSettings) && mExtSettings->mThreadMode == kMode_Client) {
+//	mExtSettings->vframe_freq =
+    }
+#endif
     // Check for local port assignment via parsing -B's mLocalhost string
     // (only supported on the client as server/listener uses -p for this)
     if ( mExtSettings->mLocalhost != NULL && mExtSettings->mThreadMode == kMode_Client ) {
