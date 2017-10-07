@@ -41,6 +41,9 @@ AC_ARG_ENABLE(kalman, AC_HELP_STRING([--disable-kalman],
 AC_ARG_ENABLE(seqno64b, AC_HELP_STRING([--disable-seqno64b],
 	    [disable 64 bit sequence numer support (default is enable)]))
 
+AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--disable-isochronous],
+	    [disable isochronous support (default is enable)]))
+
 
 dnl ===================================================================
 dnl Checks for programs
@@ -276,6 +279,10 @@ fi
 
 if test "$enable_seqno64b" != no; then
 AC_DEFINE([HAVE_SEQNO64b], 1, [Define if 64 bit sequence numbers are desired and available])
+fi
+
+if test "$enable_isochronous" != no; then
+AC_DEFINE([HAVE_ISOCHRONOUS], 1, [Define if isochronous traffic option is desired and available])
 fi
 
 dnl Static link on MINGW for standalone DOS executable
