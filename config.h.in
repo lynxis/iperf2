@@ -79,6 +79,9 @@
 /* Define to enable IPv6 multicast support */
 #undef HAVE_IPV6_MULTICAST
 
+/* Define if isochronous traffic option is desired and available */
+#undef HAVE_ISOCHRONOUS
+
 /* Define if Kalman tuning is desired and available */
 #undef HAVE_KALMAN
 

@@ -1393,7 +1393,7 @@ Optional Features:
   --disable-kalman        disable kalman delay tuning (default is enable)
   --disable-seqno64b      disable 64 bit sequence numer support (default is
                           enable)
-  --disable-isochronous   disable isochronous traffic support (default is enable)
+  --disable-isochronous   disable isochronous support (default is enable)
   --enable-dependency-tracking
                           do not reject slow dependency extractors
   --disable-dependency-tracking
@@ -3285,6 +3285,7 @@ fi
 if test "${enable_isochronous+set}" = set; then :
   enableval=$enable_isochronous;
 fi
+
 
 
 

@@ -122,6 +122,7 @@ typedef struct thread_Settings {
     char*  mHost;                   // -c
     char*  mLocalhost;              // -B
     char*  mOutputFileName;         // -o
+    char*  mIsochronousStr;         // --isochronous
     FILE*  Extractor_file;
     ReportHeader*  reporthdr;
     MultiHeader*   multihdr;
@@ -240,6 +241,7 @@ typedef struct thread_Settings {
 #define FLAG_PEERVER        0x00000001
 #define FLAG_SEQNO64        0x00000002
 #define FLAG_REVERSE        0x00000004
+#define FLAG_ISOCHRONOUS    0x00000008
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -273,6 +275,7 @@ typedef struct thread_Settings {
 #define isPeerVerDetect(settings)       ((settings->flags_extend & FLAG_PEERVER) != 0)
 #define isSeqNo64b(settings)       ((settings->flags_extend & FLAG_SEQNO64) != 0)
 #define isReverse(settings)       ((settings->flags_extend & FLAG_REVERSE) != 0)
+#define isIsochronous(settings)    ((settings->flags_extend & FLAG_ISOCHRONOUS) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -304,6 +307,7 @@ typedef struct thread_Settings {
 #define setPeerVerDetect(settings)      settings->flags_extend |= FLAG_PEERVER
 #define setSeqNo64b(settings)      settings->flags_extend |= FLAG_SEQNO64
 #define setReverse(settings)      settings->flags_extend |= FLAG_REVERSE
+#define setIsochronous(settings)      settings->flags_extend |= FLAG_ISOCHRONOUS
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -335,6 +339,7 @@ typedef struct thread_Settings {
 #define unsetPeerVerDetect(settings)    settings->flags_extend &= ~FLAG_PEERVER
 #define unsetSeqNo64b(settings)    settings->flags_extend &= ~FLAG_SEQNO64
 #define unsetReverse(settings)    settings->flags_extend &= ~FLAG_REVERSE
+#define unsetIsochronous(settings)    settings->flags_extend &= ~FLAG_ISOCHRONOUS
 
 /*
  * Messasge header flags
