@@ -667,6 +667,8 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
+ISOCHRONOUS_FALSE
+ISOCHRONOUS_TRUE
 MAINT
 MAINTAINER_MODE_FALSE
 MAINTAINER_MODE_TRUE
@@ -1393,7 +1395,7 @@ Optional Features:
   --disable-kalman        disable kalman delay tuning (default is enable)
   --disable-seqno64b      disable 64 bit sequence numer support (default is
                           enable)
-  --disable-isochronous   disable isochronous support (default is enable)
+  --enable-isochronous    enable isochronous support (default is disable)
   --enable-dependency-tracking
                           do not reject slow dependency extractors
   --disable-dependency-tracking
@@ -3286,6 +3288,13 @@ if test "${enable_isochronous+set}" = set; then :
   enableval=$enable_isochronous;
 fi
 
+ if test x$isochronous = xtrue; then
+  ISOCHRONOUS_TRUE=
+  ISOCHRONOUS_FALSE='#'
+else
+  ISOCHRONOUS_TRUE='#'
+  ISOCHRONOUS_FALSE=
+fi
 
 
 
@@ -8046,7 +8055,7 @@ $as_echo "#define HAVE_SEQNO64b 1" >>confdefs.h
 
 fi
 
-if test "$enable_isochronous" != no; then
+if test "$enable_isochronous" = yes; then
 
 $as_echo "#define HAVE_ISOCHRONOUS 1" >>confdefs.h
 
@@ -8206,6 +8215,10 @@ fi
 
 if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
   as_fn_error $? "conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ISOCHRONOUS_TRUE}" && test -z "${ISOCHRONOUS_FALSE}"; then
+  as_fn_error $? "conditional \"ISOCHRONOUS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
