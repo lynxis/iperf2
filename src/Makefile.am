@@ -37,7 +37,9 @@ iperf_SOURCES = \
 		sockets.c \
 		stdio.c \
 		tcp_window_size.c
-
+if ISOCHRONOUS
+iperf_SOURCES += pdfs.c
+endif
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
 
 checkdelay_SOURCES = checkdelay.c
