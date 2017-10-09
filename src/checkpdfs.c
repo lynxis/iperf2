@@ -174,7 +174,9 @@ int main (int argc, char **argv) {
 	    printf("%d %d\n", i, histogram[i]);
     }
     exectime = round(1e9 * total / count);
-    printf("Total tim=%f s, count= %d, average generate time of %d nanoseconds\n", total, count, exectime);
+    if (!printout) {
+	printf("Total time=%f secs, count= %d, average generate time of %d nanoseconds\n", total, count, exectime);
+    }
     return(0);
 }
 #ifdef HAVE_CLOCK_GETTIME

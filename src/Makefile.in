@@ -89,7 +89,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iperf$(EXEEXT)
-noinst_PROGRAMS = checkdelay$(EXEEXT)
+noinst_PROGRAMS = checkdelay$(EXEEXT) $(am__EXEEXT_1)
+@ISOCHRONOUS_TRUE@am__append_1 = pdfs.c
+@ISOCHRONOUS_TRUE@am__append_2 = checkpdfs
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_create_stdint_h.m4 \
@@ -103,18 +105,31 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
+@ISOCHRONOUS_TRUE@am__EXEEXT_1 = checkpdfs$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am_checkdelay_OBJECTS = checkdelay.$(OBJEXT)
 checkdelay_OBJECTS = $(am_checkdelay_OBJECTS)
 am__DEPENDENCIES_1 = $(top_builddir)/compat/libcompat.a
 checkdelay_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__checkpdfs_SOURCES_DIST = pdfs.c checkpdfs.c
+@ISOCHRONOUS_TRUE@am_checkpdfs_OBJECTS = pdfs.$(OBJEXT) \
+@ISOCHRONOUS_TRUE@	checkpdfs.$(OBJEXT)
+checkpdfs_OBJECTS = $(am_checkpdfs_OBJECTS)
+checkpdfs_DEPENDENCIES =
+am__iperf_SOURCES_DIST = Client.cpp Extractor.c Launch.cpp List.cpp \
+	Listener.cpp Locale.c PerfSocket.cpp ReportCSV.c \
+	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
+	SocketAddr.c gnu_getopt.c gnu_getopt_long.c main.cpp service.c \
+	sockets.c stdio.c tcp_window_size.c pdfs.c
+@ISOCHRONOUS_TRUE@am__objects_1 = pdfs.$(OBJEXT)
 am_iperf_OBJECTS = Client.$(OBJEXT) Extractor.$(OBJEXT) \
 	Launch.$(OBJEXT) List.$(OBJEXT) Listener.$(OBJEXT) \
 	Locale.$(OBJEXT) PerfSocket.$(OBJEXT) ReportCSV.$(OBJEXT) \
 	ReportDefault.$(OBJEXT) Reporter.$(OBJEXT) Server.$(OBJEXT) \
 	Settings.$(OBJEXT) SocketAddr.$(OBJEXT) gnu_getopt.$(OBJEXT) \
 	gnu_getopt_long.$(OBJEXT) main.$(OBJEXT) service.$(OBJEXT) \
-	sockets.$(OBJEXT) stdio.$(OBJEXT) tcp_window_size.$(OBJEXT)
+	sockets.$(OBJEXT) stdio.$(OBJEXT) tcp_window_size.$(OBJEXT) \
+	$(am__objects_1)
 iperf_OBJECTS = $(am_iperf_OBJECTS)
 iperf_DEPENDENCIES = $(am__DEPENDENCIES_1)
 iperf_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(iperf_LDFLAGS) \
@@ -126,11 +141,11 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 = 
+am__v_GEN_1 =
 AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
-am__v_at_1 = 
+am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -140,28 +155,29 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 AM_V_CC = $(am__v_CC_@AM_V@)
 am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
 am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 = 
+am__v_CC_1 =
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 = 
+am__v_CCLD_1 =
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 AM_V_CXX = $(am__v_CXX_@AM_V@)
 am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
 am__v_CXX_0 = @echo "  CXX     " $@;
-am__v_CXX_1 = 
+am__v_CXX_1 =
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
-am__v_CXXLD_1 = 
-SOURCES = $(checkdelay_SOURCES) $(iperf_SOURCES)
-DIST_SOURCES = $(checkdelay_SOURCES) $(iperf_SOURCES)
+am__v_CXXLD_1 =
+SOURCES = $(checkdelay_SOURCES) $(checkpdfs_SOURCES) $(iperf_SOURCES)
+DIST_SOURCES = $(checkdelay_SOURCES) $(am__checkpdfs_SOURCES_DIST) \
+	$(am__iperf_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -311,31 +327,16 @@ AM_CPPFLAGS = @STRIP_BEGIN@ \
 AM_CXXFLAGS = -Wall
 AM_CFLAGS = -Wall
 iperf_LDFLAGS = @CFLAGS@ @PTHREAD_CFLAGS@ @WEB100_CFLAGS@ @DEFS@
-iperf_SOURCES = \
-		Client.cpp \
-		Extractor.c \
-		Launch.cpp \
-		List.cpp \
-		Listener.cpp \
-		Locale.c \
-		PerfSocket.cpp \
-		ReportCSV.c \
-		ReportDefault.c \
-		Reporter.c \
-		Server.cpp \
-		Settings.cpp \
-		SocketAddr.c \
-		gnu_getopt.c \
-		gnu_getopt_long.c \
-		main.cpp \
-		service.c \
-		sockets.c \
-		stdio.c \
-		tcp_window_size.c
-
+iperf_SOURCES = Client.cpp Extractor.c Launch.cpp List.cpp \
+	Listener.cpp Locale.c PerfSocket.cpp ReportCSV.c \
+	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
+	SocketAddr.c gnu_getopt.c gnu_getopt_long.c main.cpp service.c \
+	sockets.c stdio.c tcp_window_size.c $(am__append_1)
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
 checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
+@ISOCHRONOUS_TRUE@checkpdfs_SOURCES = pdfs.c checkpdfs.c
+@ISOCHRONOUS_TRUE@checkpdfs_LDADD = -lm
 all: all-am
 
 .SUFFIXES:
@@ -415,11 +416,15 @@ clean-binPROGRAMS:
 clean-noinstPROGRAMS:
 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 
-checkdelay$(EXEEXT): $(checkdelay_OBJECTS) $(checkdelay_DEPENDENCIES) $(EXTRA_checkdelay_DEPENDENCIES) 
+checkdelay$(EXEEXT): $(checkdelay_OBJECTS) $(checkdelay_DEPENDENCIES) $(EXTRA_checkdelay_DEPENDENCIES)
 	@rm -f checkdelay$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(checkdelay_OBJECTS) $(checkdelay_LDADD) $(LIBS)
 
-iperf$(EXEEXT): $(iperf_OBJECTS) $(iperf_DEPENDENCIES) $(EXTRA_iperf_DEPENDENCIES) 
+checkpdfs$(EXEEXT): $(checkpdfs_OBJECTS) $(checkpdfs_DEPENDENCIES) $(EXTRA_checkpdfs_DEPENDENCIES)
+	@rm -f checkpdfs$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(checkpdfs_OBJECTS) $(checkpdfs_LDADD) $(LIBS)
+
+iperf$(EXEEXT): $(iperf_OBJECTS) $(iperf_DEPENDENCIES) $(EXTRA_iperf_DEPENDENCIES)
 	@rm -f iperf$(EXEEXT)
 	$(AM_V_CXXLD)$(iperf_LINK) $(iperf_OBJECTS) $(iperf_LDADD) $(LIBS)
 
@@ -443,9 +448,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Settings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SocketAddr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/checkdelay.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/checkpdfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnu_getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnu_getopt_long.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pdfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stdio.Po@am__quote@
