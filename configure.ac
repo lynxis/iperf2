@@ -42,10 +42,8 @@ AC_ARG_ENABLE(seqno64b, AC_HELP_STRING([--disable-seqno64b],
 	    [disable 64 bit sequence numer support (default is enable)]))
 
 AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--enable-isochronous],
-	    [enable isochronous support (default is disable)]),
-	    ac_cv_isochronous=true,
-	    ac_cv_isochronous=false)
-AM_CONDITIONAL([ISOCHRONOUS], [test x$ac_cv_isochronous = xtrue])
+	    [enable isochronous support (default is disable)]))
+AM_CONDITIONAL([ISOCHRONOUS], [test $enable_isochronous = yes])
 
 dnl ===================================================================
 dnl Checks for programs

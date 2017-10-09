@@ -3285,12 +3285,10 @@ fi
 
 # Check whether --enable-isochronous was given.
 if test "${enable_isochronous+set}" = set; then :
-  enableval=$enable_isochronous; ac_cv_isochronous=true
-else
-  ac_cv_isochronous=false
+  enableval=$enable_isochronous;
 fi
 
- if test x$ac_cv_isochronous = xtrue; then
+ if test $enable_isochronous = yes; then
   ISOCHRONOUS_TRUE=
   ISOCHRONOUS_FALSE='#'
 else
