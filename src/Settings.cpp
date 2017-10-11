@@ -698,6 +698,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    break;
 #endif
 	    if (udptriggers) {
+		setUDP( mExtSettings );
 		setUDPTriggers(mExtSettings);
 		setSeqNo64b(mExtSettings);  // enable this if udp triggers
 	    }
