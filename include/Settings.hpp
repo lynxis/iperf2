@@ -242,6 +242,7 @@ typedef struct thread_Settings {
 #define FLAG_SEQNO64        0x00000002
 #define FLAG_REVERSE        0x00000004
 #define FLAG_ISOCHRONOUS    0x00000008
+#define FLAG_UDPTRIGGERS    0x00000010
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -276,6 +277,7 @@ typedef struct thread_Settings {
 #define isSeqNo64b(settings)       ((settings->flags_extend & FLAG_SEQNO64) != 0)
 #define isReverse(settings)       ((settings->flags_extend & FLAG_REVERSE) != 0)
 #define isIsochronous(settings)    ((settings->flags_extend & FLAG_ISOCHRONOUS) != 0)
+#define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -308,6 +310,7 @@ typedef struct thread_Settings {
 #define setSeqNo64b(settings)      settings->flags_extend |= FLAG_SEQNO64
 #define setReverse(settings)      settings->flags_extend |= FLAG_REVERSE
 #define setIsochronous(settings)      settings->flags_extend |= FLAG_ISOCHRONOUS
+#define setUDPTriggers(settings)      settings->flags_extend |= FLAG_UDPTRIGGERS
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -340,6 +343,7 @@ typedef struct thread_Settings {
 #define unsetSeqNo64b(settings)    settings->flags_extend &= ~FLAG_SEQNO64
 #define unsetReverse(settings)    settings->flags_extend &= ~FLAG_REVERSE
 #define unsetIsochronous(settings)    settings->flags_extend &= ~FLAG_ISOCHRONOUS
+#define unsetUDPTriggers(settings)    settings->flags_extend &= ~FLAG_UDPTRIGGERS
 
 /*
  * Messasge header flags
@@ -348,6 +352,7 @@ typedef struct thread_Settings {
  */
 #define HEADER_VERSION1 0x80000000
 #define HEADER_EXTEND   0x40000000
+#define HEADER_EXTEND_TLVCHAINED  0x20000000
 #define RUN_NOW         0x00000001
 // newer flags
 #define UNITS_PPS             0x00000001
@@ -357,6 +362,9 @@ typedef struct thread_Settings {
 
 #define HDRXACKMAX 2500000 // default 2.5 seconds, units microseconds
 #define HDRXACKMIN   10000 // default 10 ms, units microseconds
+#define MAGIC_NUMBER_TYPE 0x100 //
+#define MAGIC_NUMBER_LEN   0x4
+#define MAGIC_DHDHOST_TIMESTAMP 0x18EF0001 // Value used in the UDP payload to trigger the driver to insert DHD host timestamp
 
 /*
  * Structures used for test messages which
@@ -366,7 +374,8 @@ typedef enum MsgType {
     CLIENTHDR = 0x1,
     CLIENTHDRACK,
     SERVERHDR,
-    SERVERHDRACK
+    SERVERHDRACK,
+    UDPTRIGGER
 } MsgType;
 
 /*
@@ -397,6 +406,7 @@ typedef struct UDP_datagram {
 #endif // 32
 #endif //SEQNO64b
 } UDP_datagram;
+
 typedef struct hdr_typelen {
 #ifdef HAVE_INT32_T
     int32_t type;
@@ -406,6 +416,7 @@ typedef struct hdr_typelen {
     signed int length    : 32;
 #endif
 } hdr_typelen;
+
 
 /*
  * The client_hdr structure is sent from clients
@@ -480,6 +491,24 @@ typedef struct client_hdr_ack {
     signed int reserved2   : 32;
 #endif
 } client_hdr_ack;
+
+typedef struct hdr_tlv_magicno {
+#ifdef HAVE_INT32_T
+    int32_t flags;
+#else
+    signed int flags    : 32;
+#endif
+    hdr_typelen typelen;
+#ifdef HAVE_INT32_T
+    int32_t type;
+    int32_t length;
+    int32_t magicno;
+#else
+    signed int type     : 32;
+    signed int length    : 32;
+    signed int magicno    : 32;
+#endif
+} hdr_tlv_magicno;
 
 typedef struct client_hdr {
     client_hdr_v1 base;

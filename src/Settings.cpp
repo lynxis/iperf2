@@ -73,6 +73,7 @@
 #include "gnu_getopt.h"
 
 static int seqno64b = 0;
+static int udptriggers = 0;
 #ifdef HAVE_ISOCHRONOUS
 static int isochronous = 0;
 #endif
@@ -139,6 +140,7 @@ const struct option long_options[] =
 {"peer-detect",      no_argument, NULL, 'X'},
 {"linux-congestion", required_argument, NULL, 'Z'},
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
+{"udp-triggers", no_argument, &udptriggers, 1},
 #ifdef HAVE_ISOCHRONOUS
 {"isochronous", required_argument, &isochronous, 1},
 #endif
@@ -695,6 +697,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    }
 	    break;
 #endif
+	    if (udptriggers) {
+		setUDPTriggers(mExtSettings);
+		setSeqNo64b(mExtSettings);  // enable this if udp triggers
+	    }
         default: // ignore unknown
             break;
     }

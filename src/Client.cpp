@@ -579,6 +579,16 @@ void Client::Run( void ) {
 	    mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
 	    mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
 	    reportstruct->packetID++;
+	    if (isUDPTriggers(mSettings)) {
+		hdr_tlv_magicno *payload = (hdr_tlv_magicno *)(mBuf_UDP + 1);
+		// write the fields
+		payload->flags = htonl(HEADER_EXTEND_TLVCHAINED);
+		payload->typelen.type = htonl(UDPTRIGGER);
+		payload->typelen.length = htonl(sizeof(hdr_tlv_magicno));
+		payload->type = htonl(0x01);
+		payload->length = htonl(0x04);
+		payload->magicno = htonl(MAGIC_DHDHOST_TIMESTAMP);
+	    }
 	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
 		// seqno wrapped
 		fprintf(stderr, "%s", warn_seqno_wrap);
@@ -704,6 +714,7 @@ void Client::InitiateServer() {
         client_hdr* temp_hdr;
         if ( isUDP( mSettings ) ) {
             UDP_datagram *UDPhdr = (UDP_datagram *)mBuf;
+	    // skip over the UDP datagram (seq no, timestamp)
             temp_hdr = (client_hdr*)(UDPhdr + 1);
         } else {
             temp_hdr = (client_hdr*)mBuf;
