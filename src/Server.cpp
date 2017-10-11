@@ -321,6 +321,7 @@ void Server::RunUDP( void ) {
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
 		reportstruct->packetLen = currLen;
+#if HAVE_DECL_SO_TIMESTAMP
 		if (cmsg->cmsg_level == SOL_SOCKET &&
 		    cmsg->cmsg_type  == SCM_TIMESTAMP &&
 		    cmsg->cmsg_len   == CMSG_LEN(sizeof(struct timeval))) {
@@ -328,6 +329,9 @@ void Server::RunUDP( void ) {
 		} else {
 		    gettimeofday( &(reportstruct->packetTime), NULL );
 		}
+#else
+		gettimeofday( &(reportstruct->packetTime), NULL );
+#endif // DECL_SO_TIMESTAMP
             }
 #else
             // perform read
