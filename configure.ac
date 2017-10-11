@@ -45,6 +45,10 @@ AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--enable-isochronous],
 	    [enable isochronous support (default is disable)]))
 AM_CONDITIONAL([ISOCHRONOUS], [test $enable_isochronous = yes])
 
+AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
+	    [enable support for udp triggers in udp payloads (default is disable)]))
+AM_CONDITIONAL([udptriggers], [test $enable_udptriggers = yes])
+
 dnl ===================================================================
 dnl Checks for programs
 dnl ===================================================================
@@ -283,6 +287,10 @@ fi
 
 if test "$enable_isochronous" = yes; then
 AC_DEFINE([HAVE_ISOCHRONOUS], 1, [Define if isochronous traffic option is desired and available])
+fi
+
+if test "$enable_udptriggers" = yes; then
+AC_DEFINE([HAVE_UDPTRIGGERS], 1, [Define if udp triggers option is desired and available])
 fi
 
 dnl Static link on MINGW for standalone DOS executable

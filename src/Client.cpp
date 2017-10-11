@@ -579,6 +579,7 @@ void Client::Run( void ) {
 	    mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
 	    mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
 	    reportstruct->packetID++;
+#ifdef HAVE_UDPTRIGGERS
 	    if (isUDPTriggers(mSettings)) {
 		hdr_tlv_magicno *payload = (hdr_tlv_magicno *)(mBuf_UDP + 1);
 		// write the fields
@@ -589,6 +590,7 @@ void Client::Run( void ) {
 		payload->length = htonl(0x04);
 		payload->magicno = htonl(MAGIC_DHDHOST_TIMESTAMP);
 	    }
+#endif
 	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
 		// seqno wrapped
 		fprintf(stderr, "%s", warn_seqno_wrap);

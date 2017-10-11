@@ -492,6 +492,7 @@ typedef struct client_hdr_ack {
 #endif
 } client_hdr_ack;
 
+#ifdef HAVE_UDPTRIGGERS
 typedef struct hdr_tlv_magicno {
 #ifdef HAVE_INT32_T
     int32_t flags;
@@ -509,6 +510,7 @@ typedef struct hdr_tlv_magicno {
     signed int magicno    : 32;
 #endif
 } hdr_tlv_magicno;
+#endif // UDPTRIGGERS
 
 typedef struct client_hdr {
     client_hdr_v1 base;
