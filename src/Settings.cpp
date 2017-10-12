@@ -350,37 +350,29 @@ void Settings_ParseCommandLine( int argc, char **argv, thread_Settings *mSetting
  * ------------------------------------------------------------------- */
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings ) {
-    max_size_t theNum;
-
+    char *results;
     switch ( option ) {
         case '1': // Single Client
             setSingleClient( mExtSettings );
             break;
+
         case 'b': // UDP bandwidth
-	    // scan for PPS units, just look for 'p' as that's good enough
 	    {
-		char *end;
-		errno = 0;
-#ifdef HAVE_STRTOLL
-		theNum = strtoll (optarg, &end, 10);
-#else
-		theNum = strtol (optarg, &end, 10);
-#endif
-		if (errno || end == optarg) {
-		    fprintf(stderr, "Invalid bandwidth -b of %s\n", optarg);
-		    exit(1);
-		}
-		if (*end == 'p' || *end == 'P') {
+		char *tmp= new char [strlen(optarg) + 1];
+		strcpy(tmp, optarg);
+		// scan for PPS units, just look for 'p' as that's good enough
+		if ((((results = strtok(tmp, "p")) != NULL) && strcmp(results,optarg)) \
+		    || (((results = strtok(tmp, "P")) != NULL)  && strcmp(results,optarg))) {
 		    mExtSettings->mUDPRateUnits = kRate_PPS;
-		    mExtSettings->mUDPRate = theNum;
+		    mExtSettings->mUDPRate = byte_atoi(results);
 		} else {
 		    mExtSettings->mUDPRateUnits = kRate_BW;
 		    mExtSettings->mUDPRate = byte_atoi(optarg);
 		}
+		delete [] tmp;
 	    }
-            setBWSet( mExtSettings );
-            break;
-
+	    setBWSet( mExtSettings );
+	    break;
         case 'c': // client mode w/ server host to connect to
             mExtSettings->mHost = new char[ strlen( optarg ) + 1 ];
             strcpy( mExtSettings->mHost, optarg );
@@ -729,6 +721,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 //  Other things that need this are multicast socket or not,
 //  -B local bind port parsing, and when to use the default UDP offered load
 void Settings_ModalOptions( thread_Settings *mExtSettings ) {
+    char *results;
     // Handle default read/write sizes based on v4, v6, UDP or TCP
     if ( !isBuflenSet( mExtSettings ) ) {
 	if (isUDP(mExtSettings)) {
@@ -753,7 +746,6 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     // Check for local port assignment via parsing -B's mLocalhost string
     // (only supported on the client as server/listener uses -p for this)
     if ( mExtSettings->mLocalhost != NULL && mExtSettings->mThreadMode == kMode_Client ) {
-	char *results;
 	// v4 uses a colon as the delimeter for the local bind port, e.g. 192.168.1.1:6001
 	if (!isIPV6(mExtSettings)) {
 	    if (((results = strtok(mExtSettings->mLocalhost, ":")) != NULL) && ((results = strtok(NULL, ":")) != NULL)) {
