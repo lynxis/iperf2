@@ -58,6 +58,7 @@
 #include "isochronous.hpp"
 #include "delay.h"
 #include "pdfs.h"
+#include "util.h"
 
 static void posttimestamp(int, int);
 
@@ -77,10 +78,10 @@ int main (int argc, char **argv) {
 	    frequency = atoi(optarg);
             break;
 	case 'm':
-	    mean = atof(optarg);
+	    mean=byte_atof(optarg);
 	    break;
 	case 'v':
-	    variance = atof(optarg);
+	    variance=byte_atof(optarg);
 	    break;
         case '?':
             fprintf (stderr, "usage: -c <count> -f <frames per second> \n");

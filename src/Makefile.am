@@ -47,6 +47,6 @@ iperf_SOURCES += pdfs.c isochronous.cpp
 noinst_PROGRAMS += checkpdfs checkisoch
 checkpdfs_SOURCES = pdfs.c checkpdfs.c
 checkpdfs_LDADD = -lm
-checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c
+checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c stdio.c
 checkisoch_LDADD = $(LIBCOMPAT_LDADDS)
 endif
