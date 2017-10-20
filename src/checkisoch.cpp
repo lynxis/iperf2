@@ -53,18 +53,22 @@
 #include <time.h>
 #include <errno.h>
 #include <string.h>
+#include <math.h>
 #include "headers.h"
 #include "isochronous.hpp"
-#include  "delay.h"
+#include "delay.h"
+#include "pdfs.h"
 
-static void posttimestamp(int);
+static void posttimestamp(int, int);
 
 int main (int argc, char **argv) {
     int c, count=61, frequency=60;
+    float mean=1e8;
+    float variance=3e7;
 
     Isochronous::FrameCounter *fc = NULL;
     
-    while ((c = getopt(argc, argv, "c:f:")) != -1) {
+    while ((c = getopt(argc, argv, "c:f:m:v:")) != -1) {
         switch (c) {
         case 'c':
             count = atoi(optarg);
@@ -72,6 +76,12 @@ int main (int argc, char **argv) {
         case 'f':
 	    frequency = atoi(optarg);
             break;
+	case 'm':
+	    mean = atof(optarg);
+	    break;
+	case 'v':
+	    variance = atof(optarg);
+	    break;
         case '?':
             fprintf (stderr, "usage: -c <count> -f <frames per second> \n");
             return 1;
@@ -88,7 +98,7 @@ int main (int argc, char **argv) {
 	    delay_loop (1000000/frequency + 10);
 	}
 	fc->wait_tick();
-	posttimestamp(count);
+	posttimestamp(count, (round(lognormal(mean,variance)) / (frequency * 8)));
 	if (fc->slip) {
 	    fprintf(stdout,"Slip occurred\n");
 	    fc->slip = 0;
@@ -96,7 +106,7 @@ int main (int argc, char **argv) {
     }
 }
 
-void posttimestamp (int count) {
+void posttimestamp (int count, int bytes) {
     struct timespec t1;
     double timestamp;
     int err;
@@ -106,7 +116,7 @@ void posttimestamp (int count) {
         perror("clock_getttime");
     } else {
         timestamp = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-        fprintf(stdout,"%f counter(%d)\n", timestamp, count);
+        fprintf(stdout,"%f counter(%d), sending %d bytes\n", timestamp, count, bytes);
     }
     fflush(stdout);
 }
