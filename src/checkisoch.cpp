@@ -45,13 +45,6 @@
  *
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
  * ------------------------------------------------------------------- */
-
-/* Produce normal and log normal
- *
- * Implements the Polar form of the Box-Muller Transformation
- *
- *
-*/
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
