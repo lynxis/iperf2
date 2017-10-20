@@ -90,7 +90,14 @@ public:
      * Set timestamp to current time.
      * ------------------------------------------------------------------- */
     void setnow( void ) {
-        gettimeofday( &mTime, NULL );
+#ifdef HAVE_CLOCK_GETTIME
+	struct timespec t1;
+	clock_gettime(CLOCK_REALTIME, &t1);
+	mTime.tv_sec  = t1.tv_sec;
+        mTime.tv_usec = t1.tv_nsec / 1000;
+#else
+	gettimeofday( &mTime, NULL );
+#endif
     }
 
     /* -------------------------------------------------------------------
