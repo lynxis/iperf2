@@ -739,23 +739,45 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
 #ifdef HAVE_ISOCHRONOUS
-    if (isUDP(mExtSettings) && isIsochronous(mExtSettings) && mExtSettings->mThreadMode == kMode_Client) {
-	if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && strcmp(results,mExtSettings->mIsochronousStr)) {
-	    mExtSettings->mFPS = atoi(mExtSettings->mIsochronousStr);
-	} else {
-	    mExtSettings->mFPS = atoi(results);
-	    if ((results = strtok(NULL, ",")) != NULL) {
-		mExtSettings->mMean = byte_atof(results);
+    if (isUDP(mExtSettings) && isIsochronous(mExtSettings)) {
+	// parse client isochronous field,
+	// format is --isochronous <int>:<float>,<float> and supports
+	// human suffixes, e.g. --isochronous 60:100m,5m
+	// which is frames per second, mean and variance
+	if (mExtSettings->mThreadMode == kMode_Client) {
+	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && strcmp(results,mExtSettings->mIsochronousStr)) {
+		mExtSettings->mFPS = atoi(mExtSettings->mIsochronousStr);
+	    } else {
+		mExtSettings->mFPS = atoi(results);
 		if ((results = strtok(NULL, ",")) != NULL) {
-		    mExtSettings->mVariance = byte_atof(results);
+		    mExtSettings->mMean = byte_atof(results);
+		    if ((results = strtok(NULL, ",")) != NULL) {
+			mExtSettings->mVariance = byte_atof(results);
+		    }
 		}
 	    }
-	}
-	if (!mExtSettings->mMean) {
-	    mExtSettings->mMean = 10e8;
-	}
-	if (!mExtSettings->mVariance) {
-	    mExtSettings->mMean = 2e7;
+	    if (!mExtSettings->mMean) {
+		mExtSettings->mMean = 10e8;
+	    }
+	    if (!mExtSettings->mVariance) {
+		mExtSettings->mMean = 2e7;
+	    }
+	} else {
+	    // parse server isochronous field,
+	    // format is --isochronous <int>:<jitter buffer> e.g. --isochronous 60:20
+	    // which is frames per second and jitter buffer size
+	    // Jitter buffer size is units frames
+	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && strcmp(results,mExtSettings->mIsochronousStr)) {
+		mExtSettings->mFPS = atoi(mExtSettings->mIsochronousStr);
+	    } else {
+		mExtSettings->mFPS = atoi(results);
+		if ((results = strtok(NULL, ",")) != NULL) {
+		    mExtSettings->mJitterBufSize = byte_atoi(results);
+		}
+	    }
+	    if (!mExtSettings->mJitterBufSize) {
+		mExtSettings->mJitterBufSize = 10;
+	    }
 	}
     }
 #endif

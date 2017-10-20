@@ -197,6 +197,7 @@ typedef struct thread_Settings {
     int mFPS; //frames per second
     float mMean; //variable bit rate mean
     float mVariance; //vbr variance
+    int mJitterBufSize; //Server jitter buffer size, units is bytes
 #endif
 } thread_Settings;
 
