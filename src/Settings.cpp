@@ -740,7 +740,23 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     }
 #ifdef HAVE_ISOCHRONOUS
     if (isUDP(mExtSettings) && isIsochronous(mExtSettings) && mExtSettings->mThreadMode == kMode_Client) {
-//	mExtSettings->vframe_freq =
+	if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && strcmp(results,mExtSettings->mIsochronousStr)) {
+	    mExtSettings->mFPS = atoi(mExtSettings->mIsochronousStr);
+	} else {
+	    mExtSettings->mFPS = atoi(results);
+	    if ((results = strtok(NULL, ",")) != NULL) {
+		mExtSettings->mMean = byte_atof(results);
+		if ((results = strtok(NULL, ",")) != NULL) {
+		    mExtSettings->mVariance = byte_atof(results);
+		}
+	    }
+	}
+	if (!mExtSettings->mMean) {
+	    mExtSettings->mMean = 10e8;
+	}
+	if (!mExtSettings->mVariance) {
+	    mExtSettings->mMean = 2e7;
+	}
     }
 #endif
     // Check for local port assignment via parsing -B's mLocalhost string
