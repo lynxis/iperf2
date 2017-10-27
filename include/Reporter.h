@@ -116,6 +116,17 @@ typedef struct WriteStats {
     int rtt;
 } WriteStats;
 
+#ifdef HAVE_ISOCHRONOUS
+typedef struct IsochStats {
+    int mFPS; //frames per second
+    double mMean; //variable bit rate mean
+    double mVariance; //vbr variance
+    int mJitterBufSize; //Server jitter buffer size, units is frames
+    int slip;
+    double mBurstIPG; //IPG of packets within the burst
+} IsochStats;
+#endif
+
 /*
  * This struct contains all important information from the sending or
  * recieving thread.
@@ -213,6 +224,7 @@ typedef struct ReporterData {
         bool   mUDP;
         bool   mMode_time;*/
     int flags;
+    int flags_extend;
     // enums (which should be special int's)
     ThreadMode mThreadMode;         // -s or -c
     ReportMode mode;
@@ -229,6 +241,9 @@ typedef struct ReporterData {
     struct timeval nextTime;
     struct timeval intervalTime;
     struct timeval IPGstart;
+#ifdef HAVE_ISOCHRONOUS
+    IsochStats isochstats;
+#endif
 } ReporterData;
 
 typedef struct MultiHeader {

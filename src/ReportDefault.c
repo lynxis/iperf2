@@ -300,33 +300,43 @@ void reporter_reportsettings( ReporterData *data ) {
         }
     }
 
-    if ( isUDP( data ) ) {
-
-	if (data->mThreadMode != kMode_Listener) {
-	    double delay_target;
-	    if (data->mUDPRateUnits == kRate_BW) {
-		delay_target = (double) ( data->mBufLen * 8000000.0 / data->mUDPRate);
-	    } else {
-		delay_target = (1e6 / data->mUDPRate);
-	    }
-#ifdef HAVE_KALMAN
-	    printf(client_datagram_size_kalman, data->mBufLen, delay_target);
+    if (isIsochronous(data)) {
+#ifdef HAVE_ISOCHRONOUS
+	char meanbuf[40];
+	char variancebuf[40];
+	byte_snprintf(meanbuf, sizeof(meanbuf), data->isochstats.mMean, 'a');  
+	byte_snprintf(variancebuf, sizeof(variancebuf), data->isochstats.mVariance, 'a');  
+	fprintf(stdout,"Sending UDP isochronous traffic: %d frames/sec mean %s/s and variance %s/s IPG=%f\n", data->isochstats.mFPS, meanbuf, variancebuf, data->isochstats.mBurstIPG);
 #else
-	    printf(client_datagram_size, data->mBufLen, delay_target);
+	fprintf(stderr, "--isochronous not supportted, try --enable-isochronous during config and remake\n");
+#endif	
+    } else {
+	if ( isUDP( data ) ) {
+	    if (data->mThreadMode != kMode_Listener) {
+		double delay_target;
+		if (data->mUDPRateUnits == kRate_BW) {
+		    delay_target = (double) ( data->mBufLen * 8000000.0 / data->mUDPRate);
+		} else {
+		    delay_target = (1e6 / data->mUDPRate);
+		}
+#ifdef HAVE_KALMAN
+		printf(client_datagram_size_kalman, data->mBufLen, delay_target);
+#else
+		printf(client_datagram_size, data->mBufLen, delay_target);
 #endif
-	} else {
-	    printf(server_datagram_size, data->mBufLen);
+	    } else {
+		printf(server_datagram_size, data->mBufLen);
+	    }
+	    if ( SockAddr_isMulticast( &data->connection.peer ) ) {
+		printf( multicast_ttl, data->info.mTTL);
+	    }
+	} else if (isEnhanced(data)) {
+	    byte_snprintf( buffer, sizeof(buffer), data->mBufLen,
+			   toupper( (int)data->info.mFormat));
+	    printf("%s: %s\n", ((data->mThreadMode == kMode_Client) ?
+				client_write_size : server_read_size), buffer);
 	}
-        if ( SockAddr_isMulticast( &data->connection.peer ) ) {
-            printf( multicast_ttl, data->info.mTTL);
-        }
-    } else if (isEnhanced(data)) {
-	byte_snprintf( buffer, sizeof(buffer), data->mBufLen,
-		       toupper( (int)data->info.mFormat));
-	printf("%s: %s\n", ((data->mThreadMode == kMode_Client) ?
-			   client_write_size : server_read_size), buffer);
     }
-
     byte_snprintf( buffer, sizeof(buffer), win,
                    toupper( (int)data->info.mFormat));
     printf( "%s: %s", (isUDP( data ) ?

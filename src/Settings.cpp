@@ -76,10 +76,9 @@ static int seqno64b = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
-#ifdef HAVE_ISOCHRONOUS
 static int isochronous = 0;
-#endif
 static int reversetest = 0;
+static int burstipg = 0;
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
 // apply compound settings after the command line has been fully parsed
@@ -147,6 +146,7 @@ const struct option long_options[] =
 #endif
 #ifdef HAVE_ISOCHRONOUS
 {"isochronous", required_argument, &isochronous, 1},
+{"ipg", required_argument, &burstipg, 1},
 #endif
 #ifdef WIN32
 {"reverse", no_argument, &reversetest, 1},
@@ -691,7 +691,14 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
 		strcpy( mExtSettings->mIsochronousStr, optarg );
 	    }
-	    break;
+	    if (burstipg) {
+		char *end;
+		mExtSettings->mBurstIPG = strtof( optarg, &end );
+		if (*end != '\0') {
+		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
+		}
+	    }
+            break;
 #endif
 #ifdef HAVE_UDPTRIGGERS
 	    if (udptriggers) {
@@ -739,7 +746,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
 #ifdef HAVE_ISOCHRONOUS
-    if (isUDP(mExtSettings) && isIsochronous(mExtSettings)) {
+    if (isIsochronous(mExtSettings)) {
 	// parse client isochronous field,
 	// format is --isochronous <int>:<float>,<float> and supports
 	// human suffixes, e.g. --isochronous 60:100m,5m
@@ -755,12 +762,6 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 			mExtSettings->mVariance = byte_atof(results);
 		    }
 		}
-	    }
-	    if (!mExtSettings->mMean) {
-		mExtSettings->mMean = 10e8;
-	    }
-	    if (!mExtSettings->mVariance) {
-		mExtSettings->mMean = 2e7;
 	    }
 	} else {
 	    // parse server isochronous field,

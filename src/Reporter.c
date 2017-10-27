@@ -484,6 +484,7 @@ void ReportSettings( thread_Settings *agent ) {
             data->mMSS = agent->mMSS;
             data->mTCPWin = agent->mTCPWin;
             data->flags = agent->flags;
+            data->flags_extend = agent->flags_extend;
             data->mThreadMode = agent->mThreadMode;
             data->mPort = agent->mPort;
             data->info.mFormat = agent->mFormat;
@@ -494,6 +495,14 @@ void ReportSettings( thread_Settings *agent ) {
             data->connection.size_local = agent->size_local;
             data->mUDPRate = agent->mUDPRate;
             data->mUDPRateUnits = agent->mUDPRateUnits;
+#ifdef HAVE_ISOCHRONOUS
+	    if (isIsochronous(data)) {
+		data->isochstats.mFPS = agent->mFPS;
+		data->isochstats.mMean = agent->mMean/8;
+		data->isochstats.mVariance = agent->mVariance/8;
+		data->isochstats.mBurstIPG = agent->mBurstIPG;
+	    }
+#endif
     #ifdef HAVE_THREAD
             /*
              * Update the ReportRoot to include this report.
