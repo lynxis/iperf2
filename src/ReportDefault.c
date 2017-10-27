@@ -117,13 +117,26 @@ void reporter_printstats( Transfer_Info *stats ) {
     } else if ( stats->mUDP == (char)kMode_Client ) {
 	// UDP Client reporting
 	if( !header_printed ) {
+#ifdef HAVE_ISOCHRONOUS
+	    if (stats->mIsochronous)
+		printf( "%s", (stats->mEnhanced ? report_bw_pps_enhanced_isoch_header : report_bw_header));
+	    else
+#endif
 	    printf( "%s", (stats->mEnhanced ? report_bw_pps_enhanced_header : report_bw_header));
 	    header_printed = 1;
 	}
-	printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID,
-		stats->startTime, stats->endTime,
-		buffer, &buffer[sizeof(buffer)/2],
-		(stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+#ifdef HAVE_ISOCHRONOUS
+	if (stats->mIsochronous)
+	    printf( stats->mEnhanced ? report_bw_pps_enhanced_isoch_format : report_bw_format, stats->transferID,
+		    stats->startTime, stats->endTime,
+		    buffer, &buffer[sizeof(buffer)/2],
+		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0), stats->isochstats.framecnt, stats->isochstats.framelostcnt, stats->isochstats.slipcnt);
+	else
+#endif
+	    printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID,
+		    stats->startTime, stats->endTime,
+		    buffer, &buffer[sizeof(buffer)/2],
+		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
     } else {
         // UDP Server Reporting
         if( !header_printed ) {
@@ -186,7 +199,13 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    stats->transit.vdTransit = 0;
 	    stats->transit.meanTransit = 0;
 	    stats->transit.m2Transit = 0;
+#ifdef HAVE_ISOCHRONOUS
+	    stats->isochstats.framecnt = 0;
+	    stats->isochstats.framelostcnt = 0;
+	    stats->isochstats.slipcnt = 0;
+#endif
 	}
+
     }
 
     if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
@@ -304,12 +323,12 @@ void reporter_reportsettings( ReporterData *data ) {
 #ifdef HAVE_ISOCHRONOUS
 	char meanbuf[40];
 	char variancebuf[40];
-	byte_snprintf(meanbuf, sizeof(meanbuf), data->isochstats.mMean, 'a');  
-	byte_snprintf(variancebuf, sizeof(variancebuf), data->isochstats.mVariance, 'a');  
+	byte_snprintf(meanbuf, sizeof(meanbuf), data->isochstats.mMean, 'a');
+	byte_snprintf(variancebuf, sizeof(variancebuf), data->isochstats.mVariance, 'a');
 	printf(client_udp_isochronous, data->isochstats.mFPS, meanbuf, variancebuf, data->isochstats.mBurstIPG);
 #else
 	fprintf(stderr, "--isochronous not supportted, try --enable-isochronous during config and remake\n");
-#endif	
+#endif
     } else {
 	if ( isUDP( data ) ) {
 	    if (data->mThreadMode != kMode_Listener) {

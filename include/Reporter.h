@@ -122,8 +122,11 @@ typedef struct IsochStats {
     double mMean; //variable bit rate mean
     double mVariance; //vbr variance
     int mJitterBufSize; //Server jitter buffer size, units is frames
-    int slip;
+    max_size_t slipcnt;
+    max_size_t framecnt;
+    max_size_t framelostcnt;
     double mBurstIPG; //IPG of packets within the burst
+    int frameID;
 } IsochStats;
 #endif
 
@@ -140,7 +143,6 @@ typedef struct ReportStruct {
     int emptyreport;
     int socket;
     max_size_t frameID;
-    int slip;
 } ReportStruct;
 
 
@@ -183,6 +185,10 @@ typedef struct Transfer_Info {
     char   mUDP;
     char   mTCP;
     char   free;
+#ifdef HAVE_ISOCHRONOUS
+    IsochStats isochstats;
+    char   mIsochronous;                 // -e
+#endif
 } Transfer_Info;
 
 typedef struct Connection_Info {

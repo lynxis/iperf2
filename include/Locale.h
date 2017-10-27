@@ -149,6 +149,10 @@ extern const char report_bw_pps_enhanced_header[];
 
 extern const char report_bw_pps_enhanced_format[];
 
+extern const char report_bw_pps_enhanced_isoch_header[];
+
+extern const char report_bw_pps_enhanced_isoch_format[];
+
 extern const char report_sum_bw_pps_enhanced_format[];
 
 extern const char report_bw_jitter_loss_enhanced_header[];
@@ -240,13 +244,3 @@ extern const char warn_seqno_wrap[];
 } /* end extern "C" */
 #endif
 #endif // LOCALE_H
-
-
-
-
-
-
-
-
-
-

@@ -1,3 +1,4 @@
+
 /*---------------------------------------------------------------
  * Copyright (c) 1999,2000,2001,2002,2003
  * The Board of Trustees of the University of Illinois
@@ -480,10 +481,6 @@ void Client::RunUDPIsochronous (void) {
 	int bytecnt;
 	int frameid;
 	fc->wait_tick();
-	if (fc->slip) {
-	    fc->slip = 0;
-	    reportstruct->slip=1;
-	}
 	frameid = fc->get(NULL);
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
 #if 0

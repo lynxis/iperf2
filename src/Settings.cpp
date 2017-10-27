@@ -689,6 +689,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 #ifdef HAVE_ISOCHRONOUS
 	    if (isochronous) {
 		isochronous = 0;
+		setEnhanced( mExtSettings );
 		setIsochronous(mExtSettings);
 		mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
 		strcpy( mExtSettings->mIsochronousStr, optarg );

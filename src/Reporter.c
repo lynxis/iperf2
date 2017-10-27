@@ -276,6 +276,13 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 	    } else {
 		data->info.mEnhanced = 0;
 	    }
+#ifdef HAVE_ISOCHRONOUS
+	    if ( isIsochronous( agent ) ) {
+		data->info.mIsochronous = 1;
+	    } else {
+		data->info.mIsochronous = 0;
+	    }
+#endif
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
@@ -807,6 +814,28 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		stats->IPGsum += TimeDifference(data->packetTime, data->IPGstart );
 		stats->IPGcnt++;
 		data->IPGstart = data->packetTime;
+ #ifdef HAVE_ISOCHRONOUS
+		{
+		    int framedelta=0;
+		    // first isochronous frame
+		    if (!data->isochstats.frameID) {
+			data->isochstats.framecnt=packet->frameID;
+			data->isochstats.framecnt=1;
+		    } else if ((framedelta = (packet->frameID - data->isochstats.frameID)) > 1) {
+			stats->isochstats.framelostcnt += (framedelta-1);
+			stats->isochstats.slipcnt++;
+			stats->isochstats.framecnt++;
+			data->isochstats.framelostcnt += (framedelta-1);
+			data->isochstats.slipcnt++;
+			data->isochstats.framecnt++;
+		    }
+		    if (framedelta == 1) {
+			stats->isochstats.framecnt++;
+			data->isochstats.framecnt++;
+		    }
+		    data->isochstats.frameID = packet->frameID;
+		}
+#endif
 		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
 		    //subsequent packets
@@ -1078,7 +1107,13 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	}
 	stats->info.IPGsum = 1;
         stats->info.free = 1;
-
+#ifdef HAVE_ISOCHRONOUS
+	if (stats->info.mIsochronous) {
+	    stats->info.isochstats.framecnt = stats->isochstats.framecnt;
+	    stats->info.isochstats.framelostcnt = stats->isochstats.framelostcnt;
+	    stats->info.isochstats.slipcnt = stats->isochstats.slipcnt;
+	}
+#endif
         reporter_print( stats, TRANSFER_REPORT, force );
         if ( isMultipleReport(stats) ) {
             reporter_handle_multiple_reports( multireport, &stats->info, force );
