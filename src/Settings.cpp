@@ -674,6 +674,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 
         case 0:
 	    if (seqno64b) {
+		seqno64b = 0;
 #ifdef HAVE_SEQNO64b
 		setSeqNo64b(mExtSettings);
 #else
@@ -687,11 +688,13 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    }
 #ifdef HAVE_ISOCHRONOUS
 	    if (isochronous) {
+		isochronous = 0;
 		setIsochronous(mExtSettings);
 		mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
 		strcpy( mExtSettings->mIsochronousStr, optarg );
 	    }
 	    if (burstipg) {
+		burstipg = 0;
 		char *end;
 		mExtSettings->mBurstIPG = strtof( optarg, &end );
 		if (*end != '\0') {
@@ -702,6 +705,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 #endif
 #ifdef HAVE_UDPTRIGGERS
 	    if (udptriggers) {
+		udptriggers = 0;
 		setUDP( mExtSettings );
 		setUDPTriggers(mExtSettings);
 		setSeqNo64b(mExtSettings);  // enable this if udp triggers
