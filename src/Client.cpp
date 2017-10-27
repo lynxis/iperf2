@@ -686,9 +686,12 @@ void Client::Run( void ) {
 	else
 	    RunTCP();
 	return;
-    } else if (isIsochronous(mSettings)) {
-	RunUDPIsochronous();
+    } else {
+#ifdef HAVE_ISOCHRONOUS
+	if (isIsochronous(mSettings)) {
+	    RunUDPIsochronous();
 	return;
+#endif
     }
 #endif
 
