@@ -690,7 +690,8 @@ void Client::Run( void ) {
 #ifdef HAVE_ISOCHRONOUS
 	if (isIsochronous(mSettings)) {
 	    RunUDPIsochronous();
-	return;
+	    return;
+	}
 #endif
     }
 #endif
