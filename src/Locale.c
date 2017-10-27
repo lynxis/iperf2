@@ -283,6 +283,12 @@ const char report_bw_pps_enhanced_header[] =
 const char report_bw_pps_enhanced_format[] =
 "[%3d] %4.2f-%4.2f sec  %ss  %ss/sec %4.0f pps\n";
 
+const char report_bw_pps_enhanced_isoch_header[] =
+"[ ID] Interval       Transfer     Bandwidth      PPS  frames:tx/missed/slips\n";
+
+const char report_bw_pps_enhanced_isoch_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec %6.0f pps %3d/%d/%d\n";
+
 const char report_sum_bw_pps_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec %4.0f pps\n";
 
