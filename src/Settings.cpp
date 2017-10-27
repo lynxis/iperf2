@@ -73,12 +73,14 @@
 #include "gnu_getopt.h"
 
 static int seqno64b = 0;
+static int reversetest = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
+#ifdef HAVE_ISOCHRONOUS
 static int isochronous = 0;
-static int reversetest = 0;
 static int burstipg = 0;
+#endif
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
 // apply compound settings after the command line has been fully parsed
