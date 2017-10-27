@@ -67,7 +67,10 @@
 #ifdef HAVE_MLOCKALL
 #include <sys/mman.h>
 #endif
-
+#ifdef HAVE_ISOCHRONOUS
+#include "isochronous.hpp"
+#include "pdfs.h"
+#endif
 /* -------------------------------------------------------------------
  * Store server hostname, optionally local hostname, and socket info.
  * ------------------------------------------------------------------- */
@@ -424,6 +427,214 @@ void Client::RunTCP( void ) {
     EndReport( mSettings->reporthdr );
 }
 
+
+#ifdef HAVE_ISOCHRONOUS
+void Client::RunUDPIsochronous (void) {
+    // Indicates if the stream is readable
+    bool mMode_Time = isModeTime( mSettings );
+    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
+    Isochronous::FrameCounter *fc = NULL;
+    double delay_target = mSettings->mBurstIPG * 1000000;  // convert from milliseconds to nanoseconds
+    double delay = 0;
+    double adjust = 0;
+    int currLen = 1;
+
+    ReportStruct *reportstruct = NULL;
+    // InitReport handles Barrier for multiple Streams
+    mSettings->reporthdr = InitReport( mSettings );
+    reportstruct = new ReportStruct;
+    reportstruct->packetID = (isPeerVerDetect(mSettings)) ? 1 : 0;
+    reportstruct->emptyreport=0;
+    reportstruct->errwrite=0;
+    reportstruct->socket = mSettings->mSock;
+
+    fc = new Isochronous::FrameCounter(mSettings->mFPS);
+
+    // setup termination variables
+    if ( mMode_Time ) {
+        mEndTime.setnow();
+        mEndTime.add( mSettings->mAmount / 100.0 );
+    }
+
+#ifdef HAVE_SCHED_SETSCHEDULER
+    if ( isRealtime( mSettings ) ) {
+	// Thread settings to support realtime operations
+	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	struct sched_param sp;
+	sp.sched_priority = sched_get_priority_max(SCHED_RR);
+
+	if (sched_setscheduler(0, SCHED_RR, &sp) < 0) {
+	    WARN_errno( 1, "Client set scheduler" );
+#ifdef HAVE_MLOCKALL
+	} else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+	    // lock the threads memory
+	    WARN_errno( 1, "mlockall");
+#endif
+	}
+    }
+#endif
+
+    lastPacketTime.setnow();
+
+    do {
+	int bytecnt;
+	int frameid;
+	fc->wait_tick();
+	if (fc->slip) {
+	    fc->slip = 0;
+	    reportstruct->slip=1;
+	}
+	frameid = fc->get(NULL);
+	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
+#if 0
+	{
+	    struct timespec tickts;
+	    int err = clock_gettime(CLOCK_REALTIME, &tickts);
+	    if (err < 0) {
+		perror("clock_getttime");
+	    } else {
+		double timestamp;
+		timestamp = tickts.tv_sec + (tickts.tv_nsec / 1000000000.0);
+		fprintf(stdout,"%f sending bytes(%d)\n", timestamp, bytecnt);
+		fflush(stdout);
+	    }
+	}
+#endif
+	while (bytecnt > 0 && \
+	       !(sInterupted  || (mMode_Time   &&  mEndTime.before(reportstruct->packetTime)))) {
+#ifdef HAVE_CLOCK_GETTIME
+	    struct timespec t1;
+	    clock_gettime(CLOCK_REALTIME, &t1);
+	    reportstruct->packetTime.tv_sec = t1.tv_sec;
+	    reportstruct->packetTime.tv_usec = (t1.tv_nsec + 500) / 1000L;
+#else
+	    gettimeofday( &(reportstruct->packetTime), NULL );
+#endif
+	    // store datagram ID into buffer
+	    mBuf_UDP->id      = htonl((reportstruct->packetID & 0xFFFFFFFFL));
+	    if (isSeqNo64b(mSettings)) {
+		mBuf_UDP->id2      = htonl(((reportstruct->packetID & 0xFFFFFFFF00000000LL) >> 32));
+	    }
+	    mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
+	    mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
+	    reportstruct->packetID++;
+#ifdef HAVE_UDPTRIGGERS
+	    if (isUDPTriggers(mSettings)) {
+		hdr_tlv_magicno *payload = (hdr_tlv_magicno *)(mBuf_UDP + 1);
+		// write the fields
+		payload->flags = htonl(HEADER_EXTEND_TLVCHAINED);
+		payload->typelen.type = htonl(UDPTRIGGER);
+		payload->typelen.length = htonl(sizeof(hdr_tlv_magicno));
+		payload->type = htonl(0x01);
+		payload->length = htonl(0x04);
+		payload->magicno = htonl(MAGIC_DHDHOST_TIMESTAMP);
+	    }
+#endif
+	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
+		// seqno wrapped
+		fprintf(stderr, "%s", warn_seqno_wrap);
+		break;
+	    }
+	    // Adjustment for the running delay
+	    // o measure how long the last loop iteration took
+	    // o calculate the delay adjust
+	    //   - If write succeeded, adjust = target IPG - the loop time
+	    //   - If write failed, adjust = the loop time
+	    // o then adjust the overall running delay
+	    // Note: adjust units are nanoseconds,
+	    //       packet timestamps are microseconds
+	    if (currLen > 0)
+		adjust = delay_target + \
+		    (1000.0 * lastPacketTime.subUsec( reportstruct->packetTime ));
+	    else
+		adjust = 1000.0 * lastPacketTime.subUsec( reportstruct->packetTime );
+
+	    lastPacketTime.set( reportstruct->packetTime.tv_sec,
+				reportstruct->packetTime.tv_usec );
+	    // Since linux nanosleep/busyloop can exceed delay
+	    // there are two possible equilibriums
+	    //  1)  Try to perserve inter packet gap
+	    //  2)  Try to perserve requested transmit rate
+	    // The latter seems preferred, hence use a running delay
+	    // that spans the life of the thread and constantly adjust.
+	    // A negative delay means the iperf app is behind.
+	    delay += adjust;
+	    // Don't let delay grow unbounded
+	    // if (delay < delay_lower_bounds) {
+	    //	  delay = delay_target;
+	    // }
+
+	    // perform write
+	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+	    if ( currLen < 0 ) {
+		reportstruct->errwrite = 1;
+		reportstruct->packetID--;
+		reportstruct->emptyreport=1;
+		currLen = 0;
+		if (
+#ifdef WIN32
+		    (errno = WSAGetLastError()) != WSAETIMEDOUT &&
+		    errno != WSAECONNREFUSED
+#else
+		    errno != EAGAIN && errno != EWOULDBLOCK &&
+		    errno != EINTR  && errno != ECONNREFUSED &&
+		    errno != ENOBUFS
+#endif
+		    ) {
+		    WARN_errno( 1, "write" );
+		    break;
+		}
+	    } else {
+		bytecnt -= currLen;
+	    }
+
+	    // report packets
+
+	    reportstruct->frameID=frameid;
+	    reportstruct->packetLen = (unsigned long) currLen;
+	    ReportPacket( mSettings->reporthdr, reportstruct );
+
+	    // Insert delay here only if the running delay is greater than 1 usec,
+	    // otherwise don't delay and immediately continue with the next tx.
+	    if ( delay >= 1000 ) {
+		// Convert from nanoseconds to microseconds
+		// and invoke the microsecond delay
+		delay_loop((unsigned long) (delay / 1000));
+	    }
+	}
+    } while (!(sInterupted  || (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))));
+
+    // stop timing
+    gettimeofday( &(reportstruct->packetTime), NULL );
+    CloseReport( mSettings->reporthdr, reportstruct );
+
+    if ( isUDP( mSettings ) ) {
+        // send a final terminating datagram
+        // Don't count in the mTotalLen. The server counts this one,
+        // but didn't count our first datagram, so we're even now.
+        // The negative datagram ID signifies termination to the server.
+
+        // store datagram ID into buffer
+	if (isSeqNo64b(mSettings)) {
+	    mBuf_UDP->id      = htonl((reportstruct->packetID & 0xFFFFFFFFL));
+	    mBuf_UDP->id2     = htonl((((reportstruct->packetID & 0xFFFFFFFF00000000LL) >> 32) | 0x80000000L));
+	} else {
+	    mBuf_UDP->id      = htonl(((reportstruct->packetID & 0xFFFFFFFFL) | 0x80000000L));
+	}
+        mBuf_UDP->tv_usec = htonl( reportstruct->packetTime.tv_usec );
+
+        if ( isMulticast( mSettings ) ) {
+            write(mSettings->mSock, mBuf, mSettings->mBufLen);
+        } else {
+            write_UDP_FIN( );
+        }
+    }
+    DELETE_PTR( reportstruct );
+    EndReport( mSettings->reporthdr );
+}
+// end RunUDPIsoch
+#endif
+
 /* -------------------------------------------------------------------
  * Send data using the connected UDP/TCP socket,
  * until a termination flag is reached.
@@ -477,6 +688,9 @@ void Client::Run( void ) {
 	    RunRateLimitedTCP();
 	else
 	    RunTCP();
+	return;
+    } else if (isIsochronous(mSettings)) {
+	RunUDPIsochronous();
 	return;
     }
 #endif
@@ -909,7 +1123,7 @@ void Client::write_UDP_FIN( ) {
 	// Note: a negative packet id is used to tell the server
         // this UDP stream is terminating.  The server will remove
         // the sign.  So a decrement will be seen as increments by
-	// the server (e.g, -1000, -1001, -1002 as 1000, 1001, 1002) 
+	// the server (e.g, -1000, -1001, -1002 as 1000, 1001, 1002)
         // If the retries weren't decrement here the server can get out
         // of order packets per these retries actually being received
         // by the server (e.g. -1000, -1000, -1000)

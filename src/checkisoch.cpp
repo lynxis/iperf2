@@ -84,7 +84,7 @@ int main (int argc, char **argv) {
 	    variance=byte_atof(optarg);
 	    break;
         case '?':
-            fprintf (stderr, "usage: -c <count> -f <frames per second> \n");
+            fprintf (stderr, "usage: -c <count> -f <frames per second> -m <mean> -v <variance>\n");
             return 1;
         default:
             abort ();

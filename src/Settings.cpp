@@ -301,10 +301,10 @@ void Settings_Destroy( thread_Settings *mSettings) {
     DELETE_ARRAY( mSettings->mLocalhost );
     DELETE_ARRAY( mSettings->mFileName  );
     DELETE_ARRAY( mSettings->mOutputFileName );
-    DELETE_PTR( mSettings );
 #ifdef HAVE_ISOCHRONOUS
     DELETE_ARRAY( mSettings->mIsochronousStr );
 #endif
+    DELETE_PTR( mSettings );
 } // end ~Settings
 
 /* -------------------------------------------------------------------

@@ -75,6 +75,8 @@ public:
     // TCP version which supports rate limiting per -b
     void RunRateLimitedTCP( void );
 
+    void RunUDPIsochronous( void );
+
     void InitiateServer();
 
     // UDP / TCP

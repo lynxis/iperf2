@@ -139,6 +139,8 @@ typedef struct ReportStruct {
     int errwrite;
     int emptyreport;
     int socket;
+    max_size_t frameID;
+    int slip;
 } ReportStruct;
 
 
