@@ -480,6 +480,7 @@ void Client::RunUDPIsochronous (void) {
     do {
 	int bytecnt;
 	int frameid;
+	delay = 0;
 	fc->wait_tick();
 	frameid = fc->get(NULL);
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
@@ -562,7 +563,7 @@ void Client::RunUDPIsochronous (void) {
 	    // }
 
 	    // perform write
-	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite = 1;
 		reportstruct->packetID--;
