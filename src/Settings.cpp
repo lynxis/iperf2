@@ -695,6 +695,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		setIsochronous(mExtSettings);
 		mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
 		strcpy( mExtSettings->mIsochronousStr, optarg );
+		// The following are default values which
+		// may be overwritten during modal parsing
+		mExtSettings->mFPS = 30;
+		mExtSettings->mMean = 10000000;
 	    }
 	    if (burstipg) {
 		burstipg = 0;
@@ -759,9 +763,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	// human suffixes, e.g. --isochronous 60:100m,5m
 	// which is frames per second, mean and variance
 	if (mExtSettings->mThreadMode == kMode_Client) {
-	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && strcmp(results,mExtSettings->mIsochronousStr)) {
-		mExtSettings->mFPS = atoi(mExtSettings->mIsochronousStr);
-	    } else {
+	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && !strcmp(results,mExtSettings->mIsochronousStr)) {
 		mExtSettings->mFPS = atoi(results);
 		if ((results = strtok(NULL, ",")) != NULL) {
 		    mExtSettings->mMean = byte_atof(results);

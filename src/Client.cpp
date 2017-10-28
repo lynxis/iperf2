@@ -481,8 +481,7 @@ void Client::RunUDPIsochronous (void) {
 	int bytecnt;
 	int frameid;
 	delay = 0;
-	fc->wait_tick();
-	frameid = fc->get(NULL);
+	frameid =  fc->wait_tick();
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
 #if 0
 	{
