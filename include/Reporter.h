@@ -142,7 +142,9 @@ typedef struct ReportStruct {
     int errwrite;
     int emptyreport;
     int socket;
+#ifdef HAVE_ISOCHRONOUS
     max_size_t frameID;
+#endif
 } ReportStruct;
 
 

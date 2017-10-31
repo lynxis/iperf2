@@ -43,7 +43,7 @@ checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 
 if ISOCHRONOUS
-iperf_SOURCES += pdfs.c isochronous.cpp
+iperf_SOURCES += pdfs.c isochronous.cpp histogram.cpp
 noinst_PROGRAMS += checkpdfs checkisoch
 checkpdfs_SOURCES = pdfs.c checkpdfs.c
 checkpdfs_LDADD = -lm
