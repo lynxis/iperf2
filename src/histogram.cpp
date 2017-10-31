@@ -104,7 +104,7 @@ int Histogram::confidence_interval(float value) {
     return (bincount);
 }
 void Histogram::print() {
-    char buf[(20*bincount)+strlen(myname)];
+    char *buf = new char[(20*bincount)+strlen(myname)];
     int n = 0, ix;
     sprintf(buf, "%s(%d,%d)", myname, bincount, binwidth);
     n = strlen(buf);
@@ -116,6 +116,7 @@ void Histogram::print() {
     }
     buf[strlen(buf)-1]=0;
     fprintf(stdout, "%s\n", buf);
+    delete [] buf;
 }
 
 
