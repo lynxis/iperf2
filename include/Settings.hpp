@@ -123,6 +123,7 @@ typedef struct thread_Settings {
     char*  mLocalhost;              // -B
     char*  mOutputFileName;         // -o
     char*  mIsochronousStr;         // --isochronous
+    char*  mUDPHistogramStr;         // --udp-histogram
     FILE*  Extractor_file;
     ReportHeader*  reporthdr;
     MultiHeader*   multihdr;
@@ -190,6 +191,9 @@ typedef struct thread_Settings {
     nthread_t mTID;
     char* mCongestion;
     char peerversion[80];
+    int mUDPbins;
+    int mUDPbinsize;
+    int mUDPunits;
 #if defined( HAVE_WIN32_THREAD )
     HANDLE mHandle;
 #endif
@@ -250,6 +254,7 @@ typedef struct thread_Settings {
 #define FLAG_REVERSE        0x00000004
 #define FLAG_ISOCHRONOUS    0x00000008
 #define FLAG_UDPTRIGGERS    0x00000010
+#define FLAG_UDPHISTOGRAM   0x00000020
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -285,6 +290,7 @@ typedef struct thread_Settings {
 #define isReverse(settings)       ((settings->flags_extend & FLAG_REVERSE) != 0)
 #define isIsochronous(settings)    ((settings->flags_extend & FLAG_ISOCHRONOUS) != 0)
 #define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
+#define isUDPHistogram(settings)    ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -318,6 +324,7 @@ typedef struct thread_Settings {
 #define setReverse(settings)      settings->flags_extend |= FLAG_REVERSE
 #define setIsochronous(settings)      settings->flags_extend |= FLAG_ISOCHRONOUS
 #define setUDPTriggers(settings)      settings->flags_extend |= FLAG_UDPTRIGGERS
+#define setUDPHistogram(settings)      settings->flags_extend |= FLAG_UDPHISTOGRAM
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -351,6 +358,7 @@ typedef struct thread_Settings {
 #define unsetReverse(settings)    settings->flags_extend &= ~FLAG_REVERSE
 #define unsetIsochronous(settings)    settings->flags_extend &= ~FLAG_ISOCHRONOUS
 #define unsetUDPTriggers(settings)    settings->flags_extend &= ~FLAG_UDPTRIGGERS
+#define unsetUDPHistogram(settings)    settings->flags_extend &= ~FLAG_UDPHISTOGRAM
 
 /*
  * Messasge header flags

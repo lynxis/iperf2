@@ -74,6 +74,7 @@
 
 static int seqno64b = 0;
 static int reversetest = 0;
+static int udphistogram = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
@@ -143,6 +144,7 @@ const struct option long_options[] =
 {"peer-detect",      no_argument, NULL, 'X'},
 {"linux-congestion", required_argument, NULL, 'Z'},
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
+{"udp-histogram", required_argument, &udphistogram, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -303,6 +305,7 @@ void Settings_Destroy( thread_Settings *mSettings) {
     DELETE_ARRAY( mSettings->mLocalhost );
     DELETE_ARRAY( mSettings->mFileName  );
     DELETE_ARRAY( mSettings->mOutputFileName );
+    DELETE_ARRAY( mSettings->mUDPHistogramStr );
 #ifdef HAVE_ISOCHRONOUS
     DELETE_ARRAY( mSettings->mIsochronousStr );
 #endif
@@ -683,6 +686,17 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		fprintf( stderr, "WARNING: 64 bit sequence numbers not supported\n");
 #endif
 	    }
+	    if (udphistogram) {
+		udphistogram = 0;
+		setUDPHistogram( mExtSettings );
+		mExtSettings->mUDPHistogramStr = new char[ strlen( optarg ) + 1 ];
+		strcpy(mExtSettings->mUDPHistogramStr, optarg);
+		// The following are default values which
+		// may be overwritten during modal parsing
+		mExtSettings->mUDPbins = 1000;
+		mExtSettings->mUDPbinsize = 1;
+		mExtSettings->mUDPunits = 0;
+	    }
 	    if (reversetest) {
 		fprintf( stderr, "WARNING: The --reverse option is currently not supported\n");
 		exit(1);
@@ -756,6 +770,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
+
 #ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mExtSettings)) {
 	// parse client isochronous field,

@@ -58,6 +58,7 @@
 #include "Locale.h"
 #include "PerfSocket.hpp"
 #include "SocketAddr.h"
+#include "histogram.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -276,6 +277,13 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 	    } else {
 		data->info.mEnhanced = 0;
 	    }
+	    if (isUDPHistogram(agent)) {
+		char tag[20];
+		char name[] = "T7";
+		sprintf(tag,"[%3d] %s", data->info.transferID, name);
+		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),tag);
+	    }
+
 #ifdef HAVE_ISOCHRONOUS
 	    if ( isIsochronous( agent ) ) {
 		data->info.mIsochronous = 1;
@@ -815,7 +823,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		stats->IPGcnt++;
 		data->IPGstart = data->packetTime;
  #ifdef HAVE_ISOCHRONOUS
-		{
+		if (stats->mUDP == kMode_Client) {
 		    int framedelta=0;
 		    // first isochronous frame
 		    if (!data->isochstats.frameID) {
@@ -842,6 +850,9 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    double transit;
 		    double deltaTransit;
 		    transit = TimeDifference( packet->packetTime, packet->sentTime );
+		    if (stats->latency_histogram) {
+			histogram_insert(stats->latency_histogram, transit);
+		    }
 		    // packet loss occured if the datagram numbers aren't sequential
 		    if ( packet->packetID != data->PacketID + 1 ) {
 			if (packet->packetID < data->PacketID + 1 ) {

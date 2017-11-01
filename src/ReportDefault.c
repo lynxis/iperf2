@@ -168,6 +168,9 @@ void reporter_printstats( Transfer_Info *stats ) {
 			    (stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
 			    (stats->IPGcnt / stats->IPGsum));
 		}
+		if (stats->latency_histogram) {
+		    histogram_print_interval(stats->latency_histogram);
+		}
 	    } else {
 		printf( report_bw_jitter_loss_format, stats->transferID,
 			stats->startTime, stats->endTime,

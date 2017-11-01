@@ -55,6 +55,7 @@
 
 #include "headers.h"
 #include "Mutex.h"
+#include "histogram.h"
 
 struct thread_Settings;
 struct server_hdr;
@@ -187,6 +188,7 @@ typedef struct Transfer_Info {
     char   mUDP;
     char   mTCP;
     char   free;
+    histogram_t *latency_histogram;
 #ifdef HAVE_ISOCHRONOUS
     IsochStats isochstats;
     char   mIsochronous;                 // -e

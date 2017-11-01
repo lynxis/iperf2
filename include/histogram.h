@@ -41,9 +41,9 @@
  *
  * histogram.hpp
  * Suppport for isochonronous traffic testing
- * 
+ *
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
- * ------------------------------------------------------------------- 
+ * -------------------------------------------------------------------
  */
 #ifndef HISTOGRAMC_H
 #define HISTOGRAMC_H
@@ -57,6 +57,15 @@ typedef struct histogram_t {
     unsigned int cntloweroutofbounds;
     unsigned int cntupperoutofbounds;
     char *myname;
-    histogram_t *last;
-} histogram_t; 
+    struct histogram_t *prev;
+    float units;
+} histogram_t;
+
+extern histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float offset, float units, char *name);
+extern void histogram_delete(histogram_t *h);
+extern int histogram_insert(histogram_t *h, float value);
+extern void histogram_clear(histogram_t *h);
+extern void histogram_add(histogram_t *to, histogram_t *from);
+extern void histogram_print(histogram_t *h);
+extern void histogram_print_interval(histogram_t *h);
 #endif // HISTOGRAMC_H
