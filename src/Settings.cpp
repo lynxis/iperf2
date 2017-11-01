@@ -772,12 +772,13 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     }
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
 	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {
+	    if (results[(strlen(results)-1)] == 'u') {
+		results[(strlen(results)-1)] = '\0';
+		mExtSettings->mUDPunits = 1;
+	    }
 	    mExtSettings->mUDPbinsize = atoi(results);
 	    if ((results = strtok(NULL, ",")) != NULL) {
 		mExtSettings->mUDPbins = byte_atoi(results);
-		if ((results = strtok(NULL, ",")) != NULL && results) {
-		    mExtSettings->mUDPunits = 1;
-		}
 	    }
 	}
     }
