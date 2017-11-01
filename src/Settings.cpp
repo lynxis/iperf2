@@ -770,7 +770,17 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
-
+    if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
+	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {
+	    mExtSettings->mUDPbinsize = atoi(results);
+	    if ((results = strtok(NULL, ",")) != NULL) {
+		mExtSettings->mUDPbins = byte_atoi(results);
+		if ((results = strtok(NULL, ",")) != NULL && results) {
+		    mExtSettings->mUDPunits = 1;
+		}
+	    }
+	}
+    }
 #ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mExtSettings)) {
 	// parse client isochronous field,
