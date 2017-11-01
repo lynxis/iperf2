@@ -32,6 +32,7 @@ iperf_SOURCES = \
 		SocketAddr.c \
 		gnu_getopt.c \
 		gnu_getopt_long.c \
+	        histogram.c \
 		main.cpp \
 		service.c \
 		sockets.c \
@@ -43,7 +44,7 @@ checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 
 if ISOCHRONOUS
-iperf_SOURCES += pdfs.c isochronous.cpp histogram.c
+iperf_SOURCES += pdfs.c isochronous.cpp
 noinst_PROGRAMS += checkpdfs checkisoch
 checkpdfs_SOURCES = pdfs.c checkpdfs.c
 checkpdfs_LDADD = -lm
