@@ -41,10 +41,10 @@ print a help synopsis
 pause \fIn\fR seconds between periodic bandwidth reports
 .TP
 .BR "    --ipg "
-set the the interpacket gap in units of milliseconds for isochronous bursts
+set the the interpacket gap (units of milliseconds) for packets within an isochronous frame
 .TP
 .BR "    --isochronous "\fIfps\fR:\fImean\fR,\fIvariance\fR
-send isochronous traffic with frequency frames per second and load defined by mean and variance using log normal distribution
+send or receive isochronous traffic with frequency frames per second and load defined by mean and variance using log normal distribution
 .TP
 .BR -l ", " --len " \fIn\fR[kmKM]"
 set read/write buffer size (TCP) or length (UDP) to \fIn\fR (TCP default 128K, UDP default 1470)
