@@ -483,6 +483,8 @@ void Client::RunUDPIsochronous (void) {
 	delay = 0;
 	frameid =  fc->wait_tick();
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
+	mBuf_UDP->frameid  = htonl(frameid);
+	mBuf_UDP->burstsize  = htonl(bytecnt);
 #if 0
 	{
 	    struct timespec tickts;
@@ -562,6 +564,8 @@ void Client::RunUDPIsochronous (void) {
 	    // }
 
 	    // perform write
+	    mBuf_UDP->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
+	    mBuf_UDP->remaining = bytecnt;
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite = 1;

@@ -145,6 +145,8 @@ typedef struct ReportStruct {
     int socket;
 #ifdef HAVE_ISOCHRONOUS
     max_size_t frameID;
+    max_size_t burstsize;
+    max_size_t remaining;
 #endif
 } ReportStruct;
 

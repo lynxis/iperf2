@@ -401,6 +401,14 @@ typedef enum MsgType {
  * and must be packed by the compilers
  * Align on 32 bits (4 bytes)
  */
+/*
+    0             1     1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | |                   Flow Label                  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
 #pragma pack(push,4)
 typedef struct UDP_datagram {
 // used to reference the 4 byte ID number we place in UDP datagrams
@@ -422,6 +430,17 @@ typedef struct UDP_datagram {
     unsigned int id2      : 32;
 #endif // 32
 #endif //SEQNO64b
+#ifdef HAVE_INT32_T
+    u_int32_t frameid;
+    u_int32_t burstsize;
+    u_int32_t remaining;
+    u_int32_t pktsize;
+#else
+    unsigned int frameid;
+    unsigned int burstsize;
+    unsigned int remaining;
+    unsigned int pktsize;
+#endif // 32
 } UDP_datagram;
 
 typedef struct hdr_typelen {

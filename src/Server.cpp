@@ -320,6 +320,11 @@ void Server::RunUDP( void ) {
 		}
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
+#ifdef HAVE_ISOCHRONOUS
+		reportstruct->frameID = ntohl(mBuf_UDP->frameid);
+		reportstruct->burstsize = ntohl(mBuf_UDP->burstsize);
+		reportstruct->remaining = ntohl(mBuf_UDP->remaining);
+#endif
 		reportstruct->packetLen = currLen;
 #if HAVE_DECL_SO_TIMESTAMP
 		if (cmsg->cmsg_level == SOL_SOCKET &&
