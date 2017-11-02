@@ -95,8 +95,8 @@ exclude C(connection) D(data) M(multicast) S(settings) V(server) reports
 if set to C or c report results as CSV (comma separated values)
 .SH "SERVER SPECIFIC OPTIONS"
 .TP
-.BR "    --udp-histogram "\fIbinwidth\fR[u],\fIbincount\fR
-output UDP latency histograms, bin widths default to milliseconds (append u for microseconds) and bincount is total bins.
+.BR "    --udp-histogram "\fIbinwidth\fR[u],\fIbincount\fR,[\fIlowerci\fR],[\fIupperci\fR]
+output UDP latency histograms, bin widths default to milliseconds (append u for microseconds,) bincount is total bins, ci is confidence interval between 0-100
 .TP
 .BR -s ", " --server " "
 run in server mode

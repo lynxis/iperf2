@@ -193,7 +193,9 @@ typedef struct thread_Settings {
     char peerversion[80];
     int mUDPbins;
     int mUDPbinsize;
-    int mUDPunits;
+    unsigned short mUDPunits;
+    unsigned short mUDPci_lower;
+    unsigned short mUDPci_upper;
 #if defined( HAVE_WIN32_THREAD )
     HANDLE mHandle;
 #endif

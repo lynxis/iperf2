@@ -48,7 +48,8 @@
 #include "headers.h"
 #include "histogram.h"
 
-histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float offset, float units, char *name) {
+histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float offset, float units,\
+			    unsigned short ci_lower, unsigned short ci_upper, char *name) {
     histogram_t *this = malloc(sizeof(histogram_t));
     this->mybins = malloc(sizeof(unsigned int) * bincount);
     this->myname = malloc(sizeof(strlen(name)));
@@ -60,6 +61,8 @@ histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float 
     this->units=units;
     this->cntloweroutofbounds=0;
     this->cntupperoutofbounds=0;
+    this->ci_lower = ci_lower;
+    this->ci_upper = ci_upper;
     this->prev = NULL;
     return this;
 }
@@ -123,16 +126,16 @@ void histogram_print(histogram_t *h) {
 
 void histogram_print_interval(histogram_t *h) {
     if (!h->prev) {
-	h->prev = histogram_init(h->bincount, h->binwidth, h->offset, h->units, h->myname);
+	h->prev = histogram_init(h->bincount, h->binwidth, h->offset, h->units, h->ci_lower, h->ci_upper, h->myname);
     }
     char *buf = malloc((20*h->bincount)+strlen(h->myname));
     int n = 0, ix, delta, lowerci, upperci;
     int running=0;
     int intervalpopulation, oob_u, oob_l;
     if (h->units > 1e3) {
-	sprintf(buf, "%s(bw=%dus) ", h->myname,h->binwidth);
+	sprintf(buf, "%s bin(w=%dus):cnt(%d)=", h->myname,h->binwidth,h->populationcnt);
     } else {
-	sprintf(buf, "%s(bw=%dms) ", h->myname,h->binwidth);
+	sprintf(buf, "%s bin(w=%dms):cnt(%d)=", h->myname,h->binwidth,h->populationcnt);
     }
     n = strlen(buf);
     lowerci=0;
@@ -148,10 +151,10 @@ void histogram_print_interval(histogram_t *h) {
 	delta = h->mybins[ix] - h->prev->mybins[ix];
 	if (delta > 0) {
 	    running+=delta;
-	    if (!lowerci && ((float)running/intervalpopulation > 0.05)) {
+	    if (!lowerci && ((float)running/intervalpopulation > h->ci_lower/100.0)) {
 		lowerci = ix;
 	    }
-	    if (!upperci && ((float)running/intervalpopulation > 0.95)) {
+	    if (!upperci && ((float)running/intervalpopulation > h->ci_upper/100.0)) {
 		upperci = ix;
 	    }
 	    n += sprintf(buf + n,"%d:%d,", ix, delta);
@@ -161,6 +164,6 @@ void histogram_print_interval(histogram_t *h) {
     buf[strlen(buf)-1] = 0;
     if (!upperci)
        upperci=h->bincount;
-    fprintf(stdout, "%s (5/95%%=%d/%d,obl/obu=%d/%d)\n", buf, lowerci, upperci, oob_l, oob_u);
+    fprintf(stdout, "%s (%d/%d%%=%d/%d,obl/obu=%d/%d)\n", buf, h->ci_lower, h->ci_upper, lowerci, upperci, oob_l, oob_u);
     free(buf);
 }

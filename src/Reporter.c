@@ -281,7 +281,8 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		char tag[20];
 		char name[] = "T7";
 		sprintf(tag,"[%3d] %s", data->info.transferID, name);
-		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),tag);
+		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),\
+							       agent->mUDPci_lower, agent->mUDPci_upper, tag);
 	    }
 
 #ifdef HAVE_ISOCHRONOUS

@@ -696,6 +696,8 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		mExtSettings->mUDPbins = 1000;
 		mExtSettings->mUDPbinsize = 1;
 		mExtSettings->mUDPunits = 0;
+		mExtSettings->mUDPci_lower = 5;
+	        mExtSettings->mUDPci_upper = 95;
 	    }
 	    if (reversetest) {
 		fprintf( stderr, "WARNING: The --reverse option is currently not supported\n");
@@ -772,13 +774,22 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     }
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
 	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {
-	    if (results[(strlen(results)-1)] == 'u') {
-		results[(strlen(results)-1)] = '\0';
+	    char *tmp = new char [strlen(results) + 1];
+	    strcpy(tmp, results);
+	    // scan for microseconds as units
+	    if ((strtok(tmp, "u") != NULL) && strcmp(results,tmp)) {
 		mExtSettings->mUDPunits = 1;
 	    }
-	    mExtSettings->mUDPbinsize = atoi(results);
-	    if ((results = strtok(NULL, ",")) != NULL) {
+	    mExtSettings->mUDPbinsize = atoi(tmp);
+	    delete [] tmp;
+	    if ((results = strtok(results+strlen(results)+1, ",")) != NULL) {
 		mExtSettings->mUDPbins = byte_atoi(results);
+		if ((results = strtok(NULL, ",")) != NULL) {
+		    mExtSettings->mUDPci_lower = atoi(results);
+		    if ((results = strtok(NULL, ",")) != NULL) {
+			mExtSettings->mUDPci_upper = atoi(results);
+		    }
+		}
 	    }
 	}
     }
