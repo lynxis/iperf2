@@ -84,6 +84,9 @@ typedef struct TransitStats {
     double minTransit;
     double sumTransit;
     double lastTransit;
+#ifdef HAVE_ISOCHRONOUS
+    struct timeval lastFrameTransit;
+#endif
     double meanTransit;
     double m2Transit;
     double vdTransit;
@@ -194,6 +197,8 @@ typedef struct Transfer_Info {
 #ifdef HAVE_ISOCHRONOUS
     IsochStats isochstats;
     char   mIsochronous;                 // -e
+    TransitStats frame;
+    histogram_t *framelatency_histogram;
 #endif
 } Transfer_Info;
 

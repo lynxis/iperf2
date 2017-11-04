@@ -284,10 +284,16 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),\
 							       agent->mUDPci_lower, agent->mUDPci_upper, tag);
 	    }
-
 #ifdef HAVE_ISOCHRONOUS
 	    if ( isIsochronous( agent ) ) {
 		data->info.mIsochronous = 1;
+		if (isUDPHistogram(agent)) {
+		    char tag[20];
+		    char name[] = "F7";
+		    sprintf(tag,"[%3d] %s", data->info.transferID, name);
+		    data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),\
+								   agent->mUDPci_lower, agent->mUDPci_upper, tag);
+		}
 	    } else {
 		data->info.mIsochronous = 0;
 	    }
@@ -824,7 +830,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		stats->IPGcnt++;
 		data->IPGstart = data->packetTime;
  #ifdef HAVE_ISOCHRONOUS
-		if (stats->mUDP == kMode_Client) {
+		{
 		    int framedelta=0;
 		    // first isochronous frame
 		    if (!data->isochstats.frameID) {
@@ -839,8 +845,24 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			data->isochstats.framecnt++;
 		    }
 		    if (framedelta == 1) {
-			stats->isochstats.framecnt++;
-			data->isochstats.framecnt++;
+			if (stats->mUDP == kMode_Client) {
+			    stats->isochstats.framecnt++;
+			    data->isochstats.framecnt++;
+			} else {
+			    // new frame received
+			    if (packet->burstsize == packet->remaining) {
+				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
+				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
+			    } else if (packet->packetLen == packet->remaining) {
+				double frametransit;
+				frametransit = TimeDifference( packet->packetTime, stats->frame.lastFrameTransit);
+				if (stats->framelatency_histogram) {
+				    histogram_insert(stats->framelatency_histogram, frametransit);
+				}
+			    } else {
+				// check for errors
+			    }
+			}
 		    }
 		    data->isochstats.frameID = packet->frameID;
 		}
