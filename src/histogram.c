@@ -69,6 +69,7 @@ histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float 
     this->ci_lower = ci_lower;
     this->ci_upper = ci_upper;
     this->prev = NULL;
+    // printf("histogram init\n");
     return this;
 }
 
@@ -79,6 +80,7 @@ void histogram_delete(histogram_t *h) {
 	free(h->mybins);
     if (h->myname)
 	free(h->myname);
+    // printf("histogram delete\n");
     free(h);
 }
 

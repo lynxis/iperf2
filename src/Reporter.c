@@ -281,7 +281,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		char tag[20];
 		char name[] = "T7";
 		sprintf(tag,"[%3d] %s", data->info.transferID, name);
-		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),\
+		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3), \
 							       agent->mUDPci_lower, agent->mUDPci_upper, tag);
 	    }
 #ifdef HAVE_ISOCHRONOUS
@@ -289,8 +289,9 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		char tag[20];
 		char name[] = "F7";
 		sprintf(tag,"[%3d] %s", data->info.transferID, name);
-		data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3),\
-								    agent->mUDPci_lower, agent->mUDPci_upper, tag);
+		data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0, \
+								   (agent->mUDPunits ? 1e6 : 1e3),agent->mUDPci_lower, \
+								    agent->mUDPci_upper, tag);
 	    }
 	    if ( isIsochronous( agent ) ) {
 		data->info.mIsochronous = 1;
@@ -672,6 +673,14 @@ again:
                     itr->next = temp->next;
                 }
                 // finished with report so free it
+		if (temp->report.info.latency_histogram) {
+		    histogram_delete(temp->report.info.latency_histogram);
+		}
+#ifdef HAVE_ISOCHRONOUS
+		if (temp->report.info.framelatency_histogram) {
+		    histogram_delete(temp->report.info.framelatency_histogram);
+		}
+#endif
                 free( temp );
                 Condition_Unlock ( ReportCond );
                 Condition_Signal( &ReportDoneCond );
@@ -734,6 +743,14 @@ again:
 void process_report ( ReportHeader *report ) {
     if ( report != NULL ) {
         if ( reporter_process_report( report ) ) {
+	    if (report->report.info.latency_histogram) {
+		histogram_delete(report->report.info.latency_histogram);
+	    }
+#ifdef HAVE_ISOCHRONOUS
+	    if (report->report.info.framelatency_histogram) {
+		histogram_delete(report->report.info.framelatency_histogram);
+	    }
+#endif
             free( report );
         }
     }
@@ -751,6 +768,14 @@ int reporter_process_report ( ReportHeader *reporthdr ) {
             // If we are done with this report then free it
             ReportHeader *temp = reporthdr->next;
             reporthdr->next = reporthdr->next->next;
+	    if (temp->report.info.latency_histogram) {
+		histogram_delete(temp->report.info.latency_histogram);
+	    }
+#ifdef HAVE_ISOCHRONOUS
+	    if (temp->report.info.framelatency_histogram) {
+		histogram_delete(temp->report.info.framelatency_histogram);
+	    }
+#endif
             free( temp );
         }
     }

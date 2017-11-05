@@ -290,6 +290,16 @@ void Settings_Copy( thread_Settings *from, thread_Settings **into ) {
         (*into)->mFileName = new char[ strlen(from->mFileName) + 1];
         strcpy( (*into)->mFileName, from->mFileName );
     }
+    if ( from->mUDPHistogramStr != NULL ) {
+	(*into)->mUDPHistogramStr = new char[ strlen(from->mUDPHistogramStr) + 1];
+        strcpy( (*into)->mUDPHistogramStr, from->mUDPHistogramStr );
+    }
+#ifdef HAVE_ISOCHRONOUS
+    if ( from->mIsochronousStr != NULL ) {
+	(*into)->mIsochronousStr = new char[ strlen(from->mIsochronousStr) + 1];
+        strcpy( (*into)->mIsochronousStr, from->mIsochronousStr );
+    }
+#endif
     // Zero out certain entries
     (*into)->mTID = thread_zeroid();
     (*into)->runNext = NULL;
