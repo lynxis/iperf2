@@ -171,9 +171,11 @@ void reporter_printstats( Transfer_Info *stats ) {
 		if (stats->latency_histogram) {
 		    histogram_print_interval(stats->latency_histogram);
 		}
+#ifdef HAVE_ISOCHRONOUS
 		if (stats->framelatency_histogram) {
 		    histogram_print_interval(stats->framelatency_histogram);
 		}
+#endif
 	    } else {
 		printf( report_bw_jitter_loss_format, stats->transferID,
 			stats->startTime, stats->endTime,
