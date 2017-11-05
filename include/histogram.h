@@ -57,6 +57,7 @@ typedef struct histogram_t {
     unsigned int cntloweroutofbounds;
     unsigned int cntupperoutofbounds;
     char *myname;
+    char *outbuf;
     float units;
     unsigned short ci_lower;
     unsigned short ci_upper;

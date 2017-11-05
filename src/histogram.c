@@ -50,9 +50,14 @@
 
 histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float offset, float units,\
 			    unsigned short ci_lower, unsigned short ci_upper, char *name) {
-    histogram_t *this = malloc(sizeof(histogram_t));
-    this->mybins = malloc(sizeof(unsigned int) * bincount);
-    this->myname = malloc(sizeof(strlen(name)));
+    histogram_t *this = (histogram_t *) malloc(sizeof(histogram_t));
+    this->mybins = (unsigned int *) malloc(sizeof(unsigned int) * bincount);
+    this->myname = (char *) malloc(sizeof(strlen(name)));
+    this->outbuf = (char *) malloc(80 + (32*bincount) + strlen(name));
+    if (!this->outbuf || !this || !this->mybins || !this->myname) {
+	fprintf(stderr,"Malloc failure in histogram init\n");
+	return(NULL);
+    }
     strcpy(this->myname, name);
     this->bincount = bincount;
     this->binwidth = binwidth;
@@ -68,12 +73,12 @@ histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float 
 }
 
 void histogram_delete(histogram_t *h) {
+    if (h->prev)
+	histogram_delete(h->prev);
     if (h->mybins)
 	free(h->mybins);
     if (h->myname)
 	free(h->myname);
-    if (h->prev)
-	histogram_delete(h->prev);
     free(h);
 }
 
@@ -111,6 +116,7 @@ void histogram_add(histogram_t *to, histogram_t *from) {
 
 void histogram_print(histogram_t *h) {
     char *buf = malloc((20*h->bincount)+strlen(h->myname));
+    buf[0]='\0';
     int n = 0, ix;
     sprintf(buf, "%s(%d,%d) ", h->myname, h->bincount, h->binwidth);
     n = strlen(buf);
@@ -128,16 +134,16 @@ void histogram_print_interval(histogram_t *h) {
     if (!h->prev) {
 	h->prev = histogram_init(h->bincount, h->binwidth, h->offset, h->units, h->ci_lower, h->ci_upper, h->myname);
     }
-    char *buf = malloc((20*h->bincount)+strlen(h->myname));
     int n = 0, ix, delta, lowerci, upperci;
     int running=0;
     int intervalpopulation, oob_u, oob_l;
+    strcpy(h->outbuf, h->myname);
     if (h->units > 1e3) {
-	sprintf(buf, "%s bin(w=%dus):cnt(%d)=", h->myname,h->binwidth,h->populationcnt);
+	sprintf(h->outbuf, "%s bin(w=%dus):cnt(%d)=", h->myname,h->binwidth,h->populationcnt);
     } else {
-	sprintf(buf, "%s bin(w=%dms):cnt(%d)=", h->myname,h->binwidth,h->populationcnt);
+	sprintf(h->outbuf, "%s bin(w=%dms):cnt(%d)=", h->myname,h->binwidth,h->populationcnt);
     }
-    n = strlen(buf);
+    n = strlen(h->outbuf);
     lowerci=0;
     upperci=0;
     intervalpopulation = h->populationcnt - h->prev->populationcnt;
@@ -157,13 +163,12 @@ void histogram_print_interval(histogram_t *h) {
 	    if (!upperci && ((float)running/intervalpopulation > h->ci_upper/100.0)) {
 		upperci = ix;
 	    }
-	    n += sprintf(buf + n,"%d:%d,", ix, delta);
+	    n += sprintf(h->outbuf + n,"%d:%d,", ix, delta);
 	    h->prev->mybins[ix] = h->mybins[ix];
 	}
     }
-    buf[strlen(buf)-1] = 0;
+    h->outbuf[strlen(h->outbuf)-1] = '\0';
     if (!upperci)
        upperci=h->bincount;
-    fprintf(stdout, "%s (%d/%d%%=%d/%d,obl/obu=%d/%d)\n", buf, h->ci_lower, h->ci_upper, lowerci, upperci, oob_l, oob_u);
-    free(buf);
+    fprintf(stdout, "%s (%d/%d%%=%d/%d,obl/obu=%d/%d)\n", h->outbuf, h->ci_lower, h->ci_upper, lowerci, upperci, oob_l, oob_u);
 }

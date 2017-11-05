@@ -475,13 +475,12 @@ void Client::RunUDPIsochronous (void) {
     }
 #endif
 
-    lastPacketTime.setnow();
-
     do {
 	int bytecnt;
 	int frameid;
-	delay = 0;
 	frameid =  fc->wait_tick();
+	lastPacketTime.setnow();
+	delay = 0;
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
 	mBuf_UDP->frameid  = htonl(frameid);
 	mBuf_UDP->burstsize  = htonl(bytecnt);
@@ -565,7 +564,7 @@ void Client::RunUDPIsochronous (void) {
 
 	    // perform write
 	    mBuf_UDP->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
-	    mBuf_UDP->remaining = bytecnt;
+	    mBuf_UDP->remaining = htonl(bytecnt);
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite = 1;
