@@ -321,9 +321,12 @@ void Server::RunUDP( void ) {
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
 #ifdef HAVE_ISOCHRONOUS
-		reportstruct->frameID = ntohl(mBuf_UDP->frameid);
-		reportstruct->burstsize = ntohl(mBuf_UDP->burstsize);
-		reportstruct->remaining = ntohl(mBuf_UDP->remaining);
+		{
+		    struct UDP_isoch_payload* mBuf_isoch = (struct UDP_isoch_payload*) (mBuf + sizeof(struct UDP_datagram));
+		    reportstruct->frameID = ntohl(mBuf_isoch->frameid);
+		    reportstruct->burstsize = ntohl(mBuf_isoch->burstsize);
+		    reportstruct->remaining = ntohl(mBuf_isoch->remaining);
+		}
 #endif
 		reportstruct->packetLen = currLen;
 #if HAVE_DECL_SO_TIMESTAMP

@@ -285,7 +285,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 							       agent->mUDPci_lower, agent->mUDPci_upper, tag);
 	    }
 #ifdef HAVE_ISOCHRONOUS
-	    if (isUDPHistogram(agent)) {
+	    if (isUDPHistogram(agent) && isIsochronous(agent)) {
 		char tag[20];
 		char name[] = "F7";
 		sprintf(tag,"[%3d] %s", data->info.transferID, name);

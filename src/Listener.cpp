@@ -230,10 +230,15 @@ sInterupted == SIGALRM
             }
             // Check for exchange of test information and also determine v2.0.5 vs 2.0.10+
             if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
-                if (ReadClientHeader(hdr) < 0) {
+		int flags;
+                if ((flags = ReadClientHeader(hdr)) < 0) {
 		    close( server->mSock );
 		    continue;
 		}
+#ifdef HAVE_ISOCHRONOUS
+		if ((flags & HEADER_UDP_ISOCH) != 0)
+		    setIsochronous(server);
+#endif
 		// The following will set the tempSettings to NULL if
 		// there is no need for the Listener to start a client
                 Settings_GenerateClientSettings( server, &tempSettings, hdr );
@@ -809,7 +814,7 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	//  Extended header successfully read. Ack the client with our version info now
 	ClientHeaderAck();
     }
-    return 1;
+    return(flags);
 }
 
 int Listener::ClientHeaderAck(void) {

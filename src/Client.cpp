@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------
  * Copyright (c) 1999,2000,2001,2002,2003
  * The Board of Trustees of the University of Illinois
@@ -71,6 +70,7 @@
 #ifdef HAVE_ISOCHRONOUS
 #include "isochronous.hpp"
 #include "pdfs.h"
+#include "version.h"
 #endif
 /* -------------------------------------------------------------------
  * Store server hostname, optionally local hostname, and socket info.
@@ -434,6 +434,9 @@ void Client::RunUDPIsochronous (void) {
     // Indicates if the stream is readable
     bool mMode_Time = isModeTime( mSettings );
     struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
+    // skip over the UDP datagram (seq no, timestamp) to reach the isoch fields
+    struct UDP_isoch_payload* mBuf_isoch = (struct UDP_isoch_payload*)(mBuf_UDP + 1);
+
     Isochronous::FrameCounter *fc = NULL;
     double delay_target = mSettings->mBurstIPG * 1000000;  // convert from milliseconds to nanoseconds
     double delay = 0;
@@ -474,6 +477,13 @@ void Client::RunUDPIsochronous (void) {
 	}
     }
 #endif
+    lastPacketTime.setnow();
+    mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getSecs());
+    mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getUsecs());
+    mBuf_isoch->flags = htonl(HEADER_UDP_ISOCH);
+    mBuf_isoch->reserved = 0;
+    mBuf_isoch->version_u = htonl(IPERF_VERSION_MAJORHEX);
+    mBuf_isoch->version_l = htonl(IPERF_VERSION_MINORHEX);
 
     do {
 	int bytecnt;
@@ -482,8 +492,8 @@ void Client::RunUDPIsochronous (void) {
 	lastPacketTime.setnow();
 	delay = 0;
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
-	mBuf_UDP->frameid  = htonl(frameid);
-	mBuf_UDP->burstsize  = htonl(bytecnt);
+	mBuf_isoch->frameid  = htonl(frameid);
+	mBuf_isoch->burstsize  = htonl(bytecnt);
 #if 0
 	{
 	    struct timespec tickts;
@@ -563,8 +573,8 @@ void Client::RunUDPIsochronous (void) {
 	    // }
 
 	    // perform write
-	    mBuf_UDP->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
-	    mBuf_UDP->remaining = htonl(bytecnt);
+	    mBuf_isoch->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
+	    mBuf_isoch->remaining = htonl(bytecnt);
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
 		reportstruct->errwrite = 1;

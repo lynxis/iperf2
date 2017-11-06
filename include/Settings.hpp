@@ -370,6 +370,7 @@ typedef struct thread_Settings {
 #define HEADER_VERSION1 0x80000000
 #define HEADER_EXTEND   0x40000000
 #define HEADER_EXTEND_TLVCHAINED  0x20000000
+#define HEADER_UDP_ISOCH  0x10000000  // used to pass test settings in every UDP packet
 #define RUN_NOW         0x00000001
 // newer flags
 #define UNITS_PPS             0x00000001
@@ -430,17 +431,6 @@ typedef struct UDP_datagram {
     unsigned int id2      : 32;
 #endif // 32
 #endif //SEQNO64b
-#ifdef HAVE_INT32_T
-    u_int32_t frameid;
-    u_int32_t burstsize;
-    u_int32_t remaining;
-    u_int32_t pktsize;
-#else
-    unsigned int frameid;
-    unsigned int burstsize;
-    unsigned int remaining;
-    unsigned int pktsize;
-#endif // 32
 } UDP_datagram;
 
 typedef struct hdr_typelen {
@@ -511,6 +501,35 @@ typedef struct client_hdrext {
     signed int mRealtime  : 32;
 #endif
 } client_hdrext;
+
+typedef struct UDP_isoch_payload {
+#ifdef HAVE_INT32_T
+    int32_t flags;
+    int32_t extend_flags;
+    int32_t version_u;
+    int32_t version_l;
+    int32_t reserved;
+    u_int32t mFPS; //frames per second
+    u_int32_t start_tv_sec;
+    u_int32_t start_tv_usec;
+    u_int32_t frameid;
+    u_int32_t burstsize;
+    u_int32_t remaining;
+    u_int32_t pktsize;
+#else
+    signed int flags       : 32;
+    signed int version_u   : 32;
+    signed int version_l   : 32;
+    signed int reserved    : 32;
+    unsigned int mFPS      : 32;
+    unsigned int start_tv_sec : 32;
+    unsigned int start_tv_usec : 32;
+    unsigned int frameid : 32;
+    unsigned int burstsize : 32;
+    unsigned int remaining : 32;
+    unsigned int pktsize : 32;
+#endif
+} UDP_isoch_payload;
 
 typedef struct client_hdr_ack {
     hdr_typelen typelen;
