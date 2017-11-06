@@ -58,6 +58,7 @@ histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float 
 	fprintf(stderr,"Malloc failure in histogram init\n");
 	return(NULL);
     }
+    memset(this->mybins, 0, bincount * sizeof(unsigned int));
     strcpy(this->myname, name);
     this->bincount = bincount;
     this->binwidth = binwidth;

@@ -443,7 +443,11 @@ void reporter_peerversion (thread_Settings *inSettings, int upper, int lower) {
     major = (upper & 0x0000FFFF);
     minor = (lower & 0xFFFF0000) >> 16;
     alpha = (lower & 0x0000000F);
-    sprintf(inSettings->peerversion," (peer %d.%d.%d)", rel, major, minor);
+    if (!isIsochronous(inSettings)) {
+	sprintf(inSettings->peerversion," (peer %d.%d.%d)", rel, major, minor);
+    } else {
+	sprintf(inSettings->peerversion," isoch (peer %d.%d.%d)", rel, major, minor);
+    }
     switch(alpha) {
     case 0:
 	sprintf(inSettings->peerversion + strlen(inSettings->peerversion) - 1,"-alpha)");
