@@ -277,21 +277,28 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 	    } else {
 		data->info.mEnhanced = 0;
 	    }
-	    if (isUDPHistogram(agent)) {
-		char tag[20];
-		char name[] = "T7";
-		sprintf(tag,"[%3d] %s", data->info.transferID, name);
-		data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,(agent->mUDPunits ? 1e6 : 1e3), \
-							       agent->mUDPci_lower, agent->mUDPci_upper, tag);
-	    }
+	    if (data->mThreadMode == kMode_Server) {
+		if (isUDPHistogram(agent)) {
+		    char tag[20];
+		    char name[] = "T7";
+		    sprintf(tag,"[%3d] %s", data->info.transferID, name);
+		    data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,\
+								   (agent->mUDPunits ? 1e6 : 1e3), \
+								   agent->mUDPci_lower, agent->mUDPci_upper, tag);
+		}
 #ifdef HAVE_ISOCHRONOUS
-	    if (isUDPHistogram(agent) && isIsochronous(agent)) {
-		char tag[20];
-		char name[] = "F7";
-		sprintf(tag,"[%3d] %s", data->info.transferID, name);
-		data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0, \
-								   (agent->mUDPunits ? 1e6 : 1e3),agent->mUDPci_lower, \
-								    agent->mUDPci_upper, tag);
+		if (isUDPHistogram(agent) && isIsochronous(agent)) {
+		    char tag[20];
+		    char name[] = "F7";
+		    sprintf(tag,"[%3d] %s", data->info.transferID, name);
+		    // make sure frame bin size min is 100 microsecond
+		    if (agent->mUDPunits && (agent->mUDPbinsize < 100))
+			agent->mUDPbinsize = 100;
+		    agent->mUDPunits = 1;
+		    data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0, \
+									(agent->mUDPunits ? 1e6 : 1e3),agent->mUDPci_lower, \
+									agent->mUDPci_upper, tag);
+		}
 	    }
 	    if ( isIsochronous( agent ) ) {
 		data->info.mIsochronous = 1;

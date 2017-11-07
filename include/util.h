@@ -169,6 +169,7 @@ void pattern( char *outBuf, int inBytes );
  * stdio.c
  * ------------------------------------------------------------------- */
 double byte_atof( const char *inString );
+double bitorbyte_atof( const char *inString );
 max_size_t byte_atoi( const char  *inString );
 void byte_snprintf( char* outString, int inLen, double inNum, char inFormat );
 

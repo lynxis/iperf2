@@ -813,9 +813,9 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && !strcmp(results,mExtSettings->mIsochronousStr)) {
 		mExtSettings->mFPS = atoi(results);
 		if ((results = strtok(NULL, ",")) != NULL) {
-		    mExtSettings->mMean = byte_atof(results);
+		    mExtSettings->mMean = bitorbyte_atof(results);
 		    if ((results = strtok(NULL, ",")) != NULL) {
-			mExtSettings->mVariance = byte_atof(results);
+			mExtSettings->mVariance = bitorbyte_atof(results);
 		    }
 		}
 	    }
