@@ -80,6 +80,7 @@ static int udptriggers = 0;
 #endif
 #ifdef HAVE_ISOCHRONOUS
 static int isochronous = 0;
+static int burstipg_set = 0;
 static int burstipg = 0;
 #endif
 
@@ -711,6 +712,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	        mExtSettings->mUDPci_upper = 95;
 	    }
 	    if (reversetest) {
+		reversetest = 0;
 		fprintf( stderr, "WARNING: The --reverse option is currently not supported\n");
 		exit(1);
 		setReverse(mExtSettings);
@@ -729,6 +731,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    }
 	    if (burstipg) {
 		burstipg = 0;
+		burstipg_set = 1;
 		char *end;
 		mExtSettings->mBurstIPG = strtof( optarg, &end );
 		if (*end != '\0') {
@@ -820,6 +823,9 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 		    }
 		}
 	    }
+	    // default the burst IPG to 5 micorseconds
+	    if (!burstipg_set)
+		mExtSettings->mBurstIPG=0.005;
 	} else {
 	    // parse server isochronous field,
 	    // format is --isochronous <int>:<jitter buffer> e.g. --isochronous 60:20
