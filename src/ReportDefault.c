@@ -169,11 +169,11 @@ void reporter_printstats( Transfer_Info *stats ) {
 			    (stats->IPGcnt / stats->IPGsum));
 		}
 		if (stats->latency_histogram) {
-		    histogram_print(stats->latency_histogram, stats->startTime, stats->endTime,0);
+		    histogram_print(stats->latency_histogram, stats->startTime, stats->endTime,stats->free);
 		}
 #ifdef HAVE_ISOCHRONOUS
 		if (stats->framelatency_histogram) {
-		    histogram_print(stats->framelatency_histogram, stats->startTime, stats->endTime,0);
+		    histogram_print(stats->framelatency_histogram, stats->startTime, stats->endTime,stats->free);
 		}
 #endif
 	    } else {
@@ -220,11 +220,13 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( report_datagrams, stats->transferID, stats->cntDatagrams );
 	} else {
 	    if (stats->latency_histogram) {
-		histogram_print(stats->latency_histogram, stats->startTime, stats->endTime, 1);
+		histogram_delete(stats->latency_histogram);
+		stats->latency_histogram = NULL;
 	    }
 #ifdef HAVE_ISOCHRONOUS
 	    if (stats->framelatency_histogram) {
-		histogram_print(stats->framelatency_histogram, stats->startTime, stats->endTime, 1);
+		histogram_delete(stats->framelatency_histogram);
+		stats->framelatency_histogram = NULL;
 	    }
 #endif
 	}
