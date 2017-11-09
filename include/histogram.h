@@ -49,6 +49,7 @@
 #define HISTOGRAMC_H
 
 typedef struct histogram_t {
+    unsigned int id;
     unsigned int *mybins;
     unsigned int bincount;
     unsigned int binwidth;
@@ -65,11 +66,10 @@ typedef struct histogram_t {
 } histogram_t;
 
 extern histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float offset,\
-				   float units, unsigned short ci_lower, unsigned short ci_upper, char *name);
+				   float units, unsigned short ci_lower, unsigned short ci_upper, unsigned int id, char *name);
 extern void histogram_delete(histogram_t *h);
 extern int histogram_insert(histogram_t *h, float value);
 extern void histogram_clear(histogram_t *h);
 extern void histogram_add(histogram_t *to, histogram_t *from);
-extern void histogram_print(histogram_t *h);
-extern void histogram_print_interval(histogram_t *h);
+extern void histogram_print(histogram_t *h, double, double, int);
 #endif // HISTOGRAMC_H

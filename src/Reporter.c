@@ -279,25 +279,21 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 	    }
 	    if (data->mThreadMode == kMode_Server) {
 		if (isUDPHistogram(agent)) {
-		    char tag[20];
-		    char name[] = "T7";
-		    sprintf(tag,"[%3d] %s", data->info.transferID, name);
+		    char name[] = "T8";
 		    data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,\
 								   (agent->mUDPunits ? 1e6 : 1e3), \
-								   agent->mUDPci_lower, agent->mUDPci_upper, tag);
+								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
 		}
 #ifdef HAVE_ISOCHRONOUS
 		if (isUDPHistogram(agent) && isIsochronous(agent)) {
-		    char tag[20];
-		    char name[] = "F7";
-		    sprintf(tag,"[%3d] %s", data->info.transferID, name);
+		    char name[] = "F8";
 		    // make sure frame bin size min is 100 microsecond
 		    if (agent->mUDPunits && (agent->mUDPbinsize < 100))
 			agent->mUDPbinsize = 100;
 		    agent->mUDPunits = 1;
 		    data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0, \
-									(agent->mUDPunits ? 1e6 : 1e3),agent->mUDPci_lower, \
-									agent->mUDPci_upper, tag);
+									(agent->mUDPunits ? 1e6 : 1e3), agent->mUDPci_lower, \
+									agent->mUDPci_upper, data->info.transferID, name);
 		}
 	    }
 	    if ( isIsochronous( agent ) ) {

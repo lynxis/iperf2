@@ -699,6 +699,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    if (udphistogram) {
 		udphistogram = 0;
 		setUDPHistogram( mExtSettings );
+		setEnhanced( mExtSettings );
 		mExtSettings->mUDPHistogramStr = new char[ strlen( optarg ) + 1 ];
 		strcpy(mExtSettings->mUDPHistogramStr, optarg);
 		// The following are default values which

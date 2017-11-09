@@ -169,11 +169,11 @@ void reporter_printstats( Transfer_Info *stats ) {
 			    (stats->IPGcnt / stats->IPGsum));
 		}
 		if (stats->latency_histogram) {
-		    histogram_print_interval(stats->latency_histogram);
+		    histogram_print(stats->latency_histogram, stats->startTime, stats->endTime,0);
 		}
 #ifdef HAVE_ISOCHRONOUS
 		if (stats->framelatency_histogram) {
-		    histogram_print_interval(stats->framelatency_histogram);
+		    histogram_print(stats->framelatency_histogram, stats->startTime, stats->endTime,0);
 		}
 #endif
 	    } else {
@@ -213,11 +213,21 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    stats->isochstats.slipcnt = 0;
 #endif
 	}
-
     }
 
-    if ( stats->free == 1 && stats->mUDP == (char)kMode_Client ) {
-        printf( report_datagrams, stats->transferID, stats->cntDatagrams );
+    if ( stats->free == 1) {
+	if (stats->mUDP == (char)kMode_Client ) {
+	    printf( report_datagrams, stats->transferID, stats->cntDatagrams );
+	} else {
+	    if (stats->latency_histogram) {
+		histogram_print(stats->latency_histogram, stats->startTime, stats->endTime, 1);
+	    }
+#ifdef HAVE_ISOCHRONOUS
+	    if (stats->framelatency_histogram) {
+		histogram_print(stats->framelatency_histogram, stats->startTime, stats->endTime, 1);
+	    }
+#endif
+	}
     }
 }
 
