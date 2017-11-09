@@ -295,13 +295,15 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 									(agent->mUDPunits ? 1e6 : 1e3), agent->mUDPci_lower, \
 									agent->mUDPci_upper, data->info.transferID, name);
 		}
+#endif
 	    }
+#ifdef HAVE_ISOCHRONOUS	    
 	    if ( isIsochronous( agent ) ) {
 		data->info.mIsochronous = 1;
 	    } else {
 		data->info.mIsochronous = 0;
 	    }
-#endif
+#endif	    
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
