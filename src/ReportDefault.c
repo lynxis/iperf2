@@ -345,7 +345,7 @@ void reporter_reportsettings( ReporterData *data ) {
 	char variancebuf[40];
 	byte_snprintf(meanbuf, sizeof(meanbuf), data->isochstats.mMean, 'a');
 	byte_snprintf(variancebuf, sizeof(variancebuf), data->isochstats.mVariance, 'a');
-	printf(client_udp_isochronous, data->isochstats.mFPS, meanbuf, variancebuf, data->isochstats.mBurstIPG);
+	printf(client_udp_isochronous, data->isochstats.mFPS, meanbuf, variancebuf, data->isochstats.mBurstIPG/1000);
 #else
 	fprintf(stderr, "--isochronous not supportted, try --enable-isochronous during config and remake\n");
 #endif

@@ -823,7 +823,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 		    }
 		}
 	    }
-	    // default the burst IPG to 5 micorseconds
+	    // default the burst IPG to 5 microseconds
 	    if (!burstipg_set)
 		mExtSettings->mBurstIPG=0.005;
 	} else {
