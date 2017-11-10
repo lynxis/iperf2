@@ -871,7 +871,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 		    } else {
 			framedelta = (packet->frameID - data->isochstats.frameID);
-			printf("fd=%d\n",framedelta);
 			if (framedelta) {
 			    data->isochstats.framecnt++;
 			    stats->isochstats.framecnt++;
