@@ -862,7 +862,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
  #ifdef HAVE_ISOCHRONOUS
 		{
 		    int framedelta=0;
-		    // first isochronous frame
+		    // very first isochronous frame
 		    if (!data->isochstats.frameID) {
 			data->isochstats.framecnt=packet->frameID;
 			data->isochstats.framecnt=1;
@@ -870,38 +870,37 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
 			stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 		    } else {
+			static int matchframeid=0;
+			// perform client and server frame based accounting
 			framedelta = (packet->frameID - data->isochstats.frameID);
 			if (framedelta) {
 			    data->isochstats.framecnt++;
 			    stats->isochstats.framecnt++;
+			    if (framedelta > 1) {
+				if (stats->mUDP == kMode_Server) {
+				    int lost = framedelta - (packet->frameID - packet->prevframeID);
+				    stats->isochstats.framelostcnt += lost;
+				    data->isochstats.framelostcnt += lost;
+				} else {
+				    stats->isochstats.framelostcnt += (framedelta-1);
+				    data->isochstats.framelostcnt += (framedelta-1);
+				    stats->isochstats.slipcnt++;
+				    data->isochstats.slipcnt++;
+				}
+			    }
 			}
-			switch(framedelta) {
-			case 0 :
-			    // Last packet in a frame/burst
-			    if (stats->framelatency_histogram && (stats->mUDP == kMode_Server) && (packet->packetLen == packet->remaining) ) {
+			// peform frame latency checks
+			if (stats->framelatency_histogram) {
+			    // first packet of a burst
+			    if (packet->burstsize == packet->remaining) {
+				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
+				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
+				matchframeid=packet->frameID;
+			    } else if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
+				// last packet of a burst and frame id match
 				double frametransit = TimeDifference(packet->packetTime, stats->frame.lastFrameTransit);
 				histogram_insert(stats->framelatency_histogram, frametransit);
 			    }
-			    break;
-			case 1:
-			    // first packet in a burst
-			    if ((stats->mUDP == kMode_Server) && (packet->burstsize == packet->remaining)) {
-				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
-				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
-			    }
-			    break;
-			default:
-			    // Frame ID skipped more than 1
-			    if (stats->mUDP == kMode_Server) {
-				stats->isochstats.framelostcnt += ((framedelta-1) - (packet->frameID - packet->prevframeID));
-				data->isochstats.framelostcnt += ((framedelta-1) - (packet->frameID - packet->prevframeID));
-			    } else {
-				stats->isochstats.framelostcnt += (framedelta-1);
-				data->isochstats.framelostcnt += (framedelta-1);
-				stats->isochstats.slipcnt++;
-				data->isochstats.slipcnt++;
-			    }
-			    break;
 			}
 		    }
 		    data->isochstats.frameID = packet->frameID;

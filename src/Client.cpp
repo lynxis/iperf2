@@ -442,6 +442,7 @@ void Client::RunUDPIsochronous (void) {
     double delay = 0;
     double adjust = 0;
     int currLen = 1;
+    int frameid=0;
 
     ReportStruct *reportstruct = NULL;
     // InitReport handles Barrier for multiple Streams
@@ -487,7 +488,6 @@ void Client::RunUDPIsochronous (void) {
 
     do {
 	int bytecnt;
-	int frameid=0;
 	mBuf_isoch->prevframeid  = htonl(frameid);
 	frameid =  fc->wait_tick();
 	lastPacketTime.setnow();
