@@ -324,6 +324,7 @@ void Server::RunUDP( void ) {
 		{
 		    struct UDP_isoch_payload* mBuf_isoch = (struct UDP_isoch_payload*) (mBuf + sizeof(struct UDP_datagram));
 		    reportstruct->frameID = ntohl(mBuf_isoch->frameid);
+		    reportstruct->prevframeID = ntohl(mBuf_isoch->prevframeid);
 		    reportstruct->burstsize = ntohl(mBuf_isoch->burstsize);
 		    reportstruct->remaining = ntohl(mBuf_isoch->remaining);
 		}

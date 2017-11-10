@@ -130,7 +130,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( stats->mEnhanced ? report_bw_pps_enhanced_isoch_format : report_bw_format, stats->transferID,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
-		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0), stats->isochstats.framecnt, stats->isochstats.framelostcnt, stats->isochstats.slipcnt);
+		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0), stats->isochstats.framecnt,
+		    stats->isochstats.framelostcnt, stats->isochstats.slipcnt);
 	else
 #endif
 	    printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID,
@@ -140,7 +141,12 @@ void reporter_printstats( Transfer_Info *stats ) {
     } else {
         // UDP Server Reporting
         if( !header_printed ) {
-	    printf( "%s", (stats->mEnhanced ? report_bw_jitter_loss_enhanced_header : report_bw_jitter_loss_header));
+#ifdef HAVE_ISOCHRONOUS
+	    if (stats->mIsochronous)
+		printf(report_bw_jitter_loss_enhanced_isoch_header);
+	    else
+#endif
+		printf( "%s", (stats->mEnhanced ? report_bw_jitter_loss_enhanced_header : report_bw_jitter_loss_header));
             header_printed = 1;
         }
 	if (stats->IPGcnt) {
@@ -157,6 +163,21 @@ void reporter_printstats( Transfer_Info *stats ) {
 			    (100.0 * stats->cntError) / stats->cntDatagrams,
 			    (stats->IPGcnt / stats->IPGsum));
 		} else {
+#ifdef HAVE_ISOCHRONOUS
+		    if (stats->mIsochronous) {
+			printf( report_bw_jitter_loss_enhanced_isoch_format, stats->transferID,
+				stats->startTime, stats->endTime,
+				buffer, &buffer[sizeof(buffer)/2],
+				stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+				(100.0 * stats->cntError) / stats->cntDatagrams,
+				(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
+				stats->transit.minTransit*1000.0,
+				stats->transit.maxTransit*1000.0,
+				(stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
+				(stats->IPGcnt / stats->IPGsum), stats->isochstats.framecnt, stats->isochstats.framelostcnt);
+		    } else
+#endif
+
 		    printf( report_bw_jitter_loss_enhanced_format, stats->transferID,
 			    stats->startTime, stats->endTime,
 			    buffer, &buffer[sizeof(buffer)/2],

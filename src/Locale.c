@@ -299,6 +299,13 @@ const char report_bw_jitter_loss_enhanced_header[] =
 const char report_bw_jitter_loss_enhanced_format[] =
 "[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
 
+const char report_bw_jitter_loss_enhanced_isoch_header[] =
+"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
+ Latency avg/min/max/stdev PPS Frames/Lost\n";
+
+const char report_bw_jitter_loss_enhanced_isoch_format[] =
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps %3d/%d\n";
+
 const char report_sum_bw_jitter_loss_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)  %4.0f pps\n";
 

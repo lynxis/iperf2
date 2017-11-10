@@ -512,6 +512,7 @@ typedef struct UDP_isoch_payload {
     u_int32t mFPS; //frames per second
     u_int32_t start_tv_sec;
     u_int32_t start_tv_usec;
+    u_int32_t prevframeid;
     u_int32_t frameid;
     u_int32_t burstsize;
     u_int32_t remaining;
@@ -524,6 +525,7 @@ typedef struct UDP_isoch_payload {
     unsigned int mFPS      : 32;
     unsigned int start_tv_sec : 32;
     unsigned int start_tv_usec : 32;
+    unsigned int prevframeid : 32;
     unsigned int frameid : 32;
     unsigned int burstsize : 32;
     unsigned int remaining : 32;

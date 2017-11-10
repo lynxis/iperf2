@@ -487,7 +487,8 @@ void Client::RunUDPIsochronous (void) {
 
     do {
 	int bytecnt;
-	int frameid;
+	int frameid=0;
+	mBuf_isoch->prevframeid  = htonl(frameid);
 	frameid =  fc->wait_tick();
 	lastPacketTime.setnow();
 	delay = 0;
