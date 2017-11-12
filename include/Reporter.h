@@ -129,7 +129,8 @@ typedef struct IsochStats {
     max_size_t slipcnt;
     max_size_t framecnt;
     max_size_t framelostcnt;
-    double mBurstIPG; //IPG of packets within the burst
+    unsigned int mBurstInterval;
+    unsigned int mBurstIPG; //IPG of packets within the burst
     int frameID;
 } IsochStats;
 #endif

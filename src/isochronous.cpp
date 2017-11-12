@@ -55,10 +55,10 @@
 using namespace Isochronous;
 
 // Produce a frame counter with frequency in units of frames per second, e.g. 60 fps
-FrameCounter::FrameCounter(unsigned int value)  : frequency(value) {
-    period = (1000000 / frequency);
+FrameCounter::FrameCounter(double value)  : frequency(value) {
+    period = (unsigned int) (1000000 / frequency);
     lastcounter = 0;
-}    
+}
 
 unsigned int FrameCounter::get(long *ticks_remaining) {
     Timestamp sampleTime;  // Constructor will initialize timestamp to now
@@ -68,14 +68,14 @@ unsigned int FrameCounter::get(long *ticks_remaining) {
     if (ticks_remaining) {
 	// figure out how many usecs before the next frame counter tick
 	// the caller can use this to delay until the next tick
-	*ticks_remaining = ((counter + 1) * period) - usecs; 
+	*ticks_remaining = ((counter + 1) * period) - usecs;
     }
     return(counter + 1); // Frame counter for packets starts at 1
-}    
+}
 
 unsigned int FrameCounter::wait_tick(void) {
     long remaining;
-    unsigned int framecounter;    
+    unsigned int framecounter;
 
     if (!lastcounter) {
 	reset();
@@ -88,7 +88,11 @@ unsigned int FrameCounter::wait_tick(void) {
     }
     lastcounter = framecounter;
     return(framecounter);
-}    
+}
+
+unsigned int FrameCounter::period_us(void) {
+    return(period);
+}
 
 void FrameCounter::reset(void) {
     period = (1000000 / frequency);

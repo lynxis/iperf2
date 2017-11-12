@@ -41,9 +41,9 @@
  *
  * isochronous.hpp
  * Suppport for isochonronous traffic testing
- * 
+ *
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
- * ------------------------------------------------------------------- 
+ * -------------------------------------------------------------------
  */
 #ifndef ISOCHRONOUS_H
 #define ISOCHRONOUS_H
@@ -55,16 +55,17 @@
 namespace Isochronous {
     class FrameCounter {
     public :
-	FrameCounter(unsigned int);					   ;    
+	FrameCounter(double);
 	unsigned int get(long *);
+	unsigned int period_us(void);
 	unsigned int wait_tick(void);
 	void reset(void);
 	unsigned int slip;
 
     private :
 	Timestamp startTime;
-	unsigned int frequency;
-	unsigned int period;
+	double frequency;
+	unsigned int period;  // units microseconds
 	unsigned int lastcounter;
     }; // end class FrameCounter
 }

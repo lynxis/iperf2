@@ -209,7 +209,7 @@ const char wait_server_threads[] =
 "Waiting for server threads to complete. Interrupt again to force quit.\n";
 
 const char client_udp_isochronous[] =
-"UDP isochronous: %d frames/sec mean=%s/s, variance=%s/s, IPG=%4.0f us\n";
+"UDP isochronous: %d frames/sec mean=%s/s, variance=%s/s, Period/IPG=%0.2f/%0.3f ms\n";
 
 /* -------------------------------------------------------------------
  * Legacy reports

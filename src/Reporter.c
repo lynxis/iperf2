@@ -528,7 +528,8 @@ void ReportSettings( thread_Settings *agent ) {
 		data->isochstats.mFPS = agent->mFPS;
 		data->isochstats.mMean = agent->mMean/8;
 		data->isochstats.mVariance = agent->mVariance/8;
-		data->isochstats.mBurstIPG = agent->mBurstIPG;
+		data->isochstats.mBurstIPG = (unsigned int) (agent->mBurstIPG*1000.0);
+		data->isochstats.mBurstInterval = (unsigned int) (1 / agent->mFPS * 1000000);
 	    }
 #endif
     #ifdef HAVE_THREAD
@@ -891,15 +892,16 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			}
 			// peform frame latency checks
 			if (stats->framelatency_histogram) {
-			    // first packet of a burst
-			    if (packet->burstsize == packet->remaining) {
+			    // first packet of a burst and not a duplicate
+			    if ((packet->burstsize == packet->remaining) && (matchframeid!=packet->frameID)) {
 				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
 				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 				matchframeid=packet->frameID;
 			    } else if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
-				// last packet of a burst and frame id match
+				// last packet of a burst (or first-last in case of a duplicate) and frame id match
 				double frametransit = TimeDifference(packet->packetTime, stats->frame.lastFrameTransit);
 				histogram_insert(stats->framelatency_histogram, frametransit);
+				matchframeid = 0;  // reset the matchid so any potential duplicate is ignored
 			    }
 			}
 		    }

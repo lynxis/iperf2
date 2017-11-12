@@ -200,7 +200,7 @@ typedef struct thread_Settings {
     HANDLE mHandle;
 #endif
 #ifdef HAVE_ISOCHRONOUS
-    int mFPS; //frames per second
+    double mFPS; //frames per second
     double mMean; //variable bit rate mean
     double mVariance; //vbr variance
     int mJitterBufSize; //Server jitter buffer size, units is frames
@@ -509,7 +509,7 @@ typedef struct UDP_isoch_payload {
     int32_t version_u;
     int32_t version_l;
     int32_t reserved;
-    u_int32t mFPS; //frames per second
+    u_int32t burstperiod; //period units microseconds
     u_int32_t start_tv_sec;
     u_int32_t start_tv_usec;
     u_int32_t prevframeid;
@@ -522,7 +522,7 @@ typedef struct UDP_isoch_payload {
     signed int version_u   : 32;
     signed int version_l   : 32;
     signed int reserved    : 32;
-    unsigned int mFPS      : 32;
+    unsigned int burstperiod : 32;
     unsigned int start_tv_sec : 32;
     unsigned int start_tv_usec : 32;
     unsigned int prevframeid : 32;

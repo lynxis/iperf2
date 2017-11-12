@@ -485,6 +485,7 @@ void Client::RunUDPIsochronous (void) {
     mBuf_isoch->reserved = 0;
     mBuf_isoch->version_u = htonl(IPERF_VERSION_MAJORHEX);
     mBuf_isoch->version_l = htonl(IPERF_VERSION_MINORHEX);
+    mBuf_isoch->burstperiod = htonl(fc->period_us());
 
     do {
 	int bytecnt;

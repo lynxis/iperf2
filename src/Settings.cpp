@@ -726,14 +726,14 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		strcpy( mExtSettings->mIsochronousStr, optarg );
 		// The following are default values which
 		// may be overwritten during modal parsing
-		mExtSettings->mFPS = 30;
+		mExtSettings->mFPS = 30.0;
 		mExtSettings->mMean = 10000000;
 	    }
 	    if (burstipg) {
 		burstipg = 0;
 		burstipg_set = 1;
 		char *end;
-		mExtSettings->mBurstIPG = strtof( optarg, &end );
+		mExtSettings->mBurstIPG = strtof(optarg,&end);
 		if (*end != '\0') {
 		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
 		}
@@ -815,7 +815,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	// which is frames per second, mean and variance
 	if (mExtSettings->mThreadMode == kMode_Client) {
 	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && !strcmp(results,mExtSettings->mIsochronousStr)) {
-		mExtSettings->mFPS = atoi(results);
+		mExtSettings->mFPS = atof(results);
 		if ((results = strtok(NULL, ",")) != NULL) {
 		    mExtSettings->mMean = bitorbyte_atof(results);
 		    if ((results = strtok(NULL, ",")) != NULL) {
