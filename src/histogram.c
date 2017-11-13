@@ -133,7 +133,7 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     int intervalpopulation, oob_u, oob_l;
     intervalpopulation = h->populationcnt - h->prev->populationcnt;
     strcpy(h->outbuf, h->myname);
-    sprintf(h->outbuf, "[%3d] %4.2f-%4.2f sec %s%s bin(w=%d%s):cnt(%d)=", h->id, start, end, h->myname, (final ? "(f)" : ""), h->binwidth, ((h->units > 1e3) ? "us" : "ms"), intervalpopulation);
+    sprintf(h->outbuf, "[%3d] %4.2f-%4.2f sec %s%s%s bin(w=%d%s):cnt(%d)=", h->id, start, end, h->myname, (final ? "(f)" : ""), "-PDF:",h->binwidth, ((h->units > 1e3) ? "us" : "ms"), intervalpopulation);
     n = strlen(h->outbuf);
     lowerci=0;
     upperci=0;
