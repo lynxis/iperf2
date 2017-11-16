@@ -897,7 +897,8 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
 				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 				matchframeid=packet->frameID;
-			    } else if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
+			    } 
+			    if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
 				// last packet of a burst (or first-last in case of a duplicate) and frame id match
 				double frametransit = TimeDifference(packet->packetTime, stats->frame.lastFrameTransit);
 				histogram_insert(stats->framelatency_histogram, frametransit);
