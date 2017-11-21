@@ -190,7 +190,7 @@ class iperf_flow(object):
         iperf_flow.instances.remove(self)
 
     async def start(self):
-        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None}
+        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None}
         await self.rx.start()
         await self.tx.start()
 
@@ -295,7 +295,7 @@ class iperf_server(object):
                             m = self._server.regex_final_isoch_traffic.match(line)
                             if m :
                                 timestamp = datetime.now(timezone.utc).astimezone()
-                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttiime'], endtime=timestamp))
+                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp))
                                 # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
                                 logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
 
@@ -432,7 +432,7 @@ class iperf_client(object):
                             self._client.opened.set()
                             self._client.remotepid = m.group('pid')
                             self.flowstats['starttime'] = datetime.now(timezone.utc).astimezone()
-                            logging.debug('{} pipe reading (stdout,{})'.format(self._client.name, self._client.remotepid))
+                            logging.debug('{} pipe reading at {} (stdout,{})'.format(self._client.name, self.flowstats['starttime'].isoformat(), self._client.remotepid))
                     else :
                         if self.proto == 'TCP':
                             m = self._client.regex_traffic.match(line)
@@ -586,9 +586,10 @@ class flow_histogram(object):
                 x,y = bin.split(':')
                 #logging.debug('bin={} x={} y={}'.format(bin, x, y))
                 cummulative += float(y)
-                if not max and ((cummulative / self.population) > 0.98) :
+                perc = cummulative / self.population
+                if not max and (perc > 0.98) :
                     max = int((int(x) * self.binwidth) / 1000)
-                fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), cummulative))
+                fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
                 datafile=filename
 
         #write out the gnuplot control file
@@ -602,14 +603,13 @@ class flow_histogram(object):
             fid.write('set terminal png size 1024,768\n')
             fid.write('set key bottom\n')
             fid.write('set title \"{}\"\n'.format(self.name))
-            # fid.write('set xlabel \"{}\".\n'.format(self.createtime.strftime()))
             fid.write('set format x \"%.0f"\n')
-            fid.write('set format y \"%.0s%c\"\n')
-            fid.write('set yrange [0:]\n')
-            fid.write('set y2range [0:1]\n')
+            fid.write('set format y \"%.1f"\n')
+            fid.write('set yrange [0:1.01]\n')
+            fid.write('set y2range [0:*]\n')
+            fid.write('set ytics add 0.1\n')
+            fid.write('set y2tics nomirror\n')
             fid.write('set grid\n')
-            fid.write('set ytics nomirror\n')
-            fid.write('set y2tics\n')
             fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(self.starttime, self.endtime))
             if max < 10 :
                 fid.write('set xrange [0:10]\n')
@@ -629,7 +629,7 @@ class flow_histogram(object):
             else :
                 fid.write('set xrange [0:100]\n')
                 fid.write('set xtics add 10\n')
-            fid.write('plot \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle, \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle\n'.format(datafile, datafile))
+            fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafile, datafile))
 
         rc = subprocess.run([flow_histogram.gnuplot, filename])
         logging.info('rc={}'.format(rc))    
