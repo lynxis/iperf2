@@ -591,7 +591,7 @@ class iperf_client(object):
 
 class flow_histogram(object):
     gnuplot = '/usr/bin/gnuplot'
-    def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None) :
+    def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None) :
         self.raw = values
         self.name = name
         self.population = float(population)
@@ -599,19 +599,28 @@ class flow_histogram(object):
         self.createtime = datetime.now(timezone.utc).astimezone()
         self.starttime=starttime
         self.endtime=endtime
+        self.title=title
 
-    def plot(self, title=None, outputtype='png', filename=None) :
+    def plot(self, title=None, directory='.', outputtype='png', filename=None) :
         logging.info('Plotting {}'.format(self.name))
         if not filename :
-            filename = self.name + '.data'
-        else :
-            filename = filename + '.data'
+            filename = self.name
+
+        if not os.path.exists(directory):
+            print('Making results directory {}'.format(directory))
+            os.makedirs(directory)
+        
+        logging.info('Writing {} results to directory {}'.format(directory, filename))
+        basefilename = os.path.join(directory, filename)
+        datafilename = os.path.join(directory, filename + '.data')
+        gpcfilename = os.path.join(directory, filename + '.gpc')
+
         # write out the datafiles for the plotting tool,  e.g. gnuplot
-        with open(filename, 'w') as fid :
+        with open(datafilename, 'w') as fid :
             bins = self.raw.split(',')
             cummulative = 0
             max = None
-            for bin in bins :
+            for bin in bins : 
                 x,y = bin.split(':')
                 #logging.debug('bin={} x={} y={}'.format(bin, x, y))
                 cummulative += float(y)
@@ -620,27 +629,25 @@ class flow_histogram(object):
                     max = float(x) * float(self.binwidth) / 1000.0
                     logging.info('98% max = {}'.format(max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
-            datafile=filename
 
         #write out the gnuplot control file
-        if not filename :
-            filename = self.name + '.gpc'
-        else :
-            filename = filename + '.gpc'
 
-        with open(filename, 'w') as fid :
+        with open(gpcfilename, 'w') as fid :
             if outputtype == 'canvas' :
-                fid.write('set output \"{}.{}\"\n'.format(self.name, 'html'))
+                fid.write('set output \"{}.{}\"\n'.format(basefilename, 'html'))
                 fid.write('set terminal canvas standalone mousing size 1024,768\n')
             if outputtype == 'svg' :
-                fid.write('set output \"{}_svg.{}\"\n'.format(self.name, 'html'))
+                fid.write('set output \"{}_svg.{}\"\n'.format(basefilename, 'html'))
                 fid.write('set terminal svg size 1024,768 dynamic mouse\n')
             else :
-                fid.write('set output \"{}.{}\"\n'.format(self.name, 'png'))
+                fid.write('set output \"{}.{}\"\n'.format(basefilename, 'png'))
                 fid.write('set terminal png size 1024,768\n')
-
+                
+            if not title and self.title :
+                title = self.title
+                
             fid.write('set key bottom\n')
-            fid.write('set title \"{}\"\n'.format(self.name))
+            fid.write('set title \"{}({}) {}\"\n'.format(self.name,self.population, title))
             fid.write('set format x \"%.0f"\n')
             fid.write('set format y \"%.1f"\n')
             fid.write('set yrange [0:1.01]\n')
@@ -670,7 +677,7 @@ class flow_histogram(object):
             else :
                 fid.write('set xrange [0:100]\n')
                 fid.write('set xtics add 10\n')
-            fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafile, datafile))
+            fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename, datafilename))
 
-        rc = subprocess.run([flow_histogram.gnuplot, filename])
+        rc = subprocess.run([flow_histogram.gnuplot, gpcfilename])
         logging.info('rc={}'.format(rc))    
