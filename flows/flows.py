@@ -147,7 +147,35 @@ class iperf_flow(object):
             if stdout:
                 logging.info('cleanup: host({}) stdout={} '.format(host, stdout))
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, debug = False):
+    @classmethod
+    def tos_to_txt(cls, tos) :
+        switcher = {
+            int(0x0)  : "BE",
+            int(0x02) : "BK",
+            int(0xC0) : "VO",
+            int(0x80) : "VI",
+        }
+        return switcher.get(int(tos), None)
+
+    @classmethod
+    def txt_to_tos(cls, txt) :
+        switcher = {
+            "BE" : "0x0",
+            "BESTEFFORT" : "0x0",
+            "0x0" : "0x0",
+            "BK" : "0x20",
+            "BACKGROUND" : "0x20",
+            "0x20" : "0x20",
+            "VO" : "0xC0",
+            "VOICE" : "0xC0",
+            "0xC0" : "0xC0",
+            "VI" : "0x80",
+            "VIDEO" : "0x80",
+            "0x80" : "0x80",
+        }
+        return switcher.get(txt.upper(), None)
+
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', debug = False):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -161,6 +189,7 @@ class iperf_flow(object):
         self.user = user
         self.proto = proto
         self.dst = dst
+        self.tos = tos
         self.interval = round(interval,3)
         self.offered_load = offered_load
         self.debug = debug
@@ -519,7 +548,7 @@ class iperf_client(object):
             iperftime = time + 30
         else :
             ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb']
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos)]
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
@@ -599,8 +628,16 @@ class flow_histogram(object):
             filename = filename + '.gpc'
 
         with open(filename, 'w') as fid :
-            fid.write('set output \"{}.{}\"\n'.format(self.name, outputtype))
-            fid.write('set terminal png size 1024,768\n')
+            if outputtype == 'canvas' :
+                fid.write('set output \"{}.{}\"\n'.format(self.name, 'html'))
+                fid.write('set terminal canvas standalone mousing size 1024,768\n')
+            if outputtype == 'svg' :
+                fid.write('set output \"{}_svg.{}\"\n'.format(self.name, 'html'))
+                fid.write('set terminal svg size 1024,768 dynamic mouse\n')
+            else :
+                fid.write('set output \"{}.{}\"\n'.format(self.name, 'png'))
+                fid.write('set terminal png size 1024,768\n')
+
             fid.write('set key bottom\n')
             fid.write('set title \"{}\"\n'.format(self.name))
             fid.write('set format x \"%.0f"\n')
