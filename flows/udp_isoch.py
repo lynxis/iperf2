@@ -27,7 +27,7 @@ args = parser.parse_args()
 logfilename='test.log'
 if not os.path.exists(args.output_directory):
     print('Making log directory {}'.format(args.output_directory))
-    os.makedirs(args.output.directory)
+    os.makedirs(args.output_directory)
 
 fqlogfilename = os.path.join(args.output_directory, logfilename)
 print('Writing log to {}'.format(fqlogfilename))
