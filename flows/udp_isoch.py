@@ -11,10 +11,10 @@ from flows import *
 
 parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
 parser.add_argument('-s', '--server', type=str, required=True, help='host to run iperf server')
-parser.add_argument('-c','--client', type=str, required=True, help='host to run iperf client')
-parser.add_argument('-d','--dst', type=str, required=True, help='iperf destination ip address')
-parser.add_argument('-t','--time', type=int, default=10, required=False, help='time or duration to run traffic')
-parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
+parser.add_argument('-c', '--client', type=str, required=False, default='localhost', help='host to run iperf client')
+parser.add_argument('-d', '--dst', type=str, required=True, help='iperf destination ip address')
+parser.add_argument('-t', '--time', type=int, default=10, required=False, help='time or duration to run traffic')
+parser.add_argument('-S', '--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 args = parser.parse_args()
 
 #logging.basicConfig(filename='test.log', level=logging.DEBUG, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')

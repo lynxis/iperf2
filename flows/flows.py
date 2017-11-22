@@ -617,7 +617,8 @@ class flow_histogram(object):
                 cummulative += float(y)
                 perc = cummulative / self.population
                 if not max and (perc > 0.98) :
-                    max = int((int(x) * self.binwidth) / 1000)
+                    max = float(x) * float(self.binwidth) / 1000.0
+                    logging.info('98% max = {}'.format(max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
             datafile=filename
 
@@ -648,10 +649,13 @@ class flow_histogram(object):
             fid.write('set y2tics nomirror\n')
             fid.write('set grid\n')
             fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(self.starttime, self.endtime))
-            if max < 10 :
+            if max < 5 :
+                fid.write('set xrange [0:5]\n')
+                fid.write('set xtics auto\n')
+            elif max < 10 :
                 fid.write('set xrange [0:10]\n')
                 fid.write('set xtics add 1\n')
-            if max < 20 :
+            elif max < 20 :
                 fid.write('set xrange [0:20]\n')
                 fid.write('set xtics add 1\n')
             elif max < 40 :
