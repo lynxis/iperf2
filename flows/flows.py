@@ -619,7 +619,7 @@ class flow_histogram(object):
                 if not max and (perc > 0.98) :
                     max = int((int(x) * self.binwidth) / 1000)
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
-                datafile=filename
+            datafile=filename
 
         #write out the gnuplot control file
         if not filename :

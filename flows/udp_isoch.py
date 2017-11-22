@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.5
 #
 # Author Robert J. McMahon
-# Date March 2017
+# Date November 2017
 import shutil
 import logging
 import flows
