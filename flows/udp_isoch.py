@@ -19,7 +19,7 @@ parser.add_argument('-d','--dst', type=str, required=True, help='iperf destinati
 parser.add_argument('-i','--interval', type=str, required=False, default=0, help='iperf report interval')
 parser.add_argument('-t','--time', type=int, default=10, required=False, help='time or duration to run traffic')
 parser.add_argument('-O','--offered_load', type=str, default="60:18M,0", required=False, help='offered load; <fps>:<mean>,<variance>')
-parser.add_argument('-T','--title', type=int, default=None, required=False, help='title for graphs')
+parser.add_argument('-T','--title', type=str, default=None, required=False, help='title for graphs')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 parser.add_argument('-o','--output_directory', type=str, required=False, default='./data', help='output directory')
 args = parser.parse_args()
