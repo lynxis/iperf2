@@ -42,13 +42,14 @@ loop.set_debug(False)
 
 count = 1
 
+plottitle='('+ args.offered_load + ' ' + args.tos +') ' + args.title + ' ' + str(args.time) + 'sec '
 flows = [iperf_flow(name="ISOCH{}".format(str(i)), user='root', server=args.server, client=args.client, dst=args.dst, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, tos=args.tos, debug=False) for i in range(count)]
 print("Running isochronous traffic client={} server={} dest={} with load {} for {} seconds ".format(args.client, args.server, args.dst, args.offered_load, args.time))
 iperf_flow.run(time=args.time, flows='all', preclean=False)
 for flow in flows :
     for histogram in flow.flowstats['histograms'] :
-        histogram.plot(title=args.title, directory=args.output_directory)
-        histogram.plot(title=args.title, outputtype='svg', directory=args.output_directory)
+        histogram.plot(title=plottitle, directory=args.output_directory)
+        histogram.plot(title=plottitle, outputtype='svg', directory=args.output_directory)
 print('Finished.  Results written to directory {}'.format(args.output_directory))
 
 logging.shutdown()

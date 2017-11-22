@@ -647,7 +647,7 @@ class flow_histogram(object):
                 title = self.title
                 
             fid.write('set key bottom\n')
-            fid.write('set title \"{}({}) {}\"\n'.format(self.name,self.population, title))
+            fid.write('set title \"{} {}({})\"\n'.format(self.name,title, int(self.population)))
             fid.write('set format x \"%.0f"\n')
             fid.write('set format y \"%.1f"\n')
             fid.write('set yrange [0:1.01]\n')
