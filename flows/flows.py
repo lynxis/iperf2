@@ -554,6 +554,8 @@ class iperf_client(object):
 
         if self.proto == 'UDP' and self.offered_load :
             self.sshcmd.extend(['-u', '--isochronous', self.offered_load])
+        elif self.proto == 'TCP' and self.offered_load :
+            self.sshcmd.extend(['-b', self.offered_load])
 
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self, self.flow), *self.sshcmd)
