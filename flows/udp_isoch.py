@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream
 parser.add_argument('-s','--server', type=str, required=True, help='host to run iperf server')
 parser.add_argument('-c','--client', type=str, default='localhost', required=False, help='host to run iperf client')
 parser.add_argument('-d','--dst', type=str, required=True, help='iperf destination ip address')
-parser.add_argument('-i','--interval', type=str, required=False, default=0, help='iperf report interval')
+parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
 parser.add_argument('-t','--time', type=int, default=10, required=False, help='time or duration to run traffic')
 parser.add_argument('-O','--offered_load', type=str, default="60:18M,0", required=False, help='offered load; <fps>:<mean>,<variance>')
 parser.add_argument('-T','--title', type=str, default="", required=False, help='title for graphs')
@@ -61,7 +61,7 @@ if args.stress_server and args.stress_client and args.stress_dst :
 
 iperf_flow.run(time=args.time, flows='all', preclean=False)
 for flow in flows :
-    for histogram in flow.flowstats['histograms'] :
+    for histogram in flow.histograms :
         histogram.plot(title=plottitle, directory=args.output_directory)
         histogram.plot(title=plottitle, outputtype='svg', directory=args.output_directory)
 print('Finished.  Results written to directory {}'.format(args.output_directory))

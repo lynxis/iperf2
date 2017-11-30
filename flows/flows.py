@@ -218,6 +218,10 @@ class iperf_flow(object):
     def destroy(self) :
         iperf_flow.instances.remove(self)
 
+    def __getattr__(self, attr) :
+        if attr in self.flowstats :
+            return self.flowstats[attr]
+
     async def start(self):
         self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None}
         await self.rx.start()
