@@ -175,7 +175,7 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', debug = False):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='150K', debug = False):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -200,6 +200,8 @@ class iperf_flow(object):
         # i.e. a flow has a server and a client
         self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, user=self.user, host=self.server, flow=self, debug=self.debug)
         self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, user=self.user, host=self.client, flow=self, debug=self.debug)
+        self.rx.window=window
+        self.tx.window=window
         # Initialize the flow stats dictionary
         self.flowstats['txdatetime']=[]
         self.flowstats['txbytes']=[]
@@ -391,11 +393,11 @@ class iperf_server(object):
         self.opened.clear()
         self.remotepid = None
         iperftime = time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e',  '-t ' + str(iperftime), '-z', '-fb']
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e',  '-t ' + str(iperftime), '-z', '-fb', '-w' , self.window]
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
-            self.sshcmd.extend(['-u', '--udp-histogram 10u,10000'])
+            self.sshcmd.extend(['-u', '--udp-histogram 10u,50000'])
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
@@ -552,7 +554,7 @@ class iperf_client(object):
             iperftime = time + 30
         else :
             ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos)]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window]
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
