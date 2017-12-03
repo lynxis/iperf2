@@ -82,7 +82,6 @@ void histogram_delete(histogram_t *h) {
 	free(h->mybins);
     if (h->myname)
 	free(h->myname);
-    // printf("histogram delete\n");
     free(h);
 }
 

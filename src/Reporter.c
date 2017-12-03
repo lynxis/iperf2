@@ -237,11 +237,9 @@ ReportHeader* InitReport( thread_Settings *agent ) {
         /*
          * Create in one big chunk
          */
-        reporthdr = malloc( sizeof(ReportHeader) +
-                            NUM_REPORT_STRUCTS * sizeof(ReportStruct) );
+        reporthdr = calloc( sizeof(ReportHeader) +
+                            NUM_REPORT_STRUCTS * sizeof(ReportStruct), sizeof(char*));
         if ( reporthdr != NULL ) {
-            // Only need to make sure the headers are clean
-            memset( reporthdr, 0, sizeof(ReportHeader));
             reporthdr->data = (ReportStruct*)(reporthdr+1);
             reporthdr->multireport = agent->multihdr;
             data = &reporthdr->report;
@@ -495,8 +493,7 @@ void ReportSettings( thread_Settings *agent ) {
         /*
          * Create in one big chunk
          */
-        ReportHeader *reporthdr = malloc( sizeof(ReportHeader) );
-
+        ReportHeader *reporthdr = calloc( sizeof(ReportHeader), sizeof(char*));
         if ( reporthdr != NULL ) {
             ReporterData *data = &reporthdr->report;
             data->info.transferID = agent->mSock;
@@ -566,7 +563,7 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 	/*
 	 * Create in one big chunk
 	 */
-	ReportHeader *reporthdr = malloc( sizeof(ReportHeader) );
+	ReportHeader *reporthdr = calloc( sizeof(ReportHeader), sizeof(char*));
 	Transfer_Info *stats = &reporthdr->report.info;
 
 	if ( !reporthdr ) {

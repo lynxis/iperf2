@@ -149,8 +149,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 		printf( "%s", (stats->mEnhanced ? report_bw_jitter_loss_enhanced_header : report_bw_jitter_loss_header));
             header_printed = 1;
         }
-	if (stats->IPGcnt) {
-	    if (stats->mEnhanced) {
+	if (stats->mEnhanced) {
+	    if (stats->IPGcnt) {
 		// If the min latency is out of bounds of a realistic value
 		// assume the clocks are not synched and suppress the
 		// latency output
@@ -198,19 +198,19 @@ void reporter_printstats( Transfer_Info *stats ) {
 		}
 #endif
 	    } else {
-		printf( report_bw_jitter_loss_format, stats->transferID,
+		printf( report_bw_jitter_loss_suppress_enhanced_format, stats->transferID,
 			stats->startTime, stats->endTime,
 			buffer, &buffer[sizeof(buffer)/2],
-			stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
-			(100.0 * stats->cntError) / stats->cntDatagrams);
+			0.0, stats->cntError,
+			stats->cntDatagrams,
+			0.0,0.0,0.0,0.0,0.0,0.0);
 	    }
 	} else {
-	    printf( stats->mEnhanced ? report_bw_jitter_loss_suppress_enhanced_format : report_bw_jitter_loss_format , stats->transferID,
+	    printf( report_bw_jitter_loss_format, stats->transferID,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
-		    0.0, stats->cntError,
-		    stats->cntDatagrams,
-		    0.0,0.0,0.0,0.0,0.0,0.0);
+		    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+		    (100.0 * stats->cntError) / stats->cntDatagrams);
 	}
 	if ( stats->cntOutofOrder > 0 ) {
 	    printf( report_outoforder,
