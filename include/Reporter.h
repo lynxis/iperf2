@@ -215,6 +215,9 @@ typedef struct Connection_Info {
 typedef struct ReporterData {
     char*  mHost;                   // -c
     char*  mLocalhost;              // -B
+    char*  mIfrname;
+    char*  mSSMMulticastStr;
+
     // int's
     int type;
     max_size_t cntError;

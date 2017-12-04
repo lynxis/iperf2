@@ -88,6 +88,12 @@ extern const char multicast_ttl[];
 
 extern const char join_multicast[];
 
+extern const char join_multicast_sg[];
+
+extern const char join_multicast_sg_dev[];
+
+extern const char join_multicast_starg_dev[];
+
 extern const char client_datagram_size[];
 
 extern const char client_datagram_size_kalman[];

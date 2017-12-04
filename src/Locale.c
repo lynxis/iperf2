@@ -92,7 +92,7 @@ Client/Server:\n\
 #ifdef HAVE_SCHED_SETSCHEDULER
 "  -z, --realtime           request realtime scheduler\n"
 #endif
-"  -B, --bind      <host>   bind to <host>, an interface or multicast address\n\
+"  -B, --bind <host>[:<port>][%<dev>] bind to <host>, ip addr (including multicast address) and optional port and device\n\
   -C, --compatibility      for use with older versions does not sent extra msgs\n\
   -M, --mss       #        set TCP maximum segment size (MTU - 40 bytes)\n\
   -N, --nodelay            set TCP no delay, disabling Nagle's Algorithm\n\
@@ -101,6 +101,9 @@ Client/Server:\n\
 Server specific:\n\
   -s, --server             run in server mode\n\
   -t, --time      #        time in seconds to listen for new connections as well as to receive traffic (default not set)\n\
+      --udp-histogram #,#  enable UDP latency histogram(s) with bin width and count, e.g. 1,1000=1(ms),1000(bins)\n\
+  -B, --bind <ip>[%<dev>]  bind to multicast address and optional device\n\
+  -H, --ssm-host <ip>      set the SSM source, use with -B for (S,G) \n\
   -U, --single_udp         run in single threaded UDP mode\n\
   -D, --daemon             run the server as a daemon\n"
 #ifdef WIN32
@@ -113,11 +116,15 @@ const char usage_long2[] = "\
 \n\
 Client specific:\n\
   -c, --client    <host>   run in client mode, connecting to <host>\n\
-  -d, --dualtest           Do a bidirectional test simultaneously\n\
-  -n, --num       #[kmgKMG]    number of bytes to transmit (instead of -t)\n\
+  -d, --dualtest           Do a bidirectional test simultaneously\n"
+#ifdef HAVE_ISOCHRONOUS
+"      --ipg                set the the interpacket gap (milliseconds) for packets within an isochronous frame\n\
+      --isochronous <frames-per-second>:<mean>,<variance> send traffic in bursts (frames - emulate video traffic)\n"
+#endif
+"  -n, --num       #[kmgKMG]    number of bytes to transmit (instead of -t)\n\
   -r, --tradeoff           Do a bidirectional test individually\n\
   -t, --time      #        time in seconds to transmit for (default 10 secs)\n\
-  -B, --bind [<ip> | <ip:port>] bind src addr(s) from which to originate traffic\n\
+  -B, --bind [<ip> | <ip:port>] bind ip (and optional port) from which to source traffic\n\
   -F, --fileinput <name>   input the data to be transmitted from a file\n\
   -I, --stdin              input the data to be transmitted from stdin\n\
   -L, --listenport #       port to receive bidirectional tests back on\n\
@@ -186,6 +193,15 @@ const char multicast_ttl[] =
 
 const char join_multicast[] =
 "Joining multicast group  %s\n";
+
+const char join_multicast_sg[] =
+"Joining multicast (S,G)=%s,%s\n";
+
+const char join_multicast_starg_dev[] =
+"Joining multicast (*,G)=*,%s w/iface %s\n";
+
+const char join_multicast_sg_dev[] =
+"Joining multicast (S,G)=%s,%s w/iface %s\n";
 
 const char client_datagram_size[] =
 "Sending %d byte datagrams, IPG target: %4.2f us\n";

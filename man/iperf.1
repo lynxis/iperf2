@@ -102,8 +102,14 @@ output UDP latency histograms, bin widths default to milliseconds (append u for 
 run in server mode
 
 .TP
+.BR -B ", " --bind " \fIip\fR | \fIip\fR%\fIdevice\fR"
+bind src ip addr and optional src device for receiving
+.TP
 .BR -D ", " --daemon " "
 run the server as a daemon.  On Windows this will also install the IPerfService.
+.TP
+.BR -H ", " --ssm-host " \fIhost\fR"
+Set the source host (ip addr) per SSM multicast, i.e. the S of the S,G
 .TP
 .BR -R ", " --remove " "
 remove the IPerfService (Windows only).

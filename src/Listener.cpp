@@ -81,6 +81,7 @@
 #include "util.h"
 #include "version.h"
 #include "Locale.h"
+#include <net/if.h>
 
 /* -------------------------------------------------------------------
  * Stores local hostname and socket info.
@@ -377,44 +378,166 @@ void Listener::Listen( ) {
 #ifndef WIN32
     // if multicast, join the group
     if ( SockAddr_isMulticast( &mSettings->local ) ) {
+#ifdef HAVE_MULTICAST
         McastJoin( );
+#else
+	fprintf(stderr, "Multicast not supported");
+#endif // HAVE_MULTICAST
     }
 #endif
 } // end Listen
 
 /* -------------------------------------------------------------------
- * Joins the multicast group, with the default interface.
+ * Joins the multicast group or source and group (SSM S,G)
+ *
+ * taken from: https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.1.0/com.ibm.zos.v2r1.hale001/ipv6d0141001708.htm
+ *
+ * Multicast function	                                        IPv4	                   IPv6	                Protocol-independent
+ * ==================                                           ====                       ====                 ====================
+ * Level of specified option on setsockopt()/getsockopt()	IPPROTO_IP	           IPPROTO_IPV6	IPPROTO_IP or IPPROTO_IPV6
+ * Join a multicast group	                                IP_ADD_MEMBERSHIP          IPV6_JOIN_GROUP	MCAST_JOIN_GROUP
+ * Leave a multicast group or leave all sources of that
+ *   multicast group	                                        IP_DROP_MEMBERSHIP	   IPV6_LEAVE_GROUP	MCAST_LEAVE_GROUP
+ * Select outbound interface for sending multicast datagrams	IP_MULTICAST_IF	IPV6_MULTICAST_IF	NA
+ * Set maximum hop count	                                IP_MULTICAST_TTL	   IPV6_MULTICAST_HOPS	NA
+ * Enable multicast loopback	                                IP_MULTICAST_LOOP	   IPV6_MULTICAST_LOOP	NA
+ * Join a source multicast group	                        IP_ADD_SOURCE_MEMBERSHIP   NA	                MCAST_JOIN_SOURCE_GROUP
+ * Leave a source multicast group	                        IP_DROP_SOURCE_MEMBERSHIP  NA	                MCAST_LEAVE_SOURCE_GROUP
+ * Block data from a source to a multicast group	        IP_BLOCK_SOURCE   	   NA	                MCAST_BLOCK_SOURCE
+ * Unblock a previously blocked source for a multicast group	IP_UNBLOCK_SOURCE	   NA	                MCAST_UNBLOCK_SOURCE
+ *
  * ------------------------------------------------------------------- */
 
 void Listener::McastJoin( ) {
-#ifdef HAVE_MULTICAST
-    if ( !SockAddr_isIPv6( &mSettings->local ) ) {
-        struct ip_mreq mreq;
+    if (!isSSMMulticast(mSettings) && !mSettings->mIfrname) {
+	if ( !SockAddr_isIPv6( &mSettings->local ) ) {
 
-        memcpy( &mreq.imr_multiaddr, SockAddr_get_in_addr( &mSettings->local ),
-                sizeof(mreq.imr_multiaddr));
+	    struct ip_mreq mreq;
 
-        mreq.imr_interface.s_addr = htonl( INADDR_ANY );
+	    memcpy( &mreq.imr_multiaddr, SockAddr_get_in_addr( &mSettings->local ),
+		    sizeof(mreq.imr_multiaddr));
 
-        int rc = setsockopt( mSettings->mSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                             (char*) &mreq, sizeof(mreq));
-        WARN_errno( rc == SOCKET_ERROR, "multicast join" );
-    }
+	    mreq.imr_interface.s_addr = htonl( INADDR_ANY );
+
+	    int rc = setsockopt( mSettings->mSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+				 (char*) &mreq, sizeof(mreq));
+	    WARN_errno( rc == SOCKET_ERROR, "multicast join" );
+
+	} else {
 #ifdef HAVE_IPV6_MULTICAST
-      else {
-        struct ipv6_mreq mreq;
+	    struct ipv6_mreq mreq;
 
-        memcpy( &mreq.ipv6mr_multiaddr, SockAddr_get_in6_addr( &mSettings->local ),
-                sizeof(mreq.ipv6mr_multiaddr));
+	    memcpy( &mreq.ipv6mr_multiaddr, SockAddr_get_in6_addr( &mSettings->local ),
+		    sizeof(mreq.ipv6mr_multiaddr));
 
-        mreq.ipv6mr_interface = 0;
+	    mreq.ipv6mr_interface = 0;
 
-        int rc = setsockopt( mSettings->mSock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
-                             (char*) &mreq, sizeof(mreq));
-        WARN_errno( rc == SOCKET_ERROR, "multicast join" );
+	    int rc = setsockopt( mSettings->mSock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
+				 (char*) &mreq, sizeof(mreq));
+	    WARN_errno( rc == SOCKET_ERROR, "multicast join" );
+#else
+	    fprintf(stderr, "Unfortunately, IPv6 is not supported on this platform\n");
+#endif
+	}
+    } else {
+#ifdef HAVE_SSM_MULTICAST
+	socklen_t socklen = sizeof(struct sockaddr_storage);
+	int iface=0;
+	int rc;
+
+	/* Set the interface or any */
+	if (mSettings->mIfrname) {
+	    iface = if_nametoindex(mSettings->mIfrname);
+	} else {
+	    iface = 0;
+	}
+
+        if (isIPV6(mSettings)) {
+	    if (mSettings->mSSMMulticastStr) {
+		struct group_source_req group_source_req;
+		group_source_req.gsr_interface = iface;
+
+		struct sockaddr_in6 *group;
+		struct sockaddr_in6 *source;
+
+		group=(struct sockaddr_in6*)&group_source_req.gsr_group;
+		source=(struct sockaddr_in6*)&group_source_req.gsr_source;
+		source->sin6_family = AF_INET6;
+		group->sin6_family = AF_INET6;
+		/* Set the group */
+		rc=getsockname(mSettings->mSock,(struct sockaddr *)group, &socklen);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group getsockname",mSettings );
+		group->sin6_port = 0;    /* Ignored */
+
+		/* Set the source, apply the S,G */
+		rc=inet_pton(AF_INET6, mSettings->mSSMMulticastStr,&source->sin6_addr);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source aton",mSettings );
+		source->sin6_port = 0;    /* Ignored */
+		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
+			    sizeof(group_source_req));
+		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group",mSettings);
+	    } else {
+		struct group_req group_req;
+		group_req.gr_interface = iface;
+
+		struct sockaddr_in6 *group;
+
+		group=(struct sockaddr_in6*)&group_req.gr_group;
+		group->sin6_family = AF_INET6;
+		/* Set the group */
+		rc=getsockname(mSettings->mSock,(struct sockaddr *)group, &socklen);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group getsockname",mSettings );
+		group->sin6_port = 0;    /* Ignored */
+		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_GROUP, &group_req,
+				sizeof(group_source_req));
+		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group",mSettings);
+	    }
+	} else {
+	    if (mSettings->mSSMMulticastStr) {
+		struct group_source_req group_source_req;
+		group_source_req.gsr_interface = iface;
+
+		struct sockaddr_in *group;
+		struct sockaddr_in *source;
+
+		group=(struct sockaddr_in*)&group_source_req.gsr_group;
+		source=(struct sockaddr_in*)&group_source_req.gsr_source;
+		source->sin_family = AF_INET;
+		group->sin_family = AF_INET;
+		/* Set the group */
+		rc=getsockname(mSettings->mSock,(struct sockaddr *)group, &socklen);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group getsockname",mSettings );
+		group->sin_port = 0;    /* Ignored */
+
+		/* Set the source, apply the S,G */
+		rc=inet_pton(AF_INET,mSettings->mSSMMulticastStr,&source->sin_addr);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source aton",mSettings );
+		source->sin_port = 0;    /* Ignored */
+		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
+				sizeof(group_source_req));
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group",mSettings);
+	    } else {
+		struct group_req group_req;
+		group_req.gr_interface = iface;
+
+		struct sockaddr_in *group;
+
+		group=(struct sockaddr_in*)&group_req.gr_group;
+		group->sin_family = AF_INET;
+		/* Set the group */
+		rc=getsockname(mSettings->mSock,(struct sockaddr *)group, &socklen);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group getsockname",mSettings );
+		group->sin_port = 0;    /* Ignored */
+		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_GROUP, &group_req,
+				sizeof(group_source_req));
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group",mSettings);
+	    }
+	}
+#else
+	fprintf(stderr, "Unfortunately, SSM is not supported on this platform\n");
+	exit(-1);
+#endif
     }
-#endif
-#endif
 }
 // end McastJoin
 

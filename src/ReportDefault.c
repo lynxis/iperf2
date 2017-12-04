@@ -356,7 +356,15 @@ void reporter_reportsettings( ReporterData *data ) {
         printf( bind_address, data->mLocalhost );
 	if ((data->mThreadMode != kMode_Client) && \
 	    SockAddr_isMulticast(&data->connection.local)) {
-              printf( join_multicast, data->mLocalhost );
+	    if(!data->mSSMMulticastStr)
+		if (!data->mIfrname)
+		    printf( join_multicast, data->mLocalhost );
+		else
+		    printf(join_multicast_starg_dev, data->mLocalhost,data->mIfrname);
+	    else if(!data->mIfrname)
+		printf( join_multicast_sg, data->mSSMMulticastStr, data->mLocalhost);
+	    else
+		printf( join_multicast_sg_dev, data->mSSMMulticastStr, data->mLocalhost, data->mIfrname);
         }
     }
 

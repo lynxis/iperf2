@@ -5,7 +5,7 @@ dnl ===================================================================
 
 
 AC_PREREQ(2.59)
-AC_INIT(Iperf,2.0.10)
+AC_INIT(Iperf,2.0.11a)
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE()
 
@@ -221,6 +221,19 @@ if test "$ac_cv_multicast" != no; then
   AC_MSG_RESULT($ac_cv_multicast)
   if test "$ac_cv_multicast" = yes; then
     AC_DEFINE([HAVE_MULTICAST], 1, [Define to enable multicast support])
+  fi
+  AC_CHECK_TYPES(struct group_source_req,,,[#include "$srcdir/compat/headers_slim.h"])
+  AC_CHECK_DECLS(MCAST_JOIN_SOURCE_GROUP,,,[#include "$srcdir/compat/headers_slim.h"])
+  AC_MSG_CHECKING(for multicast ssm support)
+  ac_cv_ssm_multicast=no
+  if test "$ac_cv_have_decl_MCAST_JOIN_SOURCE_GROUP" = yes; then
+    if test "$ac_cv_type_struct_group_source_req" = yes; then
+      ac_cv_ssm_multicast=yes
+    fi
+  fi
+  AC_MSG_RESULT($ac_cv_ssm_multicast)
+  if test "$ac_cv_ssm_multicast" = yes; then
+    AC_DEFINE([HAVE_SSM_MULTICAST], 1, [Define to enable ssm multicast support])
   fi
 fi
 

@@ -43,6 +43,10 @@
    you don't. */
 #undef HAVE_DECL_IP_ADD_MEMBERSHIP
 
+/* Define to 1 if you have the declaration of `MCAST_JOIN_SOURCE_GROUP', and
+   to 0 if you don't. */
+#undef HAVE_DECL_MCAST_JOIN_SOURCE_GROUP
+
 /* Define to 1 if you have the declaration of `SIGALRM', and to 0 if you
    don't. */
 #undef HAVE_DECL_SIGALRM
@@ -151,6 +155,9 @@
 /* Define to 1 if the system has the type `ssize_t'. */
 #undef HAVE_SSIZE_T
 
+/* Define to enable ssm multicast support */
+#undef HAVE_SSM_MULTICAST
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -177,6 +184,9 @@
 
 /* Define to 1 if you have the `strtoll' function. */
 #undef HAVE_STRTOLL
+
+/* Define to 1 if the system has the type `struct group_source_req'. */
+#undef HAVE_STRUCT_GROUP_SOURCE_REQ
 
 /* Define to 1 if the system has the type `struct ipv6_mreq'. */
 #undef HAVE_STRUCT_IPV6_MREQ
@@ -210,6 +220,9 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define if udp triggers option is desired and available */
+#undef HAVE_UDPTRIGGERS
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H

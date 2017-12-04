@@ -122,8 +122,10 @@ typedef struct thread_Settings {
     char*  mHost;                   // -c
     char*  mLocalhost;              // -B
     char*  mOutputFileName;         // -o
+    char*  mIfrname;                 // %<device> name
+    char*  mSSMMulticastStr;        // --ssm-host
     char*  mIsochronousStr;         // --isochronous
-    char*  mUDPHistogramStr;         // --udp-histogram
+    char*  mUDPHistogramStr;        // --udp-histogram
     FILE*  Extractor_file;
     ReportHeader*  reporthdr;
     MultiHeader*   multihdr;
@@ -248,6 +250,7 @@ typedef struct thread_Settings {
 #define FLAG_BWSET          0x01000000
 #define FLAG_ENHANCEDREPORT 0x02000000
 #define FLAG_SERVERMODETIME 0x04000000
+#define FLAG_SSM_MULTICAST  0x08000000
 /*
  * Extended flags
  */
@@ -273,6 +276,7 @@ typedef struct thread_Settings {
 #define isModeTime(settings)       ((settings->flags & FLAG_MODETIME) != 0)
 #define isReport(settings)         ((settings->flags & FLAG_REPORTSETTINGS) != 0)
 #define isMulticast(settings)      ((settings->flags & FLAG_MULTICAST) != 0)
+#define isSSMMulticast(settings)   ((settings->flags & FLAG_SSM_MULTICAST) != 0)
 // Active Low for Reports
 #define isSettingsReport(settings) ((settings->flags & FLAG_NOSETTREPORT) == 0)
 #define isConnectionReport(settings)  ((settings->flags & FLAG_NOCONNREPORT) == 0)
@@ -309,6 +313,7 @@ typedef struct thread_Settings {
 #define setModeTime(settings)      settings->flags |= FLAG_MODETIME
 #define setReport(settings)        settings->flags |= FLAG_REPORTSETTINGS
 #define setMulticast(settings)     settings->flags |= FLAG_MULTICAST
+#define setSSMMulticast(settings)  settings->flags |= FLAG_SSM_MULTICAST
 #define setNoSettReport(settings)  settings->flags |= FLAG_NOSETTREPORT
 #define setNoConnReport(settings)  settings->flags |= FLAG_NOCONNREPORT
 #define setNoDataReport(settings)  settings->flags |= FLAG_NODATAREPORT
@@ -343,6 +348,7 @@ typedef struct thread_Settings {
 #define unsetModeTime(settings)    settings->flags &= ~FLAG_MODETIME
 #define unsetReport(settings)      settings->flags &= ~FLAG_REPORTSETTINGS
 #define unsetMulticast(settings)   settings->flags &= ~FLAG_MULTICAST
+#define unsetSSMMulticast(settings)   settings->flags &= ~FLAG_SSM_MULTICAST
 #define unsetNoSettReport(settings)   settings->flags &= ~FLAG_NOSETTREPORT
 #define unsetNoConnReport(settings)   settings->flags &= ~FLAG_NOCONNREPORT
 #define unsetNoDataReport(settings)   settings->flags &= ~FLAG_NODATAREPORT

@@ -127,6 +127,7 @@ const struct option long_options[] =
 {"compatibility",    no_argument, NULL, 'C'},
 {"daemon",           no_argument, NULL, 'D'},
 {"file_input", required_argument, NULL, 'F'},
+{"ssm-host", required_argument, NULL, 'H'},
 {"stdin_input",      no_argument, NULL, 'I'},
 {"mss",        required_argument, NULL, 'M'},
 {"nodelay",          no_argument, NULL, 'N'},
@@ -206,7 +207,7 @@ const struct option env_options[] =
 
 #define SHORT_OPTIONS()
 
-const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWXZ:";
+const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:H:IL:M:NP:RS:T:UVWXZ:";
 
 /* -------------------------------------------------------------------
  * defaults
@@ -295,6 +296,14 @@ void Settings_Copy( thread_Settings *from, thread_Settings **into ) {
 	(*into)->mUDPHistogramStr = new char[ strlen(from->mUDPHistogramStr) + 1];
         strcpy( (*into)->mUDPHistogramStr, from->mUDPHistogramStr );
     }
+    if ( from->mSSMMulticastStr != NULL ) {
+	(*into)->mSSMMulticastStr = new char[ strlen(from->mSSMMulticastStr) + 1];
+        strcpy( (*into)->mSSMMulticastStr, from->mSSMMulticastStr );
+    }
+    if ( from->mIfrname != NULL ) {
+	(*into)->mIfrname = new char[ strlen(from->mIfrname) + 1];
+        strcpy( (*into)->mIfrname, from->mIfrname );
+    }
 #ifdef HAVE_ISOCHRONOUS
     if ( from->mIsochronousStr != NULL ) {
 	(*into)->mIsochronousStr = new char[ strlen(from->mIsochronousStr) + 1];
@@ -317,6 +326,8 @@ void Settings_Destroy( thread_Settings *mSettings) {
     DELETE_ARRAY( mSettings->mFileName  );
     DELETE_ARRAY( mSettings->mOutputFileName );
     DELETE_ARRAY( mSettings->mUDPHistogramStr );
+    DELETE_ARRAY( mSettings->mSSMMulticastStr);
+    DELETE_ARRAY( mSettings->mIfrname);
 #ifdef HAVE_ISOCHRONOUS
     DELETE_ARRAY( mSettings->mIsochronousStr );
 #endif
@@ -593,6 +604,16 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             strcpy( mExtSettings->mFileName, optarg);
             break;
 
+        case 'H' : // Get the SSM host (or Source per the S,G)
+            if ( mExtSettings->mThreadMode == kMode_Client ) {
+                fprintf( stderr, warn_invalid_client_option, option );
+                break;
+            }
+            mExtSettings->mSSMMulticastStr = new char[strlen(optarg)+1];
+            strcpy( mExtSettings->mSSMMulticastStr, optarg);
+            setSSMMulticast( mExtSettings );
+            break;
+
         case 'I' : // Set the stdin as the input source
             if ( mExtSettings->mThreadMode != kMode_Client ) {
                 fprintf( stderr, warn_invalid_server_option, option );
@@ -807,6 +828,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	    }
 	}
     }
+
 #ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mExtSettings)) {
 	// parse client isochronous field,
@@ -845,21 +867,28 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	}
     }
 #endif
-    // Check for local port assignment via parsing -B's mLocalhost string
-    // (only supported on the client as server/listener uses -p for this)
-    if ( mExtSettings->mLocalhost != NULL && mExtSettings->mThreadMode == kMode_Client ) {
-	// v4 uses a colon as the delimeter for the local bind port, e.g. 192.168.1.1:6001
-	if (!isIPV6(mExtSettings)) {
-	    if (((results = strtok(mExtSettings->mLocalhost, ":")) != NULL) && ((results = strtok(NULL, ":")) != NULL)) {
-		mExtSettings->mBindPort = atoi(results);
-	    }
-	// v6 uses bracket notation, e.g. [2001:e30:1401:2:d46e:b891:3082:b939]:6001
-	} else if (mExtSettings->mLocalhost[0] ==  '[') {
-	    if ((results = strtok(mExtSettings->mLocalhost, "]")) != NULL) {
-		results++;
-		strcpy(mExtSettings->mLocalhost, results);
-		if ((results = strtok(NULL, ":")) != NULL) {
+    // Check for further mLocalhost (-B) parsing:
+    if ( mExtSettings->mLocalhost) {
+	// Check for -B device
+	if (((results = strtok(mExtSettings->mLocalhost, "%")) != NULL) && ((results = strtok(NULL, "%")) != NULL)) {
+	    mExtSettings->mIfrname = new char[ strlen(results) + 1 ];
+	    strcpy( mExtSettings->mIfrname, results );
+	}
+	// Client local host parsing
+	if (mExtSettings->mThreadMode == kMode_Client ) {
+	    // v4 uses a colon as the delimeter for the local bind port, e.g. 192.168.1.1:6001
+	    if (!isIPV6(mExtSettings)) {
+		if (((results = strtok(mExtSettings->mLocalhost, ":")) != NULL) && ((results = strtok(NULL, ":")) != NULL)) {
 		    mExtSettings->mBindPort = atoi(results);
+		}
+		// v6 uses bracket notation, e.g. [2001:e30:1401:2:d46e:b891:3082:b939]:6001
+	    } else if (mExtSettings->mLocalhost[0] ==  '[') {
+		if ((results = strtok(mExtSettings->mLocalhost, "]")) != NULL) {
+		    results++;
+		    strcpy(mExtSettings->mLocalhost, results);
+		    if ((results = strtok(NULL, ":")) != NULL) {
+			mExtSettings->mBindPort = atoi(results);
+		    }
 		}
 	    }
 	}

@@ -254,6 +254,8 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             }
             data->mHost = agent->mHost;
             data->mLocalhost = agent->mLocalhost;
+	    data->mSSMMulticastStr = agent->mSSMMulticastStr;
+	    data->mIfrname = agent->mIfrname;
             data->mBufLen = agent->mBufLen;
             data->mMSS = agent->mMSS;
             data->mTCPWin = agent->mTCPWin;
@@ -503,6 +505,8 @@ void ReportSettings( thread_Settings *agent ) {
 
             data->mHost = agent->mHost;
             data->mLocalhost = agent->mLocalhost;
+	    data->mSSMMulticastStr = agent->mSSMMulticastStr;
+	    data->mIfrname = agent->mIfrname;
             data->mode = agent->mReportMode;
             data->type = SETTINGS_REPORT;
             data->mBufLen = agent->mBufLen;
@@ -894,7 +898,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
 				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 				matchframeid=packet->frameID;
-			    } 
+			    }
 			    if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
 				// last packet of a burst (or first-last in case of a duplicate) and frame id match
 				double frametransit = TimeDifference(packet->packetTime, stats->frame.lastFrameTransit);
