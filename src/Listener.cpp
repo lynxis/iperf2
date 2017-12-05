@@ -434,7 +434,7 @@ void Listener::McastJoin( ) {
 
 	    int rc = setsockopt( mSettings->mSock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
 				 (char*) &mreq, sizeof(mreq));
-	    WARN_errno( rc == SOCKET_ERROR, "multicast join" );
+	    WARN_errno( rc == SOCKET_ERROR, "multicast v6 join" );
 #else
 	    fprintf(stderr, "Unfortunately, IPv6 is not supported on this platform\n");
 #endif
@@ -453,6 +453,7 @@ void Listener::McastJoin( ) {
 	}
 
         if (isIPV6(mSettings)) {
+#ifdef HAVE_IPV6_MULTICAST
 	    if (mSettings->mSSMMulticastStr) {
 		struct group_source_req group_source_req;
 		group_source_req.gsr_interface = iface;
@@ -471,7 +472,7 @@ void Listener::McastJoin( ) {
 
 		/* Set the source, apply the S,G */
 		rc=inet_pton(AF_INET6, mSettings->mSSMMulticastStr,&source->sin6_addr);
-		FAIL_errno( rc == SOCKET_ERROR, "mcast join source aton",mSettings );
+		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group pton",mSettings );
 		source->sin6_port = 0;    /* Ignored */
 		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 			    sizeof(group_source_req));
@@ -486,12 +487,15 @@ void Listener::McastJoin( ) {
 		group->sin6_family = AF_INET6;
 		/* Set the group */
 		rc=getsockname(mSettings->mSock,(struct sockaddr *)group, &socklen);
-		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group getsockname",mSettings );
+		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join group getsockname",mSettings );
 		group->sin6_port = 0;    /* Ignored */
 		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_GROUP, &group_req,
 				sizeof(group_source_req));
-		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group",mSettings);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join group",mSettings);
 	    }
+#else
+	    fprintf(stderr, "Unfortunately, IPv6 is not supported on this platform\n");
+#endif
 	} else {
 	    if (mSettings->mSSMMulticastStr) {
 		struct group_source_req group_source_req;
@@ -511,7 +515,7 @@ void Listener::McastJoin( ) {
 
 		/* Set the source, apply the S,G */
 		rc=inet_pton(AF_INET,mSettings->mSSMMulticastStr,&source->sin_addr);
-		FAIL_errno( rc == SOCKET_ERROR, "mcast join source aton",mSettings );
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join source pton",mSettings );
 		source->sin_port = 0;    /* Ignored */
 		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 				sizeof(group_source_req));
@@ -526,11 +530,11 @@ void Listener::McastJoin( ) {
 		group->sin_family = AF_INET;
 		/* Set the group */
 		rc=getsockname(mSettings->mSock,(struct sockaddr *)group, &socklen);
-		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group getsockname",mSettings );
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join group getsockname",mSettings );
 		group->sin_port = 0;    /* Ignored */
 		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_GROUP, &group_req,
 				sizeof(group_source_req));
-		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group",mSettings);
+		FAIL_errno( rc == SOCKET_ERROR, "mcast join group",mSettings);
 	    }
 	}
 #else
