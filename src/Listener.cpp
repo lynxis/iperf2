@@ -406,9 +406,27 @@ void Listener::Listen( ) {
  * Block data from a source to a multicast group	        IP_BLOCK_SOURCE   	   NA	                MCAST_BLOCK_SOURCE
  * Unblock a previously blocked source for a multicast group	IP_UNBLOCK_SOURCE	   NA	                MCAST_UNBLOCK_SOURCE
  *
+ * 
+ * Reminder:  The os will decide which version of IGMP or MLD to use.   This may be controlled by system settings, e.g.:
+ *
+ * [rmcmahon@lvnvdb0987:~/Code/ssm/iperf2-code] $ sysctl -a | grep mld | grep force
+ * net.ipv6.conf.all.force_mld_version = 0
+ * net.ipv6.conf.default.force_mld_version = 0
+ * net.ipv6.conf.lo.force_mld_version = 0
+ * net.ipv6.conf.eth0.force_mld_version = 0
+ * 
+ * [rmcmahon@lvnvdb0987:~/Code/ssm/iperf2-code] $ sysctl -a | grep igmp | grep force
+ * net.ipv4.conf.all.force_igmp_version = 0
+ * net.ipv4.conf.default.force_igmp_version = 0
+ * net.ipv4.conf.lo.force_igmp_version = 0
+ * net.ipv4.conf.eth0.force_igmp_version = 0
+ * 
  * ------------------------------------------------------------------- */
 
 void Listener::McastJoin( ) {
+    // This is the older mulitcast join code.  Both SSM and binding the
+    // an interface requires the newer socket options.  Using the older
+    // code here will maintain compatiblity with previous iperf versions
     if (!isSSMMulticast(mSettings) && !mSettings->mIfrname) {
 	if ( !SockAddr_isIPv6( &mSettings->local ) ) {
 
@@ -436,11 +454,13 @@ void Listener::McastJoin( ) {
 				 (char*) &mreq, sizeof(mreq));
 	    WARN_errno( rc == SOCKET_ERROR, "multicast v6 join" );
 #else
-	    fprintf(stderr, "Unfortunately, IPv6 is not supported on this platform\n");
+	    fprintf(stderr, "Unfortunately, IPv6 multicast is not supported on this platform\n");
 #endif
 	}
     } else {
 #ifdef HAVE_SSM_MULTICAST
+	// Here it's either an SSM S,G multicast join or a *,G with an interface specifier
+	// Use the newer socket options when these are specified
 	socklen_t socklen = sizeof(struct sockaddr_storage);
 	int iface=0;
 	int rc;
@@ -448,6 +468,7 @@ void Listener::McastJoin( ) {
 	/* Set the interface or any */
 	if (mSettings->mIfrname) {
 	    iface = if_nametoindex(mSettings->mIfrname);
+	    FAIL_errno(!iface, "mcast if_nametoindex",mSettings);
 	} else {
 	    iface = 0;
 	}
@@ -494,7 +515,7 @@ void Listener::McastJoin( ) {
 		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join group",mSettings);
 	    }
 #else
-	    fprintf(stderr, "Unfortunately, IPv6 is not supported on this platform\n");
+	    fprintf(stderr, "Unfortunately, IPv6 multicast is not supported on this platform\n");
 #endif
 	} else {
 	    if (mSettings->mSSMMulticastStr) {
