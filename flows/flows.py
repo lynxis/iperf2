@@ -188,7 +188,7 @@ class iperf_flow(object):
         self.server = server
         self.client = client
         if not user :
-            self.user = user.getuser()
+            self.user = getpass.getuser()
         else :
             self.user = user
         self.proto = proto
