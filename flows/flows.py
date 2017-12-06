@@ -12,6 +12,7 @@ import locale
 import signal
 import weakref
 import os
+import getpass
 
 from datetime import datetime as datetime, timezone
 
@@ -175,7 +176,7 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = 'root', proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='150K', debug = False):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='150K', debug = False):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -186,7 +187,10 @@ class iperf_flow(object):
         self.port = iperf_flow.port
         self.server = server
         self.client = client
-        self.user = user
+        if not user :
+            self.user = user.getuser()
+        else :
+            self.user = user
         self.proto = proto
         self.dst = dst
         self.tos = tos
@@ -198,8 +202,8 @@ class iperf_flow(object):
         self.flowtime = flowtime
         # use python composition for the server and client
         # i.e. a flow has a server and a client
-        self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, user=self.user, host=self.server, flow=self, debug=self.debug)
-        self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, user=self.user, host=self.client, flow=self, debug=self.debug)
+        self.rx = iperf_server(name='{}->RX({})'.format(name, str(self.server)), loop=self.loop, host=self.server, flow=self, debug=self.debug)
+        self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, host=self.client, flow=self, debug=self.debug)
         self.rx.window=window
         self.tx.window=window
         # Initialize the flow stats dictionary
@@ -358,14 +362,13 @@ class iperf_server(object):
             self._mypid = None
             self.signal_exit()
 
-    def __init__(self, name='Server', loop=None, user='root', host='localhost', flow=None, debug=False):
+    def __init__(self, name='Server', loop=None, host='localhost', flow=None, debug=False):
         self.__dict__['flow'] = flow
         self.loop = iperf_flow.loop
         self.name = name
         self.iperf = '/usr/local/bin/iperf'
         self.ssh = '/usr/bin/ssh'
         self.host = host
-        self.user = user
         self.flow = flow
         self.debug = debug
         self.opened = asyncio.Event(loop=self.loop)
@@ -521,7 +524,7 @@ class iperf_client(object):
             self._mypid = None
             self.signal_exit()
 
-    def __init__(self, name='Client', loop=None, user='root', host='localhost', flow = None, debug=False):
+    def __init__(self, name='Client', loop=None, host='localhost', flow = None, debug=False):
         self.__dict__['flow'] = flow
         self.loop = loop
         self.opened = asyncio.Event(loop=self.loop)
@@ -532,7 +535,6 @@ class iperf_client(object):
         self.iperf = '/usr/local/bin/iperf'
         self.ssh = '/usr/bin/ssh'
         self.host = host
-        self.user = user
         self.debug = debug
         self._transport = None
         self._protocol = None
