@@ -143,7 +143,7 @@ void reporter_printstats( Transfer_Info *stats ) {
         if( !header_printed ) {
 #ifdef HAVE_ISOCHRONOUS
 	    if (stats->mIsochronous)
-		printf(report_bw_jitter_loss_enhanced_isoch_header);
+		printf("%s", report_bw_jitter_loss_enhanced_isoch_header);
 	    else
 #endif
 		printf( "%s", (stats->mEnhanced ? report_bw_jitter_loss_enhanced_header : report_bw_jitter_loss_header));

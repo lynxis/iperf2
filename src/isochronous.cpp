@@ -45,8 +45,6 @@
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
  * -------------------------------------------------------------------
  */
-#include <sys/time.h>
-#include <sys/timerfd.h>
 #include "headers.h"
 #include "Timestamp.hpp"
 #include "isochronous.hpp"
