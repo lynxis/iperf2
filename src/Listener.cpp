@@ -477,11 +477,10 @@ void Listener::McastJoin( ) {
 #ifdef HAVE_IPV6_MULTICAST
 	    if (mSettings->mSSMMulticastStr) {
 		struct group_source_req group_source_req;
-		group_source_req.gsr_interface = iface;
-
 		struct sockaddr_in6 *group;
 		struct sockaddr_in6 *source;
 
+		group_source_req.gsr_interface = iface;
 		group=(struct sockaddr_in6*)&group_source_req.gsr_group;
 		source=(struct sockaddr_in6*)&group_source_req.gsr_source;
 		source->sin6_family = AF_INET6;
@@ -493,17 +492,17 @@ void Listener::McastJoin( ) {
 
 		/* Set the source, apply the S,G */
 		rc=inet_pton(AF_INET6, mSettings->mSSMMulticastStr,&source->sin6_addr);
-		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group pton",mSettings );
+		FAIL_errno( rc != 1, "mcast v6 join source group pton",mSettings );
 		source->sin6_port = 0;    /* Ignored */
+		source->sin_len = group->sin_len;
 		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 			    sizeof(group_source_req));
 		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group",mSettings);
 	    } else {
 		struct group_req group_req;
-		group_req.gr_interface = iface;
-
 		struct sockaddr_in6 *group;
 
+		group_req.gr_interface = iface;
 		group=(struct sockaddr_in6*)&group_req.gr_group;
 		group->sin6_family = AF_INET6;
 		/* Set the group */
@@ -520,11 +519,10 @@ void Listener::McastJoin( ) {
 	} else {
 	    if (mSettings->mSSMMulticastStr) {
 		struct group_source_req group_source_req;
-		group_source_req.gsr_interface = iface;
-
 		struct sockaddr_in *group;
-		struct sockaddr_in *source;
 
+		struct sockaddr_in *source;
+		group_source_req.gsr_interface = iface;
 		group=(struct sockaddr_in*)&group_source_req.gsr_group;
 		source=(struct sockaddr_in*)&group_source_req.gsr_source;
 		source->sin_family = AF_INET;
@@ -536,17 +534,17 @@ void Listener::McastJoin( ) {
 
 		/* Set the source, apply the S,G */
 		rc=inet_pton(AF_INET,mSettings->mSSMMulticastStr,&source->sin_addr);
-		FAIL_errno( rc == SOCKET_ERROR, "mcast join source pton",mSettings );
+		FAIL_errno(rc != 1, "mcast join source pton",mSettings );
+		source->sin_len = group->sin_len;
 		source->sin_port = 0;    /* Ignored */
 		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 				sizeof(group_source_req));
 		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group",mSettings);
 	    } else {
 		struct group_req group_req;
-		group_req.gr_interface = iface;
-
 		struct sockaddr_in *group;
 
+		group_req.gr_interface = iface;
 		group=(struct sockaddr_in*)&group_req.gr_group;
 		group->sin_family = AF_INET;
 		/* Set the group */
