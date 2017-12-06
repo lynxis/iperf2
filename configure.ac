@@ -149,8 +149,7 @@ AC_CHECK_DECLS([CPU_SET],[],[],[
 AC_CHECK_DECLS([SIGALRM],[],[],[#include <signal.h>])
 AC_CHECK_MEMBERS([struct tcp_info.tcpi_total_retrans],[],[],
 			 [#include <netinet/tcp.h>])
-AC_CHECK_MEMBER([struct sockaddr_in.sin_len],
-			[AC_DEFINE(HAVE_SOCKADDR_IN_LEN, 1, [Do we have sockaddr_in.sin_len?]) ],[],[],
+AC_CHECK_MEMBERS([struct sockaddr_in.sin_len], [],[],
 [
 #include <sys/types.h>
 #include <sys/socket.h>

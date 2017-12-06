@@ -494,7 +494,7 @@ void Listener::McastJoin( ) {
 		rc=inet_pton(AF_INET6, mSettings->mSSMMulticastStr,&source->sin6_addr);
 		FAIL_errno( rc != 1, "mcast v6 join source group pton",mSettings );
 		source->sin6_port = 0;    /* Ignored */
-#ifdef HAVE_SOCKADDR_IN_LEN
+#ifdef HAVE_STRUCT_SOCKADDR_IN_SIN_LEN
 		source->sin_len = group->sin_len;
 #endif
 		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
@@ -537,7 +537,7 @@ void Listener::McastJoin( ) {
 		/* Set the source, apply the S,G */
 		rc=inet_pton(AF_INET,mSettings->mSSMMulticastStr,&source->sin_addr);
 		FAIL_errno(rc != 1, "mcast join source pton",mSettings );
-#ifdef HAVE_SOCKADDR_IN_LEN
+#ifdef HAVE_STRUCT_SOCKADDR_IN_SIN_LEN
 		source->sin_len = group->sin_len;
 #endif
 		source->sin_port = 0;    /* Ignored */
