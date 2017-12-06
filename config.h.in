@@ -152,6 +152,9 @@
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
 
+/* Do we have sockaddr_in.sin_len? */
+#undef HAVE_SOCKADDR_IN_LEN
+
 /* Define to 1 if the system has the type `ssize_t'. */
 #undef HAVE_SSIZE_T
 

@@ -406,7 +406,7 @@ void Listener::Listen( ) {
  * Block data from a source to a multicast group	        IP_BLOCK_SOURCE   	   NA	                MCAST_BLOCK_SOURCE
  * Unblock a previously blocked source for a multicast group	IP_UNBLOCK_SOURCE	   NA	                MCAST_UNBLOCK_SOURCE
  *
- * 
+ *
  * Reminder:  The os will decide which version of IGMP or MLD to use.   This may be controlled by system settings, e.g.:
  *
  * [rmcmahon@lvnvdb0987:~/Code/ssm/iperf2-code] $ sysctl -a | grep mld | grep force
@@ -414,13 +414,13 @@ void Listener::Listen( ) {
  * net.ipv6.conf.default.force_mld_version = 0
  * net.ipv6.conf.lo.force_mld_version = 0
  * net.ipv6.conf.eth0.force_mld_version = 0
- * 
+ *
  * [rmcmahon@lvnvdb0987:~/Code/ssm/iperf2-code] $ sysctl -a | grep igmp | grep force
  * net.ipv4.conf.all.force_igmp_version = 0
  * net.ipv4.conf.default.force_igmp_version = 0
  * net.ipv4.conf.lo.force_igmp_version = 0
  * net.ipv4.conf.eth0.force_igmp_version = 0
- * 
+ *
  * ------------------------------------------------------------------- */
 
 void Listener::McastJoin( ) {
@@ -494,7 +494,9 @@ void Listener::McastJoin( ) {
 		rc=inet_pton(AF_INET6, mSettings->mSSMMulticastStr,&source->sin6_addr);
 		FAIL_errno( rc != 1, "mcast v6 join source group pton",mSettings );
 		source->sin6_port = 0;    /* Ignored */
+#ifdef HAVE_SOCKADDR_IN_LEN
 		source->sin_len = group->sin_len;
+#endif
 		rc = setsockopt(mSettings->mSock,IPPROTO_IPV6,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 			    sizeof(group_source_req));
 		FAIL_errno( rc == SOCKET_ERROR, "mcast v6 join source group",mSettings);
@@ -535,7 +537,9 @@ void Listener::McastJoin( ) {
 		/* Set the source, apply the S,G */
 		rc=inet_pton(AF_INET,mSettings->mSSMMulticastStr,&source->sin_addr);
 		FAIL_errno(rc != 1, "mcast join source pton",mSettings );
+#ifdef HAVE_SOCKADDR_IN_LEN
 		source->sin_len = group->sin_len;
+#endif
 		source->sin_port = 0;    /* Ignored */
 		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 				sizeof(group_source_req));
