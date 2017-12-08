@@ -81,8 +81,9 @@
 #include "util.h"
 #include "version.h"
 #include "Locale.h"
+#ifdef HAVE_SSM_MULTICAST
 #include <net/if.h>
-
+#endif
 /* -------------------------------------------------------------------
  * Stores local hostname and socket info.
  * ------------------------------------------------------------------- */
