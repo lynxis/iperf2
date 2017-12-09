@@ -54,6 +54,7 @@
 #include <errno.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 #include "headers.h"
 #include "isochronous.hpp"
 #include "delay.h"

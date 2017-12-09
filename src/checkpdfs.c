@@ -59,6 +59,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <unistd.h>
 #include "headers.h"
 #include "pdfs.h"
 
