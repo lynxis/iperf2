@@ -43,11 +43,11 @@ AC_ARG_ENABLE(seqno64b, AC_HELP_STRING([--disable-seqno64b],
 
 AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--enable-isochronous],
 	    [enable isochronous support (default is disable)]))
-AM_CONDITIONAL([ISOCHRONOUS], [test $enable_isochronous=yes])
+AM_CONDITIONAL([ISOCHRONOUS], [test "x${enable_isochronous}" = "xyes"])
 
 AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
 	    [enable support for udp triggers in udp payloads (default is disable)]))
-AM_CONDITIONAL([udptriggers], [test $enable_udptriggers=yes])
+AM_CONDITIONAL([udptriggers], [test "x$enable_udptriggers" = "xyes"])
 
 dnl ===================================================================
 dnl Checks for programs
