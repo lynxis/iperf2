@@ -144,9 +144,9 @@ double bitorbyte_atof( const char *inString ) {
 
     /* convert according to [Gg Mm Kk] */
     switch ( suffix ) {
-    case 'G':  theNum *= (kgiga_to_Unit * 8);  break;
-    case 'M':  theNum *= (kmega_to_Unit * 8);  break;
-    case 'K':  theNum *= (kkilo_to_Unit * 8);  break;
+    case 'G':  theNum *= (kgiga_to_Unit * 8.0);  break;
+    case 'M':  theNum *= (kmega_to_Unit * 8.0);  break;
+    case 'K':  theNum *= (kkilo_to_Unit * 8.0);  break;
     case 'g':  theNum *= kgiga_to_Unit;  break;
     case 'm':  theNum *= kmega_to_Unit;  break;
     case 'k':  theNum *= kkilo_to_Unit;  break;
