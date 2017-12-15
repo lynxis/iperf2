@@ -17,6 +17,7 @@ parser.add_argument('-s','--server', type=str, required=True, help='host to run 
 parser.add_argument('-c','--client', type=str, default='localhost', required=False, help='host to run iperf client')
 parser.add_argument('-d','--dst', type=str, required=True, help='iperf destination ip address')
 parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
+parser.add_argument('-n','--runcount', type=int, required=False, default=1, help='number of runs')
 parser.add_argument('-t','--time', type=int, default=10, required=False, help='time or duration to run traffic')
 parser.add_argument('-O','--offered_load', type=str, default="60:18M,0", required=False, help='offered load; <fps>:<mean>,<variance>')
 parser.add_argument('-T','--title', type=str, default="", required=False, help='title for graphs')
@@ -59,11 +60,16 @@ if args.stress_server and args.stress_client and args.stress_dst :
     flows.append(iperf_flow(name="STRESS", user='root', server=args.stress_server, client=args.stress_client, dst=args.stress_dst, proto=args.stress_proto, offered_load=args.stress_offered_load, interval=args.interval, flowtime=args.time, tos=args.stress_tos, debug=False))
     print("Running stress {} traffic client={} server={} dest={} with load {}".format(args.stress_proto, args.stress_client, args.stress_server, args.stress_dst, args.stress_offered_load, args.time))
 
-iperf_flow.run(time=args.time, flows='all', preclean=False)
-for flow in flows :
-    for histogram in flow.histograms :
-        histogram.plot(title=plottitle, directory=args.output_directory)
-        histogram.plot(title=plottitle, outputtype='svg', directory=args.output_directory)
-print('Finished.  Results written to directory {}'.format(args.output_directory))
+for i in range(args.runcount) :
+    iperf_flow.run(time=args.time, flows='all', preclean=False)
+    for flow in flows :
+        for histogram in flow.histograms :
+            histogram.plot(title=plottitle, outputtype='svg', directory=args.output_directory + '/' + str(i))
+            histogram.plot(title=plottitle, directory=args.output_directory + '/' + str(i))
+        for histogram in flow.histograms :
+            logging.info('{} entropy={}'.format(histogram.name, histogram.entropy))
+            print('{} entropy={}'.format(histogram.name, histogram.entropy))
+    print('Finished run={}.  Results written to directory {}'.format(i,args.output_directory))
 
+iperf.close_loop()
 logging.shutdown()
