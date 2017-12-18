@@ -25,6 +25,7 @@ class iperf_flow(object):
     instances = weakref.WeakSet()
     loop = None
     flow_scope = ("flowstats")
+    tasks = []
 
     @classmethod
     def sleep(cls, time=0, text=None, stoptext=None) :
@@ -71,7 +72,7 @@ class iperf_flow(object):
                 iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
             except asyncio.TimeoutError:
                 logging.error('preclean timeout')
-            raise
+                raise
 
         logging.info('flow run invoked')
         tasks = [asyncio.ensure_future(flow.rx.start(time=time), loop=iperf_flow.loop) for flow in flows]
@@ -118,11 +119,28 @@ class iperf_flow(object):
         logging.info('flow run finished')
 
     @classmethod
-    def plot(cls, flows='all') :
+    def plot(cls, flows='all', title='None', directory='None') :
         if flows == 'all' :
             flows = iperf_flow.get_instances()
-        for flow in flows:
-            print(flow.flowstats)
+
+        tasks = []
+        for flow in flows :
+            for this_name in flow.histogram_names :
+                i = 0
+                # group by name
+                histograms = [h for h in flow.histograms if h.name == this_name]
+                for histogram in histograms :
+                    output_dir = directory + '/' + this_name + '_' + str(i)
+                    logging.info('scheduling task {}'.format(output_dir))
+                    tasks.append(asyncio.ensure_future(histogram.async_plot(directory=output_dir, title=title), loop=iperf_flow.loop))
+                    i += 1
+        try :
+            logging.info('runnings tasks')
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=600, loop=iperf_flow.loop))
+        except asyncio.TimeoutError:
+            logging.error('plot timed out')
+            raise
+
 
     @classmethod
     def stop(cls, flows='all') :
@@ -225,6 +243,7 @@ class iperf_flow(object):
         self.flowstats['rxthroughput']=[]
         self.flowstats['reads']=[]
         self.flowstats['histograms']=[]
+        self.flowstats['histogram_names'] = set()
 
     def destroy(self) :
         iperf_flow.instances.remove(self)
@@ -254,7 +273,6 @@ class iperf_flow(object):
 
     def stats(self):
         logging.info('stats')
-
 
 class iperf_server(object):
 
@@ -339,6 +357,7 @@ class iperf_server(object):
                             m = self._server.regex_final_isoch_traffic.match(line)
                             if m :
                                 timestamp = datetime.now(timezone.utc).astimezone()
+                                self.flowstats['histogram_names'].add(m.group('pdfname'))
                                 self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp))
                                 # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
                                 logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
@@ -605,9 +624,11 @@ class iperf_client(object):
                 await self.closed.wait()
 
 class flow_histogram(object):
+
     gnuplot = '/usr/bin/gnuplot'
     def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None) :
         self.raw = values
+        self._entropy = None 
         self.bins = self.raw.split(',')
         self.name = name
         self.population = float(population)
@@ -619,15 +640,24 @@ class flow_histogram(object):
 
     @property
     def entropy(self) :
-        result = 0
-        for bin in self.bins :
-            x,y = bin.split(':')
-            y1 = float(y) / self.population
-            result -= y1 * math.log2(y1)
-        return result
+        if not self._entropy :
+            self._entropy = 0
+            for bin in self.bins :
+                x,y = bin.split(':')
+                y1 = float(y) / self.population
+                self._entropy -= y1 * math.log2(y1)
+        return self._entropy
 
-    def plot(self, title=None, directory='.', outputtype='png', filename=None) :
-        logging.info('Plotting {}'.format(self.name))
+    async def __exec_gnuplot(self) :
+        logging.info('Plotting {} {}'.format(self.name, self.gpcfilename))
+        childprocess = await asyncio.create_subprocess_exec(flow_histogram.gnuplot, self.gpcfilename, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=iperf_flow.loop)
+        stdout, stderr = await childprocess.communicate()
+        if stderr :
+            logging.error('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
+        elif stderr :
+            logging.info('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
+            
+    async def async_plot(self, title=None, directory='.', outputtype='png', filename=None) :
         if not filename :
             filename = self.name
 
@@ -638,12 +668,12 @@ class flow_histogram(object):
         logging.info('Writing {} results to directory {}'.format(directory, filename))
         basefilename = os.path.join(directory, filename)
         datafilename = os.path.join(directory, filename + '.data')
-        gpcfilename = os.path.join(directory, filename + '.gpc')
+        self.gpcfilename = os.path.join(directory, filename + '.gpc')
 
         # write out the datafiles for the plotting tool,  e.g. gnuplot
+        max = None
         with open(datafilename, 'w') as fid :
             cummulative = 0
-            max = None
             for bin in self.bins :
                 x,y = bin.split(':')
                 #logging.debug('bin={} x={} y={}'.format(bin, x, y))
@@ -654,61 +684,60 @@ class flow_histogram(object):
                     logging.info('98% max = {}'.format(max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
 
-        #write out the gnuplot control file
+        if max :
+            #write out the gnuplot control file
+            with open(self.gpcfilename, 'w') as fid :
+                if outputtype == 'canvas' :
+                    fid.write('set output \"{}.{}\"\n'.format(basefilename, 'html'))
+                    fid.write('set terminal canvas standalone mousing size 1024,768\n')
+                if outputtype == 'svg' :
+                    fid.write('set output \"{}_svg.{}\"\n'.format(basefilename, 'html'))
+                    fid.write('set terminal svg size 1024,768 dynamic mouse\n')
+                else :
+                    fid.write('set output \"{}.{}\"\n'.format(basefilename, 'png'))
+                    fid.write('set terminal png size 1024,768\n')
 
-        with open(gpcfilename, 'w') as fid :
-            if outputtype == 'canvas' :
-                fid.write('set output \"{}.{}\"\n'.format(basefilename, 'html'))
-                fid.write('set terminal canvas standalone mousing size 1024,768\n')
-            if outputtype == 'svg' :
-                fid.write('set output \"{}_svg.{}\"\n'.format(basefilename, 'html'))
-                fid.write('set terminal svg size 1024,768 dynamic mouse\n')
-            else :
-                fid.write('set output \"{}.{}\"\n'.format(basefilename, 'png'))
-                fid.write('set terminal png size 1024,768\n')
+                if not title and self.title :
+                    title = self.title
 
-            if not title and self.title :
-                title = self.title
-
-            fid.write('set key bottom\n')
-            fid.write('set title \"{} {}({})E={}\"\n'.format(self.name,title, int(self.population), self.entropy))
-            fid.write('set format x \"%.0f"\n')
-            fid.write('set format y \"%.1f"\n')
-            fid.write('set yrange [0:1.01]\n')
-            fid.write('set y2range [0:*]\n')
-            fid.write('set ytics add 0.1\n')
-            fid.write('set y2tics nomirror\n')
-            fid.write('set grid\n')
-            fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(self.starttime, self.endtime))
-            if max < 5 :
-                fid.write('set xrange [0:5]\n')
-                fid.write('set xtics auto\n')
-            elif max < 10 :
-                fid.write('set xrange [0:10]\n')
-                fid.write('set xtics add 1\n')
-            elif max < 20 :
-                fid.write('set xrange [0:20]\n')
-                fid.write('set xtics add 1\n')
-            elif max < 40 :
-                fid.write('set xrange [0:40]\n')
-                fid.write('set xtics add 5\n')
-            elif max < 50 :
-                fid.write('set xrange [0:50]\n')
-                fid.write('set xtics add 5\n')
-            elif max < 75 :
-                fid.write('set xrange [0:75]\n')
-                fid.write('set xtics add 5\n')
-            else :
-                fid.write('set xrange [0:100]\n')
-                fid.write('set xtics add 10\n')
-            fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename, datafilename))
-
-            if outputtype == 'png' :
-                # Create a thumbnail too
-                fid.write('unset output; unset xtics; unset ytics; unset key; unset xlabel; unset ylabel; unset border; unset grid; unset yzeroaxis; unset xzeroaxis; unset title; set lmargin 0; set rmargin 0; set tmargin 0; set bmargin 0\n')
-                fid.write('set output \"{}_thumb.{}\"\n'.format(basefilename, 'png'))
-                fid.write('set terminal png transparent size 64,32 crop\n')
+                fid.write('set key bottom\n')
+                fid.write('set title \"{} {}({})E={}\"\n'.format(self.name,title, int(self.population), self.entropy))
+                fid.write('set format x \"%.0f"\n')
+                fid.write('set format y \"%.1f"\n')
+                fid.write('set yrange [0:1.01]\n')
+                fid.write('set y2range [0:*]\n')
+                fid.write('set ytics add 0.1\n')
+                fid.write('set y2tics nomirror\n')
+                fid.write('set grid\n')
+                fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(self.starttime, self.endtime))
+                if max < 5.0 :
+                    fid.write('set xrange [0:5]\n')
+                    fid.write('set xtics auto\n')
+                elif max < 10.0 :
+                    fid.write('set xrange [0:10]\n')
+                    fid.write('set xtics add 1\n')
+                elif max < 20.0 :
+                    fid.write('set xrange [0:20]\n')
+                    fid.write('set xtics add 1\n')
+                elif max < 40.0 :
+                    fid.write('set xrange [0:40]\n')
+                    fid.write('set xtics add 5\n')
+                elif max < 50.0 :
+                    fid.write('set xrange [0:50]\n')
+                    fid.write('set xtics add 5\n')
+                elif max < 75.0 :
+                    fid.write('set xrange [0:75]\n')
+                    fid.write('set xtics add 5\n')
+                else :
+                    fid.write('set xrange [0:100]\n')
+                    fid.write('set xtics add 10\n')
                 fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename, datafilename))
 
-        rc = subprocess.run([flow_histogram.gnuplot, gpcfilename])
-        logging.info('rc={}'.format(rc))
+                if outputtype == 'png' :
+                    # Create a thumbnail too
+                    fid.write('unset output; unset xtics; unset ytics; unset key; unset xlabel; unset ylabel; unset border; unset grid; unset yzeroaxis; unset xzeroaxis; unset title; set lmargin 0; set rmargin 0; set tmargin 0; set bmargin 0\n')
+                    fid.write('set output \"{}_thumb.{}\"\n'.format(basefilename, 'png'))
+                    fid.write('set terminal png transparent size 64,32 crop\n')
+                    fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename, datafilename))
+
+            await self.__exec_gnuplot()

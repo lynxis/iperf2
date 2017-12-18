@@ -53,23 +53,41 @@ plottitle='('+ args.offered_load + ' ' + args.tos +') ' + args.title + ' ' + str
 #main udp isochronous traffic flow
 flows = [iperf_flow(name="ISOCH", server=args.server, client=args.client, dst=args.dst, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, tos=args.tos, debug=False)]
 
-print("Running isochronous traffic client={} server={} dest={} with load {} for {} seconds".format(args.client, args.server, args.dst, args.offered_load, args.time))
-
 #optional "stressor flow"
 if args.stress_server and args.stress_client and args.stress_dst :
     flows.append(iperf_flow(name="STRESS", user='root', server=args.stress_server, client=args.stress_client, dst=args.stress_dst, proto=args.stress_proto, offered_load=args.stress_offered_load, interval=args.interval, flowtime=args.time, tos=args.stress_tos, debug=False))
     print("Running stress {} traffic client={} server={} dest={} with load {}".format(args.stress_proto, args.stress_client, args.stress_server, args.stress_dst, args.stress_offered_load, args.time))
 
 for i in range(args.runcount) :
+    print("Running ({}) isochronous traffic client={} server={} dest={} with load {} for {} seconds".format(str(i), args.client, args.server, args.dst, args.offered_load, args.time))
     iperf_flow.run(time=args.time, flows='all', preclean=False)
-    for flow in flows :
-        for histogram in flow.histograms :
-            histogram.plot(title=plottitle, outputtype='svg', directory=args.output_directory + '/' + str(i))
-            histogram.plot(title=plottitle, directory=args.output_directory + '/' + str(i))
-        for histogram in flow.histograms :
-            logging.info('{} entropy={}'.format(histogram.name, histogram.entropy))
-            print('{} entropy={}'.format(histogram.name, histogram.entropy))
-    print('Finished run={}.  Results written to directory {}'.format(i,args.output_directory))
 
-iperf.close_loop()
+iperf_flow.plot(title=plottitle, directory=args.output_directory)
+
+for flow in flows :
+    for this_name in flow.histogram_names :
+        i = 0
+        # group by name
+        histograms = [h for h in flow.histograms if h.name == this_name]
+        entropies = []
+        min = None
+        max = None
+        minindex = None
+        maxindex = None
+        for histogram in histograms :
+            entropies.append(histogram.entropy)
+            if not min or histogram.entropy < min :
+                min = histogram.entropy
+                minindex = i
+            if not max or histogram.entropy > max :
+                max = histogram.entropy
+                maxindex = i
+            i += 1
+            
+        es = entropies[:]
+        es.sort()
+        median=es[int(args.runcount/2)]
+        print('Min={}, Max={}, Median={}'.format(str(minindex), str(maxindex), str(entropies.index(median))))
+
+iperf_flow.close_loop()
 logging.shutdown()
