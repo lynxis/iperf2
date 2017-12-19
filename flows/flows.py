@@ -304,7 +304,8 @@ class iperf_flow(object):
                         resultstr += '1'
                     else :
                         resultstr += '0'
-                print('KS: {}({}):{} minp={} ptest={}'.format(this_name, str(ix), resultstr, str(minp), str(self.ks_critical_p)))
+                print('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, ix, resultstr, str(minp), str(self.ks_critical_p)))
+                logging.info('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, ix, resultstr, str(minp), str(self.ks_critical_p)))
                 ix += 1
 
 class iperf_server(object):
