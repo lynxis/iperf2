@@ -14,8 +14,11 @@ import weakref
 import os
 import getpass
 import math
+import scipy
+import numpy as np
 
 from datetime import datetime as datetime, timezone
+from scipy import stats
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +133,11 @@ class iperf_flow(object):
                 # group by name
                 histograms = [h for h in flow.histograms if h.name == this_name]
                 for histogram in histograms :
-                    output_dir = directory + '/' + this_name + '_' + str(i)
+                    if not histogram.ks_index :
+                        output_dir = directory + '/' + this_name + '_' + str(i)
+                    else :
+                        output_dir = directory + '/' + this_name + '_' + str(histogram.ks_index)
+
                     logging.info('scheduling task {}'.format(output_dir))
                     tasks.append(asyncio.ensure_future(histogram.async_plot(directory=output_dir, title=title), loop=iperf_flow.loop))
                     i += 1
@@ -244,6 +251,7 @@ class iperf_flow(object):
         self.flowstats['reads']=[]
         self.flowstats['histograms']=[]
         self.flowstats['histogram_names'] = set()
+        self.ks_critical_p = 0.01
 
     def destroy(self) :
         iperf_flow.instances.remove(self)
@@ -273,6 +281,31 @@ class iperf_flow(object):
 
     def stats(self):
         logging.info('stats')
+
+    def compute_ks(self) :
+        for this_name in self.histogram_names :
+            # group by name
+            histograms = [h for h in self.histograms if h.name == this_name]
+            ix = 0
+            for h1 in histograms :
+                h1.ks_index = ix
+                resultstr = ''
+                maxp = None
+                minp = None
+
+                for h2 in histograms :
+                    d,p = stats.ks_2samp(h1.samples, h2.samples)
+                    if not minp or p < minp :
+                        minp = p
+                    if not maxp or (p != 1 and p > maxp) :
+                        maxp = p
+                    # print('{}D:{}P:{}'.format(this_name, str(d), str(p)))
+                    if p > self.ks_critical_p :
+                        resultstr += '1'
+                    else :
+                        resultstr += '0'
+                print('KS: {}({}):{} minp={} ptest={}'.format(this_name, str(ix), resultstr, str(minp), str(self.ks_critical_p)))
+                ix += 1
 
 class iperf_server(object):
 
@@ -628,10 +661,18 @@ class flow_histogram(object):
     gnuplot = '/usr/bin/gnuplot'
     def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None) :
         self.raw = values
-        self._entropy = None 
+        self._entropy = None
         self.bins = self.raw.split(',')
         self.name = name
-        self.population = float(population)
+        self.ks_index = None
+        self.population = int(population)
+        self.samples = np.zeros(int(self.population))
+        ix = 0
+        for bin in self.bins :
+            x,y = bin.split(':')
+            for i in range(int(y)) :
+                self.samples[ix] = x
+                ix += 1
         self.binwidth = int(binwidth)
         self.createtime = datetime.now(timezone.utc).astimezone()
         self.starttime=starttime
@@ -644,7 +685,7 @@ class flow_histogram(object):
             self._entropy = 0
             for bin in self.bins :
                 x,y = bin.split(':')
-                y1 = float(y) / self.population
+                y1 = float(y) / float(self.population)
                 self._entropy -= y1 * math.log2(y1)
         return self._entropy
 
@@ -656,7 +697,7 @@ class flow_histogram(object):
             logging.error('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
         elif stderr :
             logging.info('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
-            
+
     async def async_plot(self, title=None, directory='.', outputtype='png', filename=None) :
         if not filename :
             filename = self.name
@@ -678,7 +719,7 @@ class flow_histogram(object):
                 x,y = bin.split(':')
                 #logging.debug('bin={} x={} y={}'.format(bin, x, y))
                 cummulative += float(y)
-                perc = cummulative / self.population
+                perc = cummulative / float(self.population)
                 if not max and (perc > 0.98) :
                     max = float(x) * float(self.binwidth) / 1000.0
                     logging.info('98% max = {}'.format(max))
@@ -701,7 +742,10 @@ class flow_histogram(object):
                     title = self.title
 
                 fid.write('set key bottom\n')
-                fid.write('set title \"{} {}({})E={}\"\n'.format(self.name,title, int(self.population), self.entropy))
+                if self.ks_index :
+                    fid.write('set title \"{}({}) {}({}) E={}\"\n'.format(self.name, str(self.ks_index), title, int(self.population), self.entropy))
+                else :
+                    fid.write('set title \"{} {}({}) E={}\"\n'.format(self.name, title, int(self.population), self.entropy))
                 fid.write('set format x \"%.0f"\n')
                 fid.write('set format y \"%.1f"\n')
                 fid.write('set yrange [0:1.01]\n')

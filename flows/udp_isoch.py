@@ -18,7 +18,7 @@ parser.add_argument('-c','--client', type=str, default='localhost', required=Fal
 parser.add_argument('-d','--dst', type=str, required=True, help='iperf destination ip address')
 parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
 parser.add_argument('-n','--runcount', type=int, required=False, default=1, help='number of runs')
-parser.add_argument('-t','--time', type=int, default=10, required=False, help='time or duration to run traffic')
+parser.add_argument('-t','--time', type=float, default=10, required=False, help='time or duration to run traffic')
 parser.add_argument('-O','--offered_load', type=str, default="60:18M,0", required=False, help='offered load; <fps>:<mean>,<variance>')
 parser.add_argument('-T','--title', type=str, default="", required=False, help='title for graphs')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
@@ -62,32 +62,10 @@ for i in range(args.runcount) :
     print("Running ({}) isochronous traffic client={} server={} dest={} with load {} for {} seconds".format(str(i), args.client, args.server, args.dst, args.offered_load, args.time))
     iperf_flow.run(time=args.time, flows='all', preclean=False)
 
-iperf_flow.plot(title=plottitle, directory=args.output_directory)
-
 for flow in flows :
-    for this_name in flow.histogram_names :
-        i = 0
-        # group by name
-        histograms = [h for h in flow.histograms if h.name == this_name]
-        entropies = []
-        min = None
-        max = None
-        minindex = None
-        maxindex = None
-        for histogram in histograms :
-            entropies.append(histogram.entropy)
-            if not min or histogram.entropy < min :
-                min = histogram.entropy
-                minindex = i
-            if not max or histogram.entropy > max :
-                max = histogram.entropy
-                maxindex = i
-            i += 1
-            
-        es = entropies[:]
-        es.sort()
-        median=es[int(args.runcount/2)]
-        print('Min={}, Max={}, Median={}'.format(str(minindex), str(maxindex), str(entropies.index(median))))
+    flow.compute_ks()
+
+iperf_flow.plot(title=plottitle, directory=args.output_directory)
 
 iperf_flow.close_loop()
 logging.shutdown()
