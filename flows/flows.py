@@ -133,7 +133,7 @@ class iperf_flow(object):
                 # group by name
                 histograms = [h for h in flow.histograms if h.name == this_name]
                 for histogram in histograms :
-                    if not histogram.ks_index :
+                    if histogram.ks_index is not None :
                         output_dir = directory + '/' + this_name + '_' + str(i)
                     else :
                         output_dir = directory + '/' + this_name + '_' + str(histogram.ks_index)
@@ -282,7 +282,7 @@ class iperf_flow(object):
     def stats(self):
         logging.info('stats')
 
-    def compute_ks(self) :
+    def compute_ks_table(self) :
         for this_name in self.histogram_names :
             # group by name
             histograms = [h for h in self.histograms if h.name == this_name]
@@ -668,17 +668,18 @@ class flow_histogram(object):
         self.ks_index = None
         self.population = int(population)
         self.samples = np.zeros(int(self.population))
+        self.binwidth = int(binwidth)
+        self.createtime = datetime.now(timezone.utc).astimezone()
+        self.starttime=starttime
+        self.endtime=endtime
+        self.title=title
+        self.basefilename = None
         ix = 0
         for bin in self.bins :
             x,y = bin.split(':')
             for i in range(int(y)) :
                 self.samples[ix] = x
                 ix += 1
-        self.binwidth = int(binwidth)
-        self.createtime = datetime.now(timezone.utc).astimezone()
-        self.starttime=starttime
-        self.endtime=endtime
-        self.title=title
 
     @property
     def entropy(self) :
@@ -699,8 +700,9 @@ class flow_histogram(object):
         elif stderr :
             logging.info('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
 
-    async def async_plot(self, title=None, directory='.', outputtype='png', filename=None) :
-        if not filename :
+    async def write(self, directory='.', filename=None) :
+        # write out the datafiles for the plotting tool,  e.g. gnuplot
+        if filename is None:
             filename = self.name
 
         if not os.path.exists(directory):
@@ -710,9 +712,6 @@ class flow_histogram(object):
         logging.info('Writing {} results to directory {}'.format(directory, filename))
         basefilename = os.path.join(directory, filename)
         datafilename = os.path.join(directory, filename + '.data')
-        self.gpcfilename = os.path.join(directory, filename + '.gpc')
-
-        # write out the datafiles for the plotting tool,  e.g. gnuplot
         max = None
         with open(datafilename, 'w') as fid :
             cummulative = 0
@@ -725,8 +724,18 @@ class flow_histogram(object):
                     max = float(x) * float(self.binwidth) / 1000.0
                     logging.info('98% max = {}'.format(max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
-
         if max :
+            self.basefilename = basefilename
+            self.datafilename = datafilename
+        else :
+            self.basefilename = None
+
+    async def async_plot(self, title=None, directory='.', outputtype='png', filename=None) :
+        if self.basefilename is None :
+            await self.write(directory=directory, filename=filename)
+
+        if self.basefilename is not None :
+            self.gpcfilename = self.basefilename + '.gpc'
             #write out the gnuplot control file
             with open(self.gpcfilename, 'w') as fid :
                 if outputtype == 'canvas' :
@@ -743,10 +752,10 @@ class flow_histogram(object):
                     title = self.title
 
                 fid.write('set key bottom\n')
-                if self.ks_index :
+                if self.ks_index is not None :
                     fid.write('set title \"{}({}) {}({}) E={}\"\n'.format(self.name, str(self.ks_index), title, int(self.population), self.entropy))
                 else :
-                    fid.write('set title \"{} {}({}) E={}\"\n'.format(self.name, title, int(self.population), self.entropy))
+                    fid.write('set title \"{}{}({}) E={}\"\n'.format(self.name, title, int(self.population), self.entropy))
                 fid.write('set format x \"%.0f"\n')
                 fid.write('set format y \"%.1f"\n')
                 fid.write('set yrange [0:1.01]\n')
