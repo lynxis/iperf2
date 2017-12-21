@@ -134,12 +134,12 @@ class iperf_flow(object):
                 histograms = [h for h in flow.histograms if h.name == this_name]
                 for histogram in histograms :
                     if histogram.ks_index is not None :
-                        output_dir = directory + '/' + this_name + '_' + str(i)
+                        histogram.output_dir = directory + '/' + this_name + '_' + str(i)
                     else :
-                        output_dir = directory + '/' + this_name + '_' + str(histogram.ks_index)
+                        histogram.output_dir = directory + '/' + this_name + '_' + str(histogram.ks_index)
 
-                    logging.info('scheduling task {}'.format(output_dir))
-                    tasks.append(asyncio.ensure_future(histogram.async_plot(directory=output_dir, title=title), loop=iperf_flow.loop))
+                    logging.info('scheduling task {}'.format(histogram.output_dir))
+                    tasks.append(asyncio.ensure_future(histogram.async_plot(directory=histogram.output_dir, title=title), loop=iperf_flow.loop))
                     i += 1
         try :
             logging.info('runnings tasks')
@@ -282,31 +282,47 @@ class iperf_flow(object):
     def stats(self):
         logging.info('stats')
 
-    def compute_ks_table(self) :
+    def compute_ks_table(self, plot=True, directory='.') :
         for this_name in self.histogram_names :
             # group by name
             histograms = [h for h in self.histograms if h.name == this_name]
             ix = 0
             for h1 in histograms :
-                h1.ks_index = ix
-                resultstr = ''
+                if not h1.ks_index :
+                    h1.ks_index = ix
+                jx = 0
+                tasks = []
+                resultstr = ix * 'x'
                 maxp = None
                 minp = None
 
-                for h2 in histograms :
+                for h2 in histograms[ix:] :
+                    if not h2.ks_index :
+                        h2.ks_index = jx
+                    jx += 1
                     d,p = stats.ks_2samp(h1.samples, h2.samples)
+                    logging.debug('D,p={},{} cp={}'.format(str(d),str(p), str(self.ks_critical_p)))
                     if not minp or p < minp :
                         minp = p
                     if not maxp or (p != 1 and p > maxp) :
                         maxp = p
-                    # print('{}D:{}P:{}'.format(this_name, str(d), str(p)))
                     if p > self.ks_critical_p :
                         resultstr += '1'
                     else :
                         resultstr += '0'
+                    if plot :
+                        tasks.append(asyncio.ensure_future(flow_histogram.plot_two_sample_ks(h1, h2, directory=directory), loop=iperf_flow.loop))
                 print('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, ix, resultstr, str(minp), str(self.ks_critical_p)))
                 logging.info('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, ix, resultstr, str(minp), str(self.ks_critical_p)))
                 ix += 1
+                if tasks :
+                    try :
+                        logging.debug('runnings KS table plotting coroutines for {} row {}'.format(this_name,str(ix)))
+                        iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=300, loop=iperf_flow.loop))
+                    except asyncio.TimeoutError:
+                        logging.error('plot timed out')
+                        raise
+
 
 class iperf_server(object):
 
@@ -659,6 +675,73 @@ class iperf_client(object):
 
 class flow_histogram(object):
 
+    @classmethod
+    async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.') :
+
+        title = 'Two Sample KS({},{})'.format(h1.ks_index, h2.ks_index)
+        if h1.basefilename is None :
+            h1.output_dir = directory + '/' + h1.name + '_' + str(h1.ks_index)
+            await h1.write(directory=h1.output_dir)
+
+        if h2.basefilename is None :
+            h2.output_dir = directory + '/' + h2.name + '_' + str(h2.ks_index)
+            await h2.write(directory=h2.output_dir)
+
+        if (h1.basefilename is not None) and (h2.basefilename is not None) :
+            basefilename = '{}_{}_{}'.format(h1.basefilename, h1.ks_index, h2.ks_index)
+            gpcfilename = basefilename + '.gpc'
+            #write out the gnuplot control file
+            with open(gpcfilename, 'w') as fid :
+                if outputtype == 'canvas' :
+                    fid.write('set output \"{}.{}\"\n'.format(basefilename, 'html'))
+                    fid.write('set terminal canvas standalone mousing size 1024,768\n')
+                if outputtype == 'svg' :
+                    fid.write('set output \"{}_svg.{}\"\n'.format(basefilename, 'html'))
+                    fid.write('set terminal svg size 1024,768 dynamic mouse\n')
+                else :
+                    fid.write('set output \"{}.{}\"\n'.format(basefilename, 'png'))
+                    fid.write('set terminal png size 1024,768\n')
+
+                fid.write('set key bottom\n')
+                fid.write('set title \"{}\"\n'.format(title))
+                fid.write('set format x \"%.0f"\n')
+                fid.write('set format y \"%.1f"\n')
+                fid.write('set yrange [0:1.01]\n')
+                fid.write('set y2range [0:*]\n')
+                fid.write('set ytics add 0.1\n')
+                fid.write('set y2tics nomirror\n')
+                fid.write('set grid\n')
+                fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(h1.starttime, h2.endtime))
+                if h1.max < 5.0 and h2.max < 5.0 :
+                    fid.write('set xrange [0:5]\n')
+                    fid.write('set xtics auto\n')
+                elif h1.max < 10.0 and h2.max < 10.0:
+                    fid.write('set xrange [0:10]\n')
+                    fid.write('set xtics add 1\n')
+                elif h1.max < 20.0 and h2.max < 20.0 :
+                    fid.write('set xrange [0:20]\n')
+                    fid.write('set xtics add 1\n')
+                elif h1.max < 40.0 and h2.max < 40.0:
+                    fid.write('set xrange [0:40]\n')
+                    fid.write('set xtics add 5\n')
+                elif h1.max < 50.0 and h2.max < 50.0:
+                    fid.write('set xrange [0:50]\n')
+                    fid.write('set xtics add 5\n')
+                elif h1.max < 75.0 and h2.max < 75.0:
+                    fid.write('set xrange [0:75]\n')
+                    fid.write('set xtics add 5\n')
+                else :
+                    fid.write('set xrange [0:100]\n')
+                    fid.write('set xtics add 10\n')
+                fid.write('plot \"{0}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle,  \"{1}\" using 1:2 index 0 axes x1y2 with impulses linetype 2 notitle, \"{1}\" using 1:3 index 0 axes x1y1 with lines linetype 1 linewidth 2 notitle, \"{0}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(h1.datafilename, h2.datafilename))
+
+            childprocess = await asyncio.create_subprocess_exec(flow_histogram.gnuplot,gpcfilename, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=iperf_flow.loop)
+            stdout, stderr = await childprocess.communicate()
+            if stderr :
+                logging.error('Exec {} {}'.format(flow_histogram.gnuplot, gpcfilename))
+            else :
+                logging.debug('Exec {} {}'.format(flow_histogram.gnuplot, gpcfilename))
+
     gnuplot = '/usr/bin/gnuplot'
     def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None) :
         self.raw = values
@@ -697,8 +780,8 @@ class flow_histogram(object):
         stdout, stderr = await childprocess.communicate()
         if stderr :
             logging.error('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
-        elif stderr :
-            logging.info('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
+        else  :
+            logging.debug('Exec {} {}'.format(flow_histogram.gnuplot, self.gpcfilename))
 
     async def write(self, directory='.', filename=None) :
         # write out the datafiles for the plotting tool,  e.g. gnuplot
@@ -706,13 +789,13 @@ class flow_histogram(object):
             filename = self.name
 
         if not os.path.exists(directory):
-            print('Making results directory {}'.format(directory))
+            logging.info('Making results directory {}'.format(directory))
             os.makedirs(directory)
 
         logging.info('Writing {} results to directory {}'.format(directory, filename))
         basefilename = os.path.join(directory, filename)
         datafilename = os.path.join(directory, filename + '.data')
-        max = None
+        self.max  = None
         with open(datafilename, 'w') as fid :
             cummulative = 0
             for bin in self.bins :
@@ -720,11 +803,11 @@ class flow_histogram(object):
                 #logging.debug('bin={} x={} y={}'.format(bin, x, y))
                 cummulative += float(y)
                 perc = cummulative / float(self.population)
-                if not max and (perc > 0.98) :
-                    max = float(x) * float(self.binwidth) / 1000.0
-                    logging.info('98% max = {}'.format(max))
+                if not self.max and (perc > 0.98) :
+                    self.max = float(x) * float(self.binwidth) / 1000.0
+                    logging.info('98% max = {}'.format(self.max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
-        if max :
+        if self.max :
             self.basefilename = basefilename
             self.datafilename = datafilename
         else :
@@ -764,34 +847,34 @@ class flow_histogram(object):
                 fid.write('set y2tics nomirror\n')
                 fid.write('set grid\n')
                 fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(self.starttime, self.endtime))
-                if max < 5.0 :
+                if self.max < 5.0 :
                     fid.write('set xrange [0:5]\n')
                     fid.write('set xtics auto\n')
-                elif max < 10.0 :
+                elif self.max < 10.0 :
                     fid.write('set xrange [0:10]\n')
                     fid.write('set xtics add 1\n')
-                elif max < 20.0 :
+                elif self.max < 20.0 :
                     fid.write('set xrange [0:20]\n')
                     fid.write('set xtics add 1\n')
-                elif max < 40.0 :
+                elif self.max < 40.0 :
                     fid.write('set xrange [0:40]\n')
                     fid.write('set xtics add 5\n')
-                elif max < 50.0 :
+                elif self.max < 50.0 :
                     fid.write('set xrange [0:50]\n')
                     fid.write('set xtics add 5\n')
-                elif max < 75.0 :
+                elif self.max < 75.0 :
                     fid.write('set xrange [0:75]\n')
                     fid.write('set xtics add 5\n')
                 else :
                     fid.write('set xrange [0:100]\n')
                     fid.write('set xtics add 10\n')
-                fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename, datafilename))
+                fid.write('plot \"{0}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{0}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename))
 
                 if outputtype == 'png' :
                     # Create a thumbnail too
                     fid.write('unset output; unset xtics; unset ytics; unset key; unset xlabel; unset ylabel; unset border; unset grid; unset yzeroaxis; unset xzeroaxis; unset title; set lmargin 0; set rmargin 0; set tmargin 0; set bmargin 0\n')
                     fid.write('set output \"{}_thumb.{}\"\n'.format(basefilename, 'png'))
                     fid.write('set terminal png transparent size 64,32 crop\n')
-                    fid.write('plot \"{}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename, datafilename))
+                    fid.write('plot \"{0}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle, \"{0}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(datafilename))
 
             await self.__exec_gnuplot()

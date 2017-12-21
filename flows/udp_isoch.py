@@ -63,9 +63,9 @@ for i in range(args.runcount) :
     iperf_flow.run(time=args.time, flows='all', preclean=False)
 
 for flow in flows :
-    flow.compute_ks_table()
+    flow.compute_ks_table(directory=args.output_directory)
 
-iperf_flow.plot(title=plottitle, directory=args.output_directory)
+# iperf_flow.plot(title=plottitle, directory=args.output_directory)
 
 iperf_flow.close_loop()
 logging.shutdown()
