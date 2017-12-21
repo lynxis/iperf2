@@ -286,20 +286,16 @@ class iperf_flow(object):
         for this_name in self.histogram_names :
             # group by name
             histograms = [h for h in self.histograms if h.name == this_name]
-            ix = 0
-            for h1 in histograms :
-                if not h1.ks_index :
-                    h1.ks_index = ix
-                jx = 0
-                tasks = []
-                resultstr = ix * 'x'
+            for index, h in enumerate(histograms) :
+                h.ks_index = index
+            print('KS Table has {} entries',len(histograms))
+
+            tasks = []
+            for rowindex, h1 in enumerate(histograms) :
+                resultstr = rowindex * 'x'
                 maxp = None
                 minp = None
-
-                for h2 in histograms[ix:] :
-                    if not h2.ks_index :
-                        h2.ks_index = jx
-                    jx += 1
+                for h2 in histograms[rowindex:] :
                     d,p = stats.ks_2samp(h1.samples, h2.samples)
                     logging.debug('D,p={},{} cp={}'.format(str(d),str(p), str(self.ks_critical_p)))
                     if not minp or p < minp :
@@ -312,12 +308,11 @@ class iperf_flow(object):
                         resultstr += '0'
                     if plot :
                         tasks.append(asyncio.ensure_future(flow_histogram.plot_two_sample_ks(h1, h2, directory=directory), loop=iperf_flow.loop))
-                print('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, ix, resultstr, str(minp), str(self.ks_critical_p)))
-                logging.info('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, ix, resultstr, str(minp), str(self.ks_critical_p)))
-                ix += 1
+                print('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, rowindex, resultstr, str(minp), str(self.ks_critical_p)))
+                logging.info('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, rowindex, resultstr, str(minp), str(self.ks_critical_p)))
                 if tasks :
                     try :
-                        logging.debug('runnings KS table plotting coroutines for {} row {}'.format(this_name,str(ix)))
+                        logging.debug('runnings KS table plotting coroutines for {} row {}'.format(this_name,str(rowindex)))
                         iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=300, loop=iperf_flow.loop))
                     except asyncio.TimeoutError:
                         logging.error('plot timed out')
@@ -789,10 +784,10 @@ class flow_histogram(object):
             filename = self.name
 
         if not os.path.exists(directory):
-            logging.info('Making results directory {}'.format(directory))
+            logging.debug('Making results directory {}'.format(directory))
             os.makedirs(directory)
 
-        logging.info('Writing {} results to directory {}'.format(directory, filename))
+        logging.debug('Writing {} results to directory {}'.format(directory, filename))
         basefilename = os.path.join(directory, filename)
         datafilename = os.path.join(directory, filename + '.data')
         self.max  = None
@@ -805,7 +800,7 @@ class flow_histogram(object):
                 perc = cummulative / float(self.population)
                 if not self.max and (perc > 0.98) :
                     self.max = float(x) * float(self.binwidth) / 1000.0
-                    logging.info('98% max = {}'.format(self.max))
+                    logging.debug('98% max = {}'.format(self.max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
         if self.max :
             self.basefilename = basefilename
