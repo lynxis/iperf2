@@ -300,7 +300,8 @@ class iperf_flow(object):
                 minp = None
                 for h2 in histograms[rowindex:] :
                     d,p = stats.ks_2samp(h1.samples, h2.samples)
-                    self.condensed_distance_matrix = np.append(self.condensed_distance_matrix,d)
+                    if h1 is not h2 :
+                        self.condensed_distance_matrix = np.append(self.condensed_distance_matrix,d)
                     logging.debug('D,p={},{} cp={}'.format(str(d),str(p), str(self.ks_critical_p)))
                     if not minp or p < minp :
                         minp = p
@@ -321,11 +322,12 @@ class iperf_flow(object):
                     except asyncio.TimeoutError:
                         logging.error('plot timed out')
                         raise
+            logging.info('{}(condensed distance matrix)\n{}'.format(this_name,self.condensed_distance_matrix))
             self.linkage_matrix=linkage(self.condensed_distance_matrix, 'ward')
             logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
             print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
             logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
-            flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.5*self.condensed_distance_matrix.max())
+            flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.75*self.condensed_distance_matrix.max(), criterion='distance')
             print('Clusters:{}'.format(flattened))
             logging.info('Clusters:{}'.format(flattened))
 
