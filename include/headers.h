@@ -200,9 +200,15 @@ typedef struct sockaddr_in iperf_sockaddr;
 
 // Rationalize stdint definitions and sizeof, thanks to ac_create_stdint_h.m4
 // from the gnu archive
-
+// Fix this to use stdint.h only
 #include <iperf-int.h>
 #ifdef HAVE_QUAD_SUPPORT
+#ifdef PRIdMAX
+#ifdef __PRI64_PREFIX
+#undef PRIdMAX
+#define PRIdMAX __PRI64_PREFIX "d"
+#endif
+#endif
 #ifdef HAVE_INT64_T
 typedef int64_t max_size_t;
 typedef u_int64_t umax_size_t;
@@ -211,6 +217,12 @@ typedef long long max_size_t;
 typedef unsigned long long umax_size_t;
 #endif // 64
 #else
+#ifdef PRIdMAX
+#ifdef __PRI32_PREFIX
+#undef PRIdMAX
+#define PRIdMAX __PRI32_PREFIX "d"
+#endif
+#endif
 #ifdef HAVE_INT32_T
 typedef int32_t max_size_t;
 typedef u_int32_t umax_size_t;
