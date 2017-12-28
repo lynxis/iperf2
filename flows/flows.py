@@ -15,10 +15,12 @@ import os
 import getpass
 import math
 import scipy
+import scipy.spatial
 import numpy as np
 
 from datetime import datetime as datetime, timezone
 from scipy import stats
+from scipy.cluster.hierarchy import linkage
 
 logger = logging.getLogger(__name__)
 
@@ -289,6 +291,7 @@ class iperf_flow(object):
             for index, h in enumerate(histograms) :
                 h.ks_index = index
             print('KS Table has {} entries',len(histograms))
+            self.condensed_distance_matrix = ([])
 
             tasks = []
             for rowindex, h1 in enumerate(histograms) :
@@ -297,6 +300,7 @@ class iperf_flow(object):
                 minp = None
                 for h2 in histograms[rowindex:] :
                     d,p = stats.ks_2samp(h1.samples, h2.samples)
+                    self.condensed_distance_matrix = np.append(self.condensed_distance_matrix,d)
                     logging.debug('D,p={},{} cp={}'.format(str(d),str(p), str(self.ks_critical_p)))
                     if not minp or p < minp :
                         minp = p
@@ -317,7 +321,13 @@ class iperf_flow(object):
                     except asyncio.TimeoutError:
                         logging.error('plot timed out')
                         raise
-
+            self.linkage_matrix=linkage(self.condensed_distance_matrix, 'ward')
+            logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
+            print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
+            logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
+            flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.5*self.condensed_distance_matrix.max())
+            print('Clusters:{}'.format(flattened))
+            logging.info('Clusters:{}'.format(flattened))
 
 class iperf_server(object):
 
@@ -635,8 +645,12 @@ class iperf_client(object):
             self.sshcmd.extend(['-b', self.offered_load])
 
         logging.info('{}'.format(str(self.sshcmd)))
-        self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self, self.flow), *self.sshcmd)
-        await self.opened.wait()
+        try :
+            self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfClientProtocol(self, self.flow), *self.sshcmd)
+            await self.opened.wait()
+        except:
+            logging.error('flow client start error')
+            raise
 
     async def signal_stop(self):
         if self.remotepid :
@@ -802,6 +816,7 @@ class flow_histogram(object):
                     self.max = float(x) * float(self.binwidth) / 1000.0
                     logging.debug('98% max = {}'.format(self.max))
                 fid.write('{} {} {}\n'.format((float(x) * float(self.binwidth) / 1000.0), int(y), perc))
+
         if self.max :
             self.basefilename = basefilename
             self.datafilename = datafilename
