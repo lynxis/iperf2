@@ -84,8 +84,8 @@ Client::Client( thread_Settings *inSettings ) {
 	fprintf(stderr, "%s", warn_compat_and_peer_exchange);
 	unsetPeerVerDetect(inSettings);
     }
-    if (isUDP(inSettings)) {
-	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_UDPHDRMSG)) {
+    if (isUDP(inSettings) && !isCompat(inSettings)) {
+	if ((isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_UDPHDRMSG)) {
 	    mSettings->mBufLen = SIZEOF_UDPHDRMSG;
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen);
 	} else if (mSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
@@ -93,7 +93,7 @@ Client::Client( thread_Settings *inSettings ) {
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen );
 	}
     } else {
-	if (!isCompat(inSettings) && (isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
+	if ((isPeerVerDetect(inSettings) || (inSettings->mMode != kTest_Normal)) && (inSettings->mBufLen < SIZEOF_TCPHDRMSG)) {
 	    mSettings->mBufLen = SIZEOF_TCPHDRMSG;
 	    fprintf( stderr, warn_buffer_too_small, "Client", mSettings->mBufLen);
 	}

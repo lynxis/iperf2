@@ -44,10 +44,10 @@
  * for iperf client traffic emulations
  *
  * Implements the Polar form of the Box-Muller Transformation
- * 
+ *
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
  * & Tim Auckland
- * ------------------------------------------------------------------- 
+ * -------------------------------------------------------------------
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -70,7 +70,7 @@ float box_muller(void) {
     if (!generate) {
 	y1 = y2;
     } else {
-	int loopcontrol=100; 
+	int loopcontrol=100;
 	do {
 	    x1 = 2.0 * (float)rand()/(float)(RAND_MAX) - 1.0;
 	    x2 = 2.0 * (float)rand()/(float)(RAND_MAX) - 1.0;
