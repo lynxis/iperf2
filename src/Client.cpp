@@ -385,10 +385,12 @@ void Client::RunTCP( void ) {
 #endif
     }
 
-
     // stop timing
-    gettimeofday( &(reportstruct->packetTime), NULL );
-
+    {
+	Timestamp now;
+	reportstruct->packetTime.tv_sec = now.getSecs();
+	reportstruct->packetTime.tv_usec = now.getUsecs();
+    }
 
     // report the entire transfer as one big packet
     // if we're not doing interval reporting and not in enhanced mode
@@ -984,31 +986,23 @@ void Client::Connect( ) {
 
 void Client::HdrXchange(int flags) {
     int currLen = 0, len;
-    struct timeval now;
+
     if (flags & HEADER_EXTEND) {
 	// Run compatability detection and test info exchange for tests that require it
 	int optflag;
 	if (isUDP(mSettings)) {
 	    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
+	    Timestamp now;
 	    len = mSettings->mBufLen;
 	    // UDP header message must be mBufLen so server/Listener will read it
 	    // because the Listener read length uses  mBufLen
 	    if ((int) (sizeof(UDP_datagram) + sizeof(client_hdr)) > len) {
 	        fprintf( stderr, warn_len_too_small_peer_exchange, "Client", len, (sizeof(UDP_datagram) + sizeof(client_hdr)));
 	    }
-
-#ifdef HAVE_CLOCK_GETTIME
-	    struct timespec t1;
-	    clock_gettime(CLOCK_REALTIME, &t1);
-	    now.tv_sec = t1.tv_sec;
-	    now.tv_usec = (t1.tv_nsec + 500) / 1000L;
-#else
-	    gettimeofday(&now, NULL);
-#endif
 	    // store datagram ID and timestamp into buffer
 	    mBuf_UDP->id      = htonl(0);
-	    mBuf_UDP->tv_sec  = htonl(now.tv_sec);
-	    mBuf_UDP->tv_usec = htonl(now.tv_usec);
+	    mBuf_UDP->tv_sec  = htonl(now.getSecs());
+	    mBuf_UDP->tv_usec = htonl(now.getUsecs());
 	} else {
 	    len = sizeof(client_hdr);
 	    // Disable Nagle to reduce latency of this intial message
