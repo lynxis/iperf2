@@ -313,11 +313,13 @@ void Server::RunUDP( void ) {
 
             if (!reportstruct->emptyreport) {
                 // read the datagram ID and sentTime out of the buffer
-		if (isSeqNo64b(mSettings)) {
+#ifdef HAVE_QUAD_SUPPORT
+	      if (isSeqNo64b(mSettings)) {
 		    reportstruct->packetID = (((max_size_t) (ntohl(mBuf_UDP->id2)) << 32) | ntohl(mBuf_UDP->id));
-		} else {
+		} else
+#endif
 		    reportstruct->packetID = ntohl(mBuf_UDP->id);
-		}
+
                 reportstruct->sentTime.tv_sec = ntohl( mBuf_UDP->tv_sec  );
                 reportstruct->sentTime.tv_usec = ntohl( mBuf_UDP->tv_usec );
 #ifdef HAVE_ISOCHRONOUS
@@ -455,7 +457,11 @@ void Server::write_UDP_AckFIN( ) {
             Transfer_Info *stats = GetReport( mSettings->reporthdr );
             hdr = (server_hdr*) (UDP_Hdr+1);
 	    hdr->base.flags        = htonl((long) flags);
+#ifdef HAVE_QUAD_SUPPORT
             hdr->base.total_len1   = htonl( (long) (stats->TotalLen >> 32) );
+#else
+            hdr->base.total_len1   = htonl(0x0);
+#endif
             hdr->base.total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
             hdr->base.stop_sec     = htonl( (long) stats->endTime );
             hdr->base.stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime) * rMillion));
@@ -464,7 +470,11 @@ void Server::write_UDP_AckFIN( ) {
 #ifndef HAVE_SEQNO64b
             hdr->base.datagrams    = htonl( stats->cntDatagrams );
 #else
-            hdr->base.datagrams2   = htonl( (long) (stats->cntDatagrams >> 32) );
+  #ifdef HAVE_QUAD_SUPPORT
+	    hdr->base.datagrams2   = htonl( (long) (stats->cntDatagrams >> 32) );
+  #else
+            hdr->base.datagrams2   = htonl(0x0);
+  #endif
             hdr->base.datagrams    = htonl( (long) (stats->cntDatagrams & 0xFFFFFFFF) );
 #endif
             hdr->base.jitter1      = htonl( (long) stats->jitter );

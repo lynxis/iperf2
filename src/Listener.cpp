@@ -789,7 +789,11 @@ void Listener::UDPSingleServer( ) {
                         hdr = (server_hdr*) (UDP_Hdr+1);
 
                         hdr->base.flags        = htonl( HEADER_VERSION1 );
-                        hdr->base.total_len1   = htonl( (long) (stats->TotalLen >> 32) );
+#ifdef HAVE_QUAD_SUPPORT
+			hdr->base.total_len1   = htonl( (long) (stats->TotalLen >> 32) );
+#else
+			hdr->base.total_len1   = htonl(0x0);
+#endif
                         hdr->base.total_len2   = htonl( (long) (stats->TotalLen & 0xFFFFFFFF) );
                         hdr->base.stop_sec     = htonl( (long) stats->endTime );
                         hdr->base.stop_usec    = htonl( (long)((stats->endTime - (long)stats->endTime) \

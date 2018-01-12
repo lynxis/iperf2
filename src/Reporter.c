@@ -585,8 +585,12 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 	stats->mFormat = agent->mFormat;
 	stats->jitter = ntohl( server->base.jitter1 );
 	stats->jitter += ntohl( server->base.jitter2 ) / (double)rMillion;
+#ifdef HAVE_QUAD_SUPPORT
 	stats->TotalLen = (((max_size_t) ntohl( server->base.total_len1 )) << 32) + \
 	    ntohl( server->base.total_len2 );
+#else
+	stats->TotalLen = (max_size_t) ntohl(server->base.total_len2);
+#endif
 	stats->startTime = 0;
 	stats->endTime = ntohl( server->base.stop_sec );
 	stats->endTime += ntohl( server->base.stop_usec ) / (double)rMillion;
@@ -595,8 +599,12 @@ void ReportServerUDP( thread_Settings *agent, server_hdr *server ) {
 #ifndef HAVE_SEQNO64b
 	stats->cntDatagrams = ntohl( server->base.datagrams );
 #else
+  #ifdef HAVE_QUAD_SUPPORT
 	stats->cntDatagrams = (((max_size_t) ntohl( server->base.datagrams2 )) << 32) + \
 	    ntohl( server->base.datagrams );
+  #else
+        stats->TotalLen = (max_size_t) ntohl(server->base.datagrams);
+  #endif
 #endif
 	if ((flags & HEADER_EXTEND) != 0) {
 	    stats->mEnhanced = 1;
