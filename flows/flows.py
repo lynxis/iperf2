@@ -17,10 +17,13 @@ import math
 import scipy
 import scipy.spatial
 import numpy as np
+import tkinter
 
 from datetime import datetime as datetime, timezone
 from scipy import stats
+from scipy.cluster import hierarchy
 from scipy.cluster.hierarchy import linkage
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -324,6 +327,10 @@ class iperf_flow(object):
                         raise
             logging.info('{}(condensed distance matrix)\n{}'.format(this_name,self.condensed_distance_matrix))
             self.linkage_matrix=linkage(self.condensed_distance_matrix, 'ward')
+            plt.figure()
+            dn = hierarchy.dendrogram(self.linkage_matrix)
+            plt.title("{}".format(this_name))
+            plt.savefig('{}/dn_{}.png'.format(directory,this_name))
             logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
             print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
             logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
