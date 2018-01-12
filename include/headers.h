@@ -200,37 +200,39 @@ typedef struct sockaddr_in iperf_sockaddr;
 
 // Rationalize stdint definitions and sizeof, thanks to ac_create_stdint_h.m4
 // from the gnu archive
-// Fix this to use stdint.h only
+
 #include <iperf-int.h>
+// Override <stdint.h> PRIdMAX (hack for now, fix this to use <stdint.h> properly)
 #ifdef HAVE_QUAD_SUPPORT
-#ifdef PRIdMAX
-#ifdef __PRI64_PREFIX
-#undef PRIdMAX
-#define PRIdMAX __PRI64_PREFIX "d"
+  #ifdef WIN32
+    #define IPERFdMAX "I64d"
+  #elif defined HAVE_PRINTF_QD
+    #define IPERFdMAX "qd"
+  #else
+    #define IPERFdMAX "lld"
+  #endif
+#else
+  #define IPERFdMAX "d"
 #endif
-#endif
-#ifdef HAVE_INT64_T
+
+#ifdef HAVE_QUAD_SUPPORT
+#  ifdef HAVE_INT64_T
 typedef int64_t max_size_t;
 typedef u_int64_t umax_size_t;
-#else
+#  else
 typedef long long max_size_t;
 typedef unsigned long long umax_size_t;
-#endif // 64
+#  endif // INT64
 #else
-#ifdef PRIdMAX
-#ifdef __PRI32_PREFIX
-#undef PRIdMAX
-#define PRIdMAX __PRI32_PREFIX "d"
-#endif
-#endif
-#ifdef HAVE_INT32_T
+#  ifdef HAVE_INT32_T
 typedef int32_t max_size_t;
 typedef u_int32_t umax_size_t;
-#else
+#  else
 typedef long max_size_t;
 typedef unsigned long umax_size_t;
-#endif // 32
+#  endif // INT32
 #endif
+
 /* in case the OS doesn't have these, we provide our own implementations */
 #include "gettimeofday.h"
 #include "inet_aton.h"
@@ -243,9 +245,3 @@ typedef unsigned long umax_size_t;
 #endif // SHUT_RD
 
 #endif /* HEADERS_H */
-
-
-
-
-
-

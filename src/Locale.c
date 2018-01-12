@@ -51,6 +51,7 @@
  * Strings and other stuff that is locale specific.
  * ------------------------------------------------------------------- */
 #include <inttypes.h>
+#include "headers.h"
 #include "version.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -243,10 +244,10 @@ const char report_sum_bw_format[] =
 const char report_bw_jitter_loss_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams\n";
 const char report_bw_jitter_loss_format[] =
-"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)\n";
+"[%3d] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%)\n";
 
 const char report_sum_bw_jitter_loss_format[] =
-"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)\n";
+"[SUM] %4.1f-%4.1f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%)\n";
 
 /* -------------------------------------------------------------------
  * Enhanced reports (per -e)
@@ -313,20 +314,20 @@ const char report_bw_jitter_loss_enhanced_header[] =
  Latency avg/min/max/stdev PPS\n";
 
 const char report_bw_jitter_loss_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
  Latency avg/min/max/stdev PPS Frames/Lost\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps %3d/%d\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps %3d/%d\n";
 
 const char report_sum_bw_jitter_loss_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%)  %4.0f pps\n";
+"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%)  %4.0f pps\n";
 
 const char report_bw_jitter_loss_suppress_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4"PRIdMAX"/%5"PRIdMAX" (%.2g%%) -/-/-/- ms %4.0f pps\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) -/-/-/- ms %4.0f pps\n";
 
 /* -------------------------------------------------------------------
  * Misc reports
@@ -358,36 +359,13 @@ const char server_reporting[] =
 const char reportCSV_peer[] =
 "%s,%u,%s,%u";
 
-#ifdef HAVE_QUAD_SUPPORT
-#ifdef HAVE_PRINTF_QD
 const char reportCSV_bw_format[] =
-"%s,%s,%d,%.1f-%.1f,%qd,%qd\n";
+"%s,%s,%d,%.1f-%.1f,%" IPERFdMAX ",%" IPERFdMAX "\n";
 
 const char reportCSV_bw_jitter_loss_format[] =
-"%s,%s,%d,%.1f-%.1f,%qd,%qd,%.3f,%d,%d,%.3f,%d\n";
-#else // HAVE_PRINTF_QD
-const char reportCSV_bw_format[] =
-"%s,%s,%d,%.1f-%.1f,%lld,%lld\n";
+"%s,%s,%d,%.1f-%.1f,%" IPERFdMAX ",%" IPERFdMAX ",%.3f,%d,%d,%.3f,%d\n";
 
-const char reportCSV_bw_jitter_loss_format[] =
-"%s,%s,%d,%.1f-%.1f,%lld,%lld,%.3f,%d,%d,%.3f,%d\n";
-#endif // HAVE_PRINTF_QD
-#else // HAVE_QUAD_SUPPORT
-#ifdef WIN32
-const char reportCSV_bw_format[] =
-"%s,%s,%d,%.1f-%.1f,%I64d,%I64d\n";
-
-const char reportCSV_bw_jitter_loss_format[] =
-"%s,%s,%d,%.1f-%.1f,%I64d,%I64d,%.3f,%d,%d,%.3f,%d\n";
-#else
-const char reportCSV_bw_format[] =
-"%s,%s,%d,%.1f-%.1f,%d,%d\n";
-
-const char reportCSV_bw_jitter_loss_format[] =
-"%s,%s,%d,%.1f-%.1f,%d,%d,%.3f,%d,%d,%.3f,%d\n";
-#endif //WIN32
-#endif //HAVE_QUAD_SUPPORT
-/* -------------------------------------------------------------------
+ /* -------------------------------------------------------------------
  * warnings
  * ------------------------------------------------------------------- */
 
