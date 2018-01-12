@@ -152,18 +152,8 @@ void Client::RunRateLimitedTCP ( void ) {
     struct itimerval it;
 #endif
     max_size_t totLen = 0;
-    double time1, time2 = 0, tokens;
-    tokens=0;
-
-#ifdef HAVE_CLOCK_GETTIME
-    struct timespec t1;
-    clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-#else
-    struct timeval t1;
-    gettimeofday( &t1, NULL );
-    time1 = t1.tv_sec + (t1.tv_usec / 1000000.0);
-#endif
+    double tokens = 0;
+    Timestamp time1, time2;
 
     char* readAt = mBuf;
 
@@ -205,19 +195,9 @@ void Client::RunRateLimitedTCP ( void ) {
 	// Add tokens per the loop time
 	// clock_gettime is much cheaper than gettimeofday() so
 	// use it if possible.
-#ifdef HAVE_CLOCK_GETTIME
-	clock_gettime(CLOCK_REALTIME, &t1);
-	time2 = t1.tv_sec + (t1.tv_nsec / 1000000000.0);
-	tokens += (time2 - time1) * (mSettings->mUDPRate / 8.0);
+	time2.setnow();
+	tokens += time2.subSec(time1) * (mSettings->mUDPRate / 8.0);
 	time1 = time2;
-#else
-	if (!time2)
-	    gettimeofday( &t1, NULL );
-	time2 = t1.tv_sec + (t1.tv_usec / 1000000.0);
-	tokens += (time2 - time1) * (mSettings->mUDPRate / 8.0);
-	time1 = time2;
-	time2 = 0;
-#endif
 	if (tokens >= 0) {
 	    // perform write
 	    reportstruct->errwrite=0;
@@ -239,27 +219,11 @@ void Client::RunRateLimitedTCP ( void ) {
 	    // Consume tokens per the transmit
 	    tokens -= currLen;
 	    totLen += currLen;
+	    time2.setnow();
+	    reportstruct->packetTime.tv_sec = time2.getSecs();
+	    reportstruct->packetTime.tv_usec = time2.getUsecs();
 
-#ifndef HAVE_SETITIMER
-	    // Get the time for so the loop can
-	    // end if the running time exceeds the requested
-	    gettimeofday( &(reportstruct->packetTime), NULL );
-# ifndef HAVE_CLOCK_GETTIME
-	    // leverage the packet gettimeofday reducing
-	    // these sys calls (which can be expensive)
-	    // time2 is used for the token bucket adjust
-	    time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
-# endif
-#endif
-	    if(mSettings->mInterval > 0) {
-#ifdef HAVE_SETITIMER
-		gettimeofday( &(reportstruct->packetTime), NULL );
-# ifndef HAVE_CLOCK_GETTIME
-		// leverage the packet gettimeofday reducing
-		// these sys calls (which can be expensive)
-		time2 = reportstruct->packetTime.tv_sec + (reportstruct->packetTime.tv_usec / 1000000.0);
-# endif
-#endif
+	    if (isEnhanced(mSettings) || (mSettings->mInterval > 0)) {
 		reportstruct->packetLen = currLen;
 		ReportPacket( mSettings->reporthdr, reportstruct );
 	    }
@@ -288,11 +252,13 @@ void Client::RunRateLimitedTCP ( void ) {
 #endif
     }
 
-    // stop timing
-    gettimeofday( &(reportstruct->packetTime), NULL );
+    time2.setnow();
+    reportstruct->packetTime.tv_sec = time2.getSecs();
+    reportstruct->packetTime.tv_usec = time2.getUsecs();
 
-    // if we're not doing interval reporting, report the entire transfer as one big packet
-    if(0.0 == mSettings->mInterval) {
+    // if we're not doing interval or enhanced reporting (needed for write accounting),
+    // then report the entire transfer as one big packet
+    if(!isEnhanced(mSettings) && (0.0 == mSettings->mInterval)) {
         reportstruct->packetLen = totLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
     }
@@ -382,13 +348,19 @@ void Client::RunTCP( void ) {
         }
 
 	totLen += currLen;
-#ifndef HAVE_SETITIMER
-	gettimeofday( &(reportstruct->packetTime), NULL );
-#endif
-	if(mSettings->mInterval > 0) {
+
+// skip the packet time setting syscall() for the case of no interval reporting
+// or packet reporting needed and an itimer is available to stop the traffic/while loop
 #ifdef HAVE_SETITIMER
-    	    gettimeofday( &(reportstruct->packetTime), NULL );
+	if ((mSettings->mInterval > 0) || isEnhanced(mSettings))
 #endif
+	{
+	    Timestamp now;
+	    reportstruct->packetTime.tv_sec = now.getSecs();
+	    reportstruct->packetTime.tv_usec = now.getUsecs();
+	}
+
+	if ((mSettings->mInterval > 0) || isEnhanced(mSettings)) {
             reportstruct->packetLen = currLen;
             ReportPacket( mSettings->reporthdr, reportstruct );
         }
@@ -417,8 +389,10 @@ void Client::RunTCP( void ) {
     // stop timing
     gettimeofday( &(reportstruct->packetTime), NULL );
 
-    // if we're not doing interval reporting, report the entire transfer as one big packet
-    if(0.0 == mSettings->mInterval) {
+
+    // report the entire transfer as one big packet
+    // if we're not doing interval reporting and not in enhanced mode
+    if ((0.0 == mSettings->mInterval) && !isEnhanced(mSettings)) {
         reportstruct->packetLen = totLen;
         ReportPacket( mSettings->reporthdr, reportstruct );
     }
