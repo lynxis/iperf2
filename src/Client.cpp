@@ -198,7 +198,7 @@ void Client::RunRateLimitedTCP ( void ) {
 	time2.setnow();
 	tokens += time2.subSec(time1) * (mSettings->mUDPRate / 8.0);
 	time1 = time2;
-	if (tokens >= 0) {
+	if (tokens >= 0.0) {
 	    // perform write
 	    reportstruct->errwrite=0;
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );

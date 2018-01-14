@@ -61,6 +61,7 @@
 #include "Extractor.h"
 #include "Reporter.h"
 #include "Locale.h"
+#include "delay.h"
 #ifdef HAVE_SCHED_SETSCHEDULER
 #include <sched.h>
 #endif
@@ -106,6 +107,8 @@ void Server::RunTCP( void ) {
     ReportStruct *reportstruct = NULL;
     int running;
     bool mMode_Time = isServerModeTime( mSettings );
+    Timestamp time1, time2;
+    double tokens=0.000004;
 
     reportstruct = new ReportStruct;
     if ( reportstruct != NULL ) {
@@ -135,38 +138,51 @@ void Server::RunTCP( void ) {
         do {
 	    reportstruct->emptyreport=0;
 	    // perform read
-	    currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
-#ifdef HAVE_CLOCK_GETTIME
-	    {
-		struct timespec t1;
-		clock_gettime(CLOCK_REALTIME, &t1);
-		reportstruct->packetTime.tv_sec = t1.tv_sec;
-		reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
+	    if (isBWSet(mSettings)) {
+		time2.setnow();
+		tokens += time2.subSec(time1) * (mSettings->mUDPRate / 8.0);
+		time1 = time2;
 	    }
+	    if (tokens >= 0.0) {
+		currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
+#ifdef HAVE_CLOCK_GETTIME
+		{
+		    struct timespec t1;
+		    clock_gettime(CLOCK_REALTIME, &t1);
+		    reportstruct->packetTime.tv_sec = t1.tv_sec;
+		    reportstruct->packetTime.tv_usec = t1.tv_nsec / 1000;
+		}
 #else
-	    gettimeofday( &(reportstruct->packetTime), NULL );
+		gettimeofday( &(reportstruct->packetTime), NULL );
 #endif  // GETTIME
-	    if (currLen <= 0) {
-		reportstruct->emptyreport=1;
-		// End loop on 0 read or socket error
-		// except for socket read timeout
-		if (currLen == 0 ||
+		if (currLen <= 0) {
+		    reportstruct->emptyreport=1;
+		    // End loop on 0 read or socket error
+		    // except for socket read timeout
+		    if (currLen == 0 ||
 #ifdef WIN32
 		    (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
 		    (errno != EAGAIN && errno != EWOULDBLOCK)
 #endif // WIN32
-		    ) {
+			) {
+			running = 0;
+		    }
+		    currLen = 0;
+		}
+		totLen += currLen;
+		if (isBWSet(mSettings))
+		    tokens -= currLen;
+		reportstruct->packetLen = currLen;
+		if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
 		    running = 0;
 		}
-		currLen = 0;
+		ReportPacket( mSettings->reporthdr, reportstruct );
+	    } else {
+		// Use a 4 usec delay to fill tokens
+		delay_loop(4);
 	    }
-	    totLen += currLen;
-	    reportstruct->packetLen = currLen;
-	    if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
-		running = 0;
-	    }
-	    ReportPacket( mSettings->reporthdr, reportstruct );
+
         } while (running);
 
         // stop timing
