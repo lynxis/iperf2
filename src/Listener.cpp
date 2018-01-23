@@ -608,7 +608,7 @@ int Listener::L2_setup (void) {
     //  For L2 verification, we have to create a new packet (raw) socket (which will receive L2 frames) and which bypasses
     //  the OS network stack.  When using packet sockets there is inherent packet duplication, the hand off to a server
     //  thread is not so straight forward as packets will continue being sent up to the listener thread
-    //  (techinical problem is that packet sockets do not support connect() which binds the IP quintuple as the
+    //  (technical problem is that packet sockets do not support connect() which binds the IP quintuple as the
     //  forwarding key) Since the Listener uses recvfrom(), there is no OS mechanism to detect new flows nor to drop packets.
     //  The listener can't listen on quintuple based connected flows because the source port is unknown.  Therefore
     //  the Listener thread will continue to receive packets from all established flows sharing the same dst port which will
@@ -648,9 +648,13 @@ int Listener::L2_setup (void) {
     // The original AF_INET socket only exists to keep the connected state
     // in the OS for this flow. Fast drop packets there as
     // now packets will use the AF_PACKET (raw) socket
+    // Also, store the original AF_INET socket descriptor so it can be
+    // closed in the Server's destructor.  Note: closing the
+    // socket descriptors will aslo free the cCBFS.
+    //
     server->mSockDrop = mSettings->mSock;
     rc = SockAddr_Drop_All_BPF(mSettings->mSock);
-    WARN_errno( rc == SOCKET_ERROR, "l2 connect drop bpf");
+    WARN_errno( rc == SOCKET_ERROR, "l2 all drop bpf");
 
     // Now optimize packet flow up the raw socket
     // Establish the flow BPF to forward up only "connected" packets to this raw socket
