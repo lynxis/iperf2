@@ -611,10 +611,11 @@ int SockAddr_v4_Connect_BPF_Drop (int sock, uint32_t dstip, uint32_t srcip, uint
     };
     return(setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)));
 }
+#  ifdef HAVE_IPV6
 //
 // v6 Connected BPF, use 32 bit values
 //
-int SockAddr_v6_Connect_BPF (int sock, uint32_t dstip3, uint32_t dstip2, uint32_t dstip1, uint32_t dstip0, uint32_t srcip3, uint32_t srcip2, uint32_t srcip1, uint32_t srcip0, uint32_t srcip, uint16_t dstport, uint16_t srcport) {
+int SockAddr_v6_Connect_BPF (int sock, struct in6_addr *dst, struct in6_addr *src, uint16_t dstport, uint16_t srcport) {
     // Use full quintuple, proto, src ip, dst ip, src port, dst port
     // tcpdump udp and ip6 src fe80::428d:5cff:fe6a:2d85 and ip6 dst fe80::428d:5cff:fe6a:2d86 and src port 5001 and dst port 5002 -dd
     //
@@ -688,14 +689,14 @@ int SockAddr_v6_Connect_BPF (int sock, uint32_t dstip3, uint32_t dstip2, uint32_
 	{ 0x6, 0, 0, 0x00040000 },
 	{ 0x6, 0, 0, 0x00000000 },
     };
-    udp_filter[8].k = htonl(dstip3);
-    udp_filter[10].k = htonl(dstip2);
-    udp_filter[12].k = htonl(dstip1);
-    udp_filter[14].k = htonl(dstip0);
-    udp_filter[16].k = htonl(srcip3);
-    udp_filter[18].k = htonl(srcip2);
-    udp_filter[20].k = htonl(srcip1);
-    udp_filter[22].k = htonl(srcip0);
+    udp_filter[8].k = htonl((*src).s6_addr32[0]);
+    udp_filter[10].k = htonl((*src).s6_addr32[1]);
+    udp_filter[12].k = htonl((*src).s6_addr32[2]);
+    udp_filter[14].k = htonl((*src).s6_addr32[3]);
+    udp_filter[16].k = htonl((*dst).s6_addr32[0]);
+    udp_filter[18].k = htonl((*dst).s6_addr32[1]);
+    udp_filter[20].k = htonl((*dst).s6_addr32[2]);
+    udp_filter[22].k = htonl((*dst).s6_addr32[3]);
     udp_filter[28].k = htons(srcport);
     udp_filter[30].k = htons(dstport);
     struct sock_fprog bpf = {
@@ -704,7 +705,8 @@ int SockAddr_v6_Connect_BPF (int sock, uint32_t dstip3, uint32_t dstip2, uint32_
     };
     return(setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)));
 }
-#endif
+#  endif // HAVE_V6
+#endif // HAVE_LINUX_FILTER
 
 #ifdef __cplusplus
 } /* end extern "C" */

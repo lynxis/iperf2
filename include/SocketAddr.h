@@ -56,7 +56,6 @@
 #include "headers.h"
 #include "Settings.hpp"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -102,8 +101,10 @@ extern "C" {
     int SockAddr_Drop_All_BPF(int socket);
     int SockAddr_v4_Connect_BPF(int socket, uint32_t srcip, uint32_t dstip, uint16_t srcport, uint16_t dstport);
     int SockAddr_v4_Connect_BPF_Drop(int socket, uint32_t srcip, uint32_t dstip, uint16_t srcport, uint16_t dstport);
-    int SockAddr_v6_Connect_BPF (int sock, uint32_t dstip3, uint32_t dstip2, uint32_t dstip1, uint32_t dstip0, uint32_t srcip3, uint32_t srcip2, uint32_t srcip1, uint32_t srcip0, uint32_t srcip, uint16_t dstport, uint16_t srcport);
-#endif
+#  ifdef HAVE_IPV6
+    int SockAddr_v6_Connect_BPF (int sock, struct in6_addr *src, struct in6_addr *dst, uint16_t dstport, uint16_t srcport);
+#  endif // v6
+#endif // linux_filter
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif
