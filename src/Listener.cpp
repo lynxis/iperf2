@@ -297,7 +297,7 @@ sInterupted == SIGALRM
 	    // Everything is now ready to start the server
 	    //
 #if defined(WIN32) && defined(HAVE_THREAD)
-            if ( mSettings->mSock > 0) {
+            if ( UDP && mSettings->mSock > 0) {
                 // WIN32 does bad UDP handling so run single threaded
                 if ( server->runNow != NULL ) {
                     thread_start( server->runNow );
