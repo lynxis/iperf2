@@ -597,7 +597,8 @@ int Listener::L2_setup (void) {
     //  The primary issues for UDP are two:
     //
     //  1) We want the listener thread to hand off the flow to a server thread and not be burdened by that flow
-    //  2) For -P support, the listener thread neads to detect new flows which will share the same UDP port and UDP is stateless
+    //  2) For -P support, the listener thread neads to detect new flows which will share the same UDP port
+    //     and UDP is stateless
     //
     //  The listener thread needs to detect new traffic flows and hand them to a new server thread, and then
     //  rehang a listen/accept.  For standard iperf the "flow routing" is done using connect() per the ip quintuple.
@@ -607,25 +608,25 @@ int Listener::L2_setup (void) {
     //  For L2 verification, we have to create a new packet (raw) socket (which will receive L2 frames) and which bypasses
     //  the OS network stack.  When using packet sockets there is inherent packet duplication, the hand off to a server
     //  thread is not so straight forward as packets will continue being sent up to the listener thread
-    //  (techinical problem is that packet sockets do not support connect() which binds the IP quintuple as the forwarding key)
-    //  Since the Listener uses recvfrom(), there is no OS mechanism to detect new flows nor to drop packets.  The listener
-    //  can't listen on quintuple based connected flows because the source port is unknown.  Therefore the Listener
-    //  thread will continue to receive packets from all established flows sharing the same dst port which will
+    //  (techinical problem is that packet sockets do not support connect() which binds the IP quintuple as the
+    //  forwarding key) Since the Listener uses recvfrom(), there is no OS mechanism to detect new flows nor to drop packets.
+    //  The listener can't listen on quintuple based connected flows because the source port is unknown.  Therefore
+    //  the Listener thread will continue to receive packets from all established flows sharing the same dst port which will
     //  impact CPU utilization and hence performance.
     //
     //  The technique used to address this is to open the AF_PACKET socket and leave the AF_INET socket open as well use the
-    //  packet socket. (This also aligns with BSD based systems)  The original AF_INET socket will remain in the (connected) state
-    //  it can be used to cause the kernel to fast drop those packets.  A cBPF is set up to drop such packets and should minimize overall
-    /// CPU impacts.  The test traffic will then only come over the packet (raw) socket and not the AF_INET socket
-    //  If we were to try to close the AF_INET socket (vs leave it open w/the dropping CBPF)
+    //  packet socket. (This also aligns with BSD based systems)  The original AF_INET socket will remain in the (connected)
+    //  state it can be used to cause the kernel to fast drop those packets.  A cBPF is set up to drop such packets and
+    //  should minimize overall CPU impacts.  The test traffic will then only come over the packet (raw) socket and not the
+    //  AF_INET socket. If we were to try to close the original AF_INET socket (vs leave it open w/the fast drop cBPF)
     //  then the existing traffic will trigger the Listener thread, flooding it with packets, again
     //  something we want to avoid.
     //
     //  On the packet (raw) socket itself, we do two more things to better handle performance
     //
-    //  1)  Use a full quintuple CBPF allowing the kernel to filter packets (allow) per the quintuple
+    //  1)  Use a full quintuple cBPF allowing the kernel to filter packets (allow) per the quintuple
     //  2)  Use the packet fanout option to assign a CBPF to a socket and hence to a single server thread minimizing
-    //      duplication (reduce all CBPF's filtering load)
+    //      duplication (reduce all cBPF's filtering load)
     //
     struct sockaddr *p = (sockaddr *)&server->peer;
     struct sockaddr *l = (sockaddr *)&server->local;
@@ -645,8 +646,8 @@ int Listener::L2_setup (void) {
 	return server->mSock;
     }
     // The original AF_INET socket only exists to keep the connected state
-    // in the OS for this folow. Drop packets on it.
-    // Traffic packts will use the RAW socket
+    // in the OS for this flow. Fast drop packets there as
+    // now packets will use the AF_PACKET (raw) socket
     server->mSockDrop = mSettings->mSock;
     rc = SockAddr_Drop_All_BPF(mSettings->mSock);
     WARN_errno( rc == SOCKET_ERROR, "l2 connect drop bpf");
@@ -659,8 +660,8 @@ int Listener::L2_setup (void) {
     fanout_arg = (PACKET_FANOUT_HASH << 16) | (++mPacketGroup & 0xFFFF);
     rc = setsockopt(server->mSock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
     WARN_errno( rc == SOCKET_ERROR, "l2 setsockopt packet fanout");
-    return 1;
 #endif
+    return 1;
 #endif
 }
 /* -------------------------------------------------------------------
