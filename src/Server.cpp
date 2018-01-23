@@ -425,15 +425,23 @@ void Server::L2_processing (void) {
     if (isIPV6(mSettings)) {
 	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct ipv6hdr) + sizeof(struct ether_header));
     } else  
-#  endif 
+#  endif // V6
     {
 	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct iphdr) + sizeof(struct ether_header));
     }
     //  uint32_t l2mac_hash = murmur3_32(sizeof(struct ether_header), 0xDEADBEEF);
     // Read the packet to get the UDP length
     reportstruct->packetLen = ntohs(udp_hdr->len);
+#  ifdef HAVE_IPV6
+    if (isIPV6(mSettings)) {
+	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+    } else  
+#  endif  // V6
+    {
+	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+    }
     // reportstruct->m3hash = murmur3_32(rxlen, l2mac_hash);
-#endif
+#endif // HAVE_AF_PACKET
 }
 
 void Server::Isoch_processing (void) {

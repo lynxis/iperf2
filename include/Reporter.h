@@ -148,7 +148,10 @@ typedef struct ReportStruct {
     int emptyreport;
     int socket;
     uint32_t m3hash;
+#ifdef HAVE_AF_PACKET
     int l2len;
+    int expected_l2len;
+#endif
 #ifdef HAVE_ISOCHRONOUS
     max_size_t prevframeID;
     max_size_t frameID;
