@@ -631,7 +631,6 @@ int Listener::L2_setup (void) {
     struct sockaddr *p = (sockaddr *)&server->peer;
     struct sockaddr *l = (sockaddr *)&server->local;
     int rc = 0;
-    int fanout_arg;
 
     //
     // For -P support, more things are needed
@@ -649,8 +648,8 @@ int Listener::L2_setup (void) {
     // in the OS for this flow. Fast drop packets there as
     // now packets will use the AF_PACKET (raw) socket
     // Also, store the original AF_INET socket descriptor so it can be
-    // closed in the Server's destructor.  Note: closing the
-    // socket descriptors will aslo free the cCBFS.
+    // closed in the Server's destructor.  (Note: closing the
+    // socket descriptors will also free the cBFS.)
     //
     server->mSockDrop = mSettings->mSock;
     rc = SockAddr_Drop_All_BPF(mSettings->mSock);
@@ -661,7 +660,7 @@ int Listener::L2_setup (void) {
     rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
     WARN_errno( rc == SOCKET_ERROR, "l2 connect bpf");
 #ifdef HAVE_PACKET_FANOUT
-    fanout_arg = (PACKET_FANOUT_HASH << 16) | (++mPacketGroup & 0xFFFF);
+    int fanout_arg = (PACKET_FANOUT_HASH << 16) | (++mPacketGroup & 0xFFFF);
     rc = setsockopt(server->mSock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
     WARN_errno( rc == SOCKET_ERROR, "l2 setsockopt packet fanout");
 #endif
