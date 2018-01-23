@@ -421,7 +421,14 @@ void Server::L2_processing (void) {
 #ifdef HAVE_AF_PACKET
     eth_hdr = (struct ether_header *) mBuf;
     ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
-    udp_hdr = (struct udphdr *) (mBuf + sizeof(struct iphdr) + sizeof(struct ether_header));
+#  ifdef HAVE_IPV6
+    if (isIPV6(mSettings)) {
+	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct ipv6hdr) + sizeof(struct ether_header));
+    } else  
+#  endif 
+    {
+	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct iphdr) + sizeof(struct ether_header));
+    }
     //  uint32_t l2mac_hash = murmur3_32(sizeof(struct ether_header), 0xDEADBEEF);
     // Read the packet to get the UDP length
     reportstruct->packetLen = ntohs(udp_hdr->len);
