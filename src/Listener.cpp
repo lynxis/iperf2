@@ -92,6 +92,7 @@ Listener::Listener( thread_Settings *inSettings ) {
 
     mClients = inSettings->mThreads;
     mBuf = NULL;
+    mPacketGroup = 0;
     /*
      * These thread settings are stored in three places
      *
@@ -101,7 +102,7 @@ Listener::Listener( thread_Settings *inSettings ) {
      */
     mSettings = inSettings;
 
-    // initialize buffer for packets
+    // alloc and initialize the buffer (mBuf) used for packet reads()
     mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
     FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
     /*
@@ -204,6 +205,7 @@ sInterupted == SIGALRM
 		    break;
 		}
             }
+
             // Reset Single Client Stuff
             if ( isSingleClient( mSettings ) && clients == NULL ) {
                 mSettings->peer = server->peer;
@@ -231,7 +233,7 @@ sInterupted == SIGALRM
                 }
             }
             // Check for exchange of test information and also determine v2.0.5 vs 2.0.10+
-            if ( !isCompat( mSettings ) && !isMulticast( mSettings ) ) {
+            if ( !isCompat( mSettings )) {
 		int flags;
                 if ((flags = ReadClientHeader(hdr)) < 0) {
 		    close( server->mSock );
@@ -277,13 +279,25 @@ sInterupted == SIGALRM
                 Mutex_Unlock( &groupCond );
             }
 
+
+	    // Perform L2 setup if needed
+	    if (isUDP(mSettings) && (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings))) {
+		if (L2_setup() < 0) {
+		    // L2 not allowed, abort this server try
+		    delete server;
+		    mSettings->mSock = -1;
+		}
+	    }
             // Store entry in connection list
-            Iperf_pushback( listtemp, &clients );
+	    if (mSettings->mSock > 0)
+		Iperf_pushback( listtemp, &clients );
             Mutex_Unlock( &clients_mutex );
 
-            // Start the server
+            //
+	    // Everything is now ready to start the server
+	    //
 #if defined(WIN32) && defined(HAVE_THREAD)
-            if ( UDP ) {
+            if ( mSettings->mSock > 0) {
                 // WIN32 does bad UDP handling so run single threaded
                 if ( server->runNow != NULL ) {
                     thread_start( server->runNow );
@@ -294,9 +308,12 @@ sInterupted == SIGALRM
                 }
             } else
 #endif
-            thread_start( server );
-
-            // create a new socket
+		{
+		    if (mSettings->mSock > 0)
+			thread_start( server );
+		}
+	    // create a new socket for the Listener thread now that server thread
+	    // is handling the current one
             if ( UDP ) {
                 mSettings->mSock = -1;
                 Listen( );
@@ -327,29 +344,30 @@ void Listener::Listen( ) {
 
     SockAddr_localAddr( mSettings );
 
-    // create an internet TCP socket
+    // create an AF_INET socket for the accepts
+    // for the case of L2 testing and UDP, a new AF_PACKET
+    // will be created to supercede this one
     int type = (isUDP( mSettings )  ?  SOCK_DGRAM  :  SOCK_STREAM);
     int domain = (SockAddr_isIPv6( &mSettings->local ) ?
 #ifdef HAVE_IPV6
-                  AF_INET6
+		  AF_INET6
 #else
-                  AF_INET
+		  AF_INET
 #endif
-                  : AF_INET);
+		  : AF_INET);
 
 #ifdef WIN32
     if ( SockAddr_isMulticast( &mSettings->local ) ) {
-        // Multicast on Win32 requires special handling
-        mSettings->mSock = WSASocket( domain, type, 0, 0, 0, WSA_FLAG_MULTIPOINT_C_LEAF | WSA_FLAG_MULTIPOINT_D_LEAF );
-        WARN_errno( mSettings->mSock == INVALID_SOCKET, "socket" );
+	// Multicast on Win32 requires special handling
+	mSettings->mSock = WSASocket( domain, type, 0, 0, 0, WSA_FLAG_MULTIPOINT_C_LEAF | WSA_FLAG_MULTIPOINT_D_LEAF );
+	WARN_errno( mSettings->mSock == INVALID_SOCKET, "socket" );
 
     } else
 #endif
-    {
-        mSettings->mSock = socket( domain, type, 0 );
-        WARN_errno( mSettings->mSock == INVALID_SOCKET, "socket" );
-    }
-
+	{
+	    mSettings->mSock = socket( domain, type, 0 );
+	    WARN_errno( mSettings->mSock == INVALID_SOCKET, "socket" );
+	}
     SetSocketOptions( mSettings );
 
     // reuse the address, so we can run if a former server was killed off
@@ -360,27 +378,27 @@ void Listener::Listen( ) {
     // bind socket to server address
 #ifdef WIN32
     if ( SockAddr_isMulticast( &mSettings->local ) ) {
-        // Multicast on Win32 requires special handling
-        rc = WSAJoinLeaf( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local,0,0,0,0,JL_BOTH);
-        WARN_errno( rc == SOCKET_ERROR, "WSAJoinLeaf (aka bind)" );
+	// Multicast on Win32 requires special handling
+	rc = WSAJoinLeaf( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local,0,0,0,0,JL_BOTH);
+	WARN_errno( rc == SOCKET_ERROR, "WSAJoinLeaf (aka bind)" );
     } else
 #endif
-    {
-        rc = bind( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local );
-        FAIL_errno( rc == SOCKET_ERROR, "bind", mSettings );
-    }
+	{
+	    rc = bind( mSettings->mSock, (sockaddr*) &mSettings->local, mSettings->size_local );
+	    FAIL_errno( rc == SOCKET_ERROR, "bind", mSettings );
+	}
     // listen for connections (TCP only).
     // default backlog traditionally 5
     if ( !isUDP( mSettings ) ) {
-        rc = listen( mSettings->mSock, 5 );
-        WARN_errno( rc == SOCKET_ERROR, "listen" );
+	rc = listen( mSettings->mSock, 5 );
+	WARN_errno( rc == SOCKET_ERROR, "listen" );
     }
 
 #ifndef WIN32
     // if multicast, join the group
     if ( SockAddr_isMulticast( &mSettings->local ) ) {
 #ifdef HAVE_MULTICAST
-        McastJoin( );
+	McastJoin( );
 #else
 	fprintf(stderr, "Multicast not supported");
 #endif // HAVE_MULTICAST
@@ -569,6 +587,82 @@ void Listener::McastJoin( ) {
 }
 // end McastJoin
 
+int Listener::L2_setup (void) {
+#ifndef HAVE_AF_PACKET
+    return -1;
+#else
+    //
+    //  Supporting parallel L2 UDP threads is a bit tricky.  Below are some notes as to why and the approach used.
+    //
+    //  The primary issues for UDP are two:
+    //
+    //  1) We want the listener thread to hand off the flow to a server thread and not be burdened by that flow
+    //  2) For -P support, the listener thread neads to detect new flows which will share the same UDP port and UDP is stateless
+    //
+    //  The listener thread needs to detect new traffic flows and hand them to a new server thread, and then
+    //  rehang a listen/accept.  For standard iperf the "flow routing" is done using connect() per the ip quintuple.
+    //  The OS will then route established connected flows to the socket descriptor handled by a server thread and won't
+    //  burden the listener thread with these packets.
+    //
+    //  For L2 verification, we have to create a new packet (raw) socket (which will receive L2 frames) and which bypasses
+    //  the OS network stack.  When using packet sockets there is inherent packet duplication, the hand off to a server
+    //  thread is not so straight forward as packets will continue being sent up to the listener thread
+    //  (techinical problem is that packet sockets do not support connect() which binds the IP quintuple as the forwarding key)
+    //  Since the Listener uses recvfrom(), there is no OS mechanism to detect new flows nor to drop packets.  The listener
+    //  can't listen on quintuple based connected flows because the source port is unknown.  Therefore the Listener
+    //  thread will continue to receive packets from all established flows sharing the same dst port which will
+    //  impact CPU utilization and hence performance.
+    //
+    //  The technique used to address this is to open the AF_PACKET socket and leave the AF_INET socket open as well use the
+    //  packet socket. (This also aligns with BSD based systems)  The original AF_INET socket will remain in the (connected) state
+    //  it can be used to cause the kernel to fast drop those packets.  A cBPF is set up to drop such packets and should minimize overall
+    /// CPU impacts.  The test traffic will then only come over the packet (raw) socket and not the AF_INET socket
+    //  If we were to try to close the AF_INET socket (vs leave it open w/the dropping CBPF)
+    //  then the existing traffic will trigger the Listener thread, flooding it with packets, again
+    //  something we want to avoid.
+    //
+    //  On the packet (raw) socket itself, we do two more things to better handle performance
+    //
+    //  1)  Use a full quintuple CBPF allowing the kernel to filter packets (allow) per the quintuple
+    //  2)  Use the packet fanout option to assign a CBPF to a socket and hence to a single server thread minimizing
+    //      duplication (reduce all CBPF's filtering load)
+    //
+    struct sockaddr *p = (sockaddr *)&server->peer;
+    struct sockaddr *l = (sockaddr *)&server->local;
+    int rc = 0;
+    int fanout_arg;
+
+    //
+    // For -P support, more things are needed
+    //
+    // 1) Have the kernel drop the original AF_INET packet as fast as possible, use a CBPF to achieve this
+    // 2) Bind the AF_PACKET socket to a server socket (and hence thread) via the PACKET_FANOUT_CBPF binding
+    //
+    // Establish a packet (raw) socket to be used by the server thread giving it full L2 packets
+    server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
+    WARN_errno(server->mSock == INVALID_SOCKET, "packet socket (AF_PACKET)");
+    if (server->mSock < 0) {
+	return server->mSock;
+    }
+    // The original AF_INET socket only exists to keep the connected state
+    // in the OS for this folow. Drop packets on it.
+    // Traffic packts will use the RAW socket
+    server->mSockDrop = mSettings->mSock;
+    rc = SockAddr_Drop_All_BPF(mSettings->mSock);
+    WARN_errno( rc == SOCKET_ERROR, "l2 connect drop bpf");
+
+    // Now optimize packet flow up the raw socket
+    // Establish the flow BPF to forward up only "connected" packets to this raw socket
+    rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
+    WARN_errno( rc == SOCKET_ERROR, "l2 connect bpf");
+#ifdef HAVE_PACKET_FANOUT
+    fanout_arg = (PACKET_FANOUT_HASH << 16) | (++mPacketGroup & 0xFFFF);
+    rc = setsockopt(server->mSock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
+    WARN_errno( rc == SOCKET_ERROR, "l2 setsockopt packet fanout");
+    return 1;
+#endif
+#endif
+}
 /* -------------------------------------------------------------------
  * Sets the Multicast TTL for outgoing packets.
  * ------------------------------------------------------------------- */
@@ -630,29 +724,40 @@ void Listener::Accept( thread_Settings *server ) {
 	    }
 	}
 	if ( isUDP( server ) ) {
+	    int rc;
 	    /* ------------------------------------------------------------------------
 	     * Do the equivalent of an accept() call for UDP sockets. This waits
 	     * on a listening UDP socket until we get a datagram.
 	     * ------------------------------------------------------------------- ----*/
-	    int rc;
 	    Iperf_ListEntry *exist;
-	    int32_t datagramID;
+	    // Preset the server socket to INVALID, hang recvfrom on the Listener's socket
+	    // The INVALID socket is used to keep the while loop going
 	    server->mSock = INVALID_SOCKET;
-
 	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
-			   (struct sockaddr*) &server->peer, &server->size_peer );
+			       (struct sockaddr*) &server->peer, &server->size_peer );
 	    FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
 	    Mutex_Lock( &clients_mutex );
 
 	    // Handle connection for UDP sockets.
 	    exist = Iperf_present( &server->peer, clients);
-	    datagramID = ntohl( ((UDP_datagram*) mBuf)->id );
+	    uint32_t datagramID = ntohl( ((UDP_datagram*) mBuf)->id );
 	    if ( exist == NULL && datagramID >= 0 ) {
+		// We have a new UDP flow so let's start the
+		// process to handle it and in a new server thread (yet to be created)
 		server->mSock = mSettings->mSock;
+		// This connect() will allow the OS to only
+		// send packets with the ip quintuple up to the server
+		// socket and, hence, to the server thread (yet to be created)
+		// This connect() routing is only supported with AF_INET or AF_INET6 sockets,
+		// e.g. AF_PACKET sockets can't do this.  We'll handle packet sockets later
+		// All UDP accepts here will use AF_INET.  This is intentional and needed
 		int rc = connect( server->mSock, (struct sockaddr*) &server->peer,
 				  server->size_peer );
 		FAIL_errno( rc == SOCKET_ERROR, "connect UDP", mSettings );
 	    } else {
+		// This isn't a new flow so just ignore the packet
+		// and continue with the while loop
+		// printf("Debug: drop packet on sock %d\n",mSettings->mSock);
 		server->mSock = INVALID_SOCKET;
 	    }
 	    Mutex_Unlock( &clients_mutex );
@@ -967,10 +1072,19 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	reporter_peerversion(server, ntohl(mBuf_isoch->version_u), ntohl(mBuf_isoch->version_l));
     }
 #endif
+    if ((flags & HEADER_L2MACHASH) != 0) {
+	setL2MACHash(server);
+    }
+    if ((flags & HEADER_L2FRAMEHASH) != 0) {
+	setL2FrameHash(server);
+    }
+
     if ((flags & HEADER_EXTEND) != 0 ) {
 	reporter_peerversion(server, ntohl(hdr->extend.version_u), ntohl(hdr->extend.version_l));
 	//  Extended header successfully read. Ack the client with our version info now
-	ClientHeaderAck();
+	if (!isMulticast(mSettings)) {
+	    ClientHeaderAck();
+	}
     }
     return(flags);
 }

@@ -97,6 +97,10 @@ extern "C" {
     int SockAddr_Hostare_Equal( struct sockaddr *first, struct sockaddr *second );
 
     void SockAddr_zeroAddress( iperf_sockaddr *inSockAddr );
+    int SockAddr_Accept_BPF(int socket, uint16_t port);
+    int SockAddr_Drop_All_BPF(int socket);
+    int SockAddr_v4_Connect_BPF(int socket, uint32_t srcip, uint32_t dstip, uint16_t srcport, uint16_t dstport);
+    int SockAddr_v4_Connect_BPF_Drop(int socket, uint32_t srcip, uint32_t dstip, uint16_t srcport, uint16_t dstport);
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif

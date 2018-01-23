@@ -49,6 +49,24 @@ AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
 	    [enable support for udp triggers in udp payloads (default is disable)]))
 AM_CONDITIONAL([udptriggers], [test "x$enable_udptriggers" = "xyes"])
 
+dnl AF_PACKET support
+AC_ARG_ENABLE(af-packet,
+    AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),,[enable_af_packet=yes])
+
+AS_IF([test "x$enable_af_packet" = "xyes"], [
+   AC_CHECK_DECL([TPACKET_V2],
+      AC_DEFINE([HAVE_AF_PACKET],[1],[AF_PACKET support is available]),
+      [enable_af_packet="no"],
+      [[#include <sys/socket.h>
+      #include <linux/if_packet.h>]])
+   AC_CHECK_DECL([PACKET_FANOUT_HASH],
+      AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Recent packet fanout support is available]),
+      [],
+      [[#include <linux/if_packet.h>]])
+])
+
+
+
 dnl ===================================================================
 dnl Checks for programs
 dnl ===================================================================
@@ -93,7 +111,7 @@ AC_SEARCH_LIBS([socket], [socket], [],
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h libintl.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h signal.h])
+AC_CHECK_HEADERS([arpa/inet.h libintl.h net/ethernet.h linux/ip.h linux/udp.h linux/if_packet.h linux/filter.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h syslog.h unistd.h signal.h])
 
 dnl ===================================================================
 dnl Checks for typedefs, structures

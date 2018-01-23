@@ -137,6 +137,7 @@ typedef struct thread_Settings {
 #if WIN32
     SOCKET mSock;
 #else
+    int mSockDrop;
     int mSock;
 #endif
     int Extractor_size;
@@ -260,6 +261,9 @@ typedef struct thread_Settings {
 #define FLAG_ISOCHRONOUS    0x00000008
 #define FLAG_UDPTRIGGERS    0x00000010
 #define FLAG_UDPHISTOGRAM   0x00000020
+#define FLAG_L2MACHASH      0x00000040
+#define FLAG_L2FRAMEHASH    0x00000080
+#define FLAG_L2LENGTHCHECK  0x00000100
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
@@ -291,12 +295,15 @@ typedef struct thread_Settings {
 #define isBWSet(settings)          ((settings->flags & FLAG_BWSET) != 0)
 #define isEnhanced(settings)       ((settings->flags & FLAG_ENHANCEDREPORT) != 0)
 #define isServerModeTime(settings) ((settings->flags & FLAG_SERVERMODETIME) != 0)
-#define isPeerVerDetect(settings)       ((settings->flags_extend & FLAG_PEERVER) != 0)
+#define isPeerVerDetect(settings)  ((settings->flags_extend & FLAG_PEERVER) != 0)
 #define isSeqNo64b(settings)       ((settings->flags_extend & FLAG_SEQNO64) != 0)
-#define isReverse(settings)       ((settings->flags_extend & FLAG_REVERSE) != 0)
+#define isReverse(settings)        ((settings->flags_extend & FLAG_REVERSE) != 0)
 #define isIsochronous(settings)    ((settings->flags_extend & FLAG_ISOCHRONOUS) != 0)
 #define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
-#define isUDPHistogram(settings)    ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
+#define isUDPHistogram(settings)   ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
+#define isL2MACHash(settings)      ((settings->flags_extend & FLAG_L2MACHASH) != 0)
+#define isL2FrameHash(settings)    ((settings->flags_extend & FLAG_L2FRAMEHASH) != 0)
+#define isL2LengthCheck(settings)     ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -326,12 +333,15 @@ typedef struct thread_Settings {
 #define setBWSet(settings)         settings->flags |= FLAG_BWSET
 #define setEnhanced(settings)      settings->flags |= FLAG_ENHANCEDREPORT
 #define setServerModeTime(settings)      settings->flags |= FLAG_SERVERMODETIME
-#define setPeerVerDetect(settings)      settings->flags_extend |= FLAG_PEERVER
+#define setPeerVerDetect(settings) settings->flags_extend |= FLAG_PEERVER
 #define setSeqNo64b(settings)      settings->flags_extend |= FLAG_SEQNO64
-#define setReverse(settings)      settings->flags_extend |= FLAG_REVERSE
-#define setIsochronous(settings)      settings->flags_extend |= FLAG_ISOCHRONOUS
-#define setUDPTriggers(settings)      settings->flags_extend |= FLAG_UDPTRIGGERS
-#define setUDPHistogram(settings)      settings->flags_extend |= FLAG_UDPHISTOGRAM
+#define setReverse(settings)       settings->flags_extend |= FLAG_REVERSE
+#define setIsochronous(settings)   settings->flags_extend |= FLAG_ISOCHRONOUS
+#define setUDPTriggers(settings)   settings->flags_extend |= FLAG_UDPTRIGGERS
+#define setUDPHistogram(settings)  settings->flags_extend |= FLAG_UDPHISTOGRAM
+#define setL2MACHash(settings)     settings->flags_extend |= FLAG_L2MACHASH
+#define setL2FrameHash(settings)   settings->flags_extend |= FLAG_L2FRAMEHASH
+#define setL2LengthCheck(settings)    settings->flags_extend |= FLAG_L2LENGTHCHECK
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -363,10 +373,14 @@ typedef struct thread_Settings {
 #define unsetServerModeTime(settings)    settings->flags &= ~FLAG_SERVERMODETIME
 #define unsetPeerVerDetect(settings)    settings->flags_extend &= ~FLAG_PEERVER
 #define unsetSeqNo64b(settings)    settings->flags_extend &= ~FLAG_SEQNO64
-#define unsetReverse(settings)    settings->flags_extend &= ~FLAG_REVERSE
-#define unsetIsochronous(settings)    settings->flags_extend &= ~FLAG_ISOCHRONOUS
-#define unsetUDPTriggers(settings)    settings->flags_extend &= ~FLAG_UDPTRIGGERS
+#define unsetReverse(settings)     settings->flags_extend &= ~FLAG_REVERSE
+#define unsetIsochronous(settings) settings->flags_extend &= ~FLAG_ISOCHRONOUS
+#define unsetUDPTriggers(settings) settings->flags_extend &= ~FLAG_UDPTRIGGERS
 #define unsetUDPHistogram(settings)    settings->flags_extend &= ~FLAG_UDPHISTOGRAM
+#define unsetL2MACHash(settings)   settings->flags_extend &= ~FLAG_L2MACHASH
+#define unsetL2FrameHash(settings) settings->flags_extend &= ~FLAG_L2FRAMEHASH
+#define unsetL2LengthCheck(settings)  settings->flags_extend &= ~FLAG_L2LENGTHCHECK
+
 
 /*
  * Messasge header flags
@@ -376,7 +390,13 @@ typedef struct thread_Settings {
 #define HEADER_VERSION1 0x80000000
 #define HEADER_EXTEND   0x40000000
 #define HEADER_EXTEND_TLVCHAINED  0x20000000
-#define HEADER_UDP_ISOCH  0x10000000  // used to pass test settings in every UDP packet
+
+// Below flags are used to pass test settings in *every* UDP packet
+// and not just during the header exchange
+#define HEADER_UDP_ISOCH  0x10000000
+#define HEADER_L2MACHASH    0x08000000
+#define HEADER_L2FRAMEHASH  0x04000000
+
 #define RUN_NOW         0x00000001
 // newer flags
 #define UNITS_PPS             0x00000001
@@ -408,14 +428,6 @@ typedef enum MsgType {
  * and must be packed by the compilers
  * Align on 32 bits (4 bytes)
  */
-/*
-    0             1     1                   2                   3
-    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   | |                   Flow Label                  |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-*/
 #pragma pack(push,4)
 typedef struct UDP_datagram {
 // used to reference the 4 byte ID number we place in UDP datagrams

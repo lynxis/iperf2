@@ -462,7 +462,12 @@ void Client::RunUDPIsochronous (void) {
     mBuf_isoch->version_u = htonl(IPERF_VERSION_MAJORHEX);
     mBuf_isoch->version_l = htonl(IPERF_VERSION_MINORHEX);
     mBuf_isoch->burstperiod = htonl(fc->period_us());
-
+    if (isL2MACHash(mSettings)) {
+	mBuf_isoch->flags = htonl(HEADER_L2MACHASH);
+    }
+    if (isL2FrameHash(mSettings)) {
+	mBuf_isoch->flags = htonl(HEADER_L2FRAMEHASH);
+    }
     do {
 	int bytecnt;
 	mBuf_isoch->prevframeid  = htonl(frameid);

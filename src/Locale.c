@@ -359,6 +359,10 @@ const char server_reporting[] =
 const char reportCSV_peer[] =
 "%s,%u,%s,%u";
 
+const char report_l2length_error[] =
+"[%3d] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
+
+
 const char reportCSV_bw_format[] =
 "%s,%s,%d,%.1f-%.1f,%" IPERFdMAX ",%" IPERFdMAX "\n";
 

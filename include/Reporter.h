@@ -147,6 +147,8 @@ typedef struct ReportStruct {
     int errwrite;
     int emptyreport;
     int socket;
+    uint32_t m3hash;
+    int l2len;
 #ifdef HAVE_ISOCHRONOUS
     max_size_t prevframeID;
     max_size_t frameID;

@@ -54,7 +54,7 @@
 #include "headers.h"
 
 #include "SocketAddr.h"
-
+#include <linux/filter.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -474,6 +474,125 @@ int SockAddr_Hostare_Equal( struct sockaddr* first, struct sockaddr* second ) {
     return 0;
 
 }
+#ifdef HAVE_LINUX_FILTER_H
+int SockAddr_Accept_BPF (int sock, uint16_t port) {
+    // tcpdump udp dst port 5001 -dd to get c code filter
+    // UDP port is the 5 and 13 bytecodes (5001 = 0x1389)
+    // see linux/filter.h
+    struct sock_filter udp_filter[] = {
+	{ 0x28, 0, 0, 0x0000000c },
+	{ 0x15, 0, 4, 0x000086dd },
+	{ 0x30, 0, 0, 0x00000014 },
+	{ 0x15, 0, 11, 0x00000011 },
+	{ 0x28, 0, 0, 0x00000038 },
+	{ 0x15, 8, 9, 0x00001389 },
+	{ 0x15, 0, 8, 0x00000800 },
+	{ 0x30, 0, 0, 0x00000017 },
+	{ 0x15, 0, 6, 0x00000011 },
+	{ 0x28, 0, 0, 0x00000014 },
+	{ 0x45, 4, 0, 0x00001fff },
+	{ 0xb1, 0, 0, 0x0000000e },
+	{ 0x48, 0, 0, 0x00000010 },
+	{ 0x15, 0, 1, 0x00001389 },
+	{ 0x6, 0, 0, 0x00040000 },
+	{ 0x6, 0, 0, 0x00000000 },
+    };
+    udp_filter[5].k = port;
+    udp_filter[13].k = port;
+    struct sock_fprog bpf = {
+	.len = (sizeof(udp_filter) / sizeof(struct sock_filter)),
+	.filter = udp_filter,
+    };
+    return(setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)));
+}
+//
+// Simulate the UDP connect for the PF_PACKET
+//
+int SockAddr_v4_Connect_BPF (int sock, uint32_t dstip, uint32_t srcip, uint16_t dstport, uint16_t srcport) {
+    // Use full quintuple, proto, src ip, dst ip, src port, dst port
+    // ip proto is already set per the PF_PACKET ETH_P_IP
+    // tcpdump udp and ip src 127.0.0.1 and ip dst 127.0.0.2 and src port 5001 and dst port 5002 -dd
+
+    struct sock_filter udp_filter[] = {
+	{ 0x28, 0, 0, 0x0000000c },
+	{ 0x15, 15, 0, 0x000086dd },
+	{ 0x15, 0, 14, 0x00000800 },
+	{ 0x30, 0, 0, 0x00000017 },
+	{ 0x15, 0, 12, 0x00000011 },
+	{ 0x20, 0, 0, 0x0000001a },
+	{ 0x15, 0, 10, 0x7f000001 },
+	{ 0x20, 0, 0, 0x0000001e },
+	{ 0x15, 0, 8, 0x7f000002 },
+	{ 0x28, 0, 0, 0x00000014 },
+	{ 0x45, 6, 0, 0x00001fff },
+	{ 0xb1, 0, 0, 0x0000000e },
+	{ 0x48, 0, 0, 0x0000000e },
+	{ 0x15, 0, 3, 0x00001389 },
+	{ 0x48, 0, 0, 0x00000010 },
+	{ 0x15, 0, 1, 0x0000138a },
+	{ 0x6, 0, 0, 0x00040000 },
+	{ 0x6, 0, 0, 0x00000000 },
+    };
+    udp_filter[6].k = htonl(srcip);
+    udp_filter[8].k = htonl(dstip);
+    udp_filter[13].k = htons(srcport);
+    udp_filter[15].k = htons(dstport);
+    struct sock_fprog bpf = {
+	.len = (sizeof(udp_filter) / sizeof(struct sock_filter)),
+	.filter = udp_filter,
+    };
+    return(setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)));
+}
+
+int SockAddr_v4_Connect_BPF_Drop (int sock, uint32_t dstip, uint32_t srcip, uint16_t dstport, uint16_t srcport) {
+    // Use full quintuple, proto, src ip, dst ip, src port, dst port
+    // ip proto is already set per the PF_PACKET ETH_P_IP
+    // tcpdump udp and ip src 127.0.0.1 and ip dst 127.0.0.2 and src port 5001 and dst port 5002 -dd
+
+    struct sock_filter udp_filter[] = {
+	{ 0x28, 0, 0, 0x0000000c },
+	{ 0x15, 15, 0, 0x000086dd },
+	{ 0x15, 0, 14, 0x00000800 },
+	{ 0x30, 0, 0, 0x00000017 },
+	{ 0x15, 0, 12, 0x00000011 },
+	{ 0x20, 0, 0, 0x0000001a },
+	{ 0x15, 0, 10, 0x7f000001 },
+	{ 0x20, 0, 0, 0x0000001e },
+	{ 0x15, 0, 8, 0x7f000002 },
+	{ 0x28, 0, 0, 0x00000014 },
+	{ 0x45, 6, 0, 0x00001fff },
+	{ 0xb1, 0, 0, 0x0000000e },
+	{ 0x48, 0, 0, 0x0000000e },
+	{ 0x15, 0, 3, 0x00001389 },
+	{ 0x48, 0, 0, 0x00000010 },
+	{ 0x15, 0, 1, 0x0000138a },
+	{ 0x6, 0, 0, 0x00000000 },
+	{ 0x6, 0, 0, 0x00000000 },
+    };
+    udp_filter[6].k = htonl(srcip);
+    udp_filter[8].k = htonl(dstip);
+    udp_filter[13].k = htons(srcport);
+    udp_filter[15].k = htons(dstport);
+    struct sock_fprog bpf = {
+	.len = (sizeof(udp_filter) / sizeof(struct sock_filter)),
+	.filter = udp_filter,
+    };
+    return(setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)));
+}
+
+int SockAddr_Drop_All_BPF (int sock) {
+    struct sock_filter udp_filter[] = {
+	{ 0x6, 0, 0, 0x00000000 },
+    };
+    struct sock_fprog bpf = {
+	.len = (sizeof(udp_filter) / sizeof(struct sock_filter)),
+	.filter = udp_filter,
+    };
+    return(setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf)));
+}
+
+#endif
+
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif

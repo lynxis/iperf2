@@ -87,6 +87,14 @@
 #include <fcntl.h>
 #include <inttypes.h>
 
+// AF_PACKET HEADERS
+#ifdef HAVE_AF_PACKET
+#include <net/ethernet.h>
+#include <linux/if_packet.h>
+#include <linux/ip.h>
+#include <linux/udp.h>
+#endif
+
 #ifdef WIN32
 
 /* Windows config file */

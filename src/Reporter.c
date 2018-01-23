@@ -920,6 +920,14 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 #endif
 		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
+#ifdef HAVE_AF_PACKET
+		    if (packet->l2len) {
+			int expected_len = packet->packetLen + sizeof(struct iphdr) + sizeof(struct ether_header);
+			if (expected_len != packet->l2len) {
+			    printf("l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", packet->l2len, expected_len, packet->packetID);
+			}
+		    }
+#endif
 		    //subsequent packets
 		    double transit;
 		    double deltaTransit;

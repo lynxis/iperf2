@@ -88,13 +88,19 @@ public:
 protected:
     int mClients;
     char* mBuf;
+    struct ether_header *eth_hdr;
+    struct iphdr *ip_hdr;
+    struct udphdr *udp_hdr;
+
     thread_Settings *mSettings;
     thread_Settings *server;
     Timestamp mEndTime;
+    uint16_t mPacketGroup;
 
 private:
     int ReadClientHeader(client_hdr *hdr);
     int ClientHeaderAck(void);
+    int L2_setup(void);
 }; // end class Listener
 
 #endif // LISTENER_H

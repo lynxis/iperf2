@@ -75,6 +75,7 @@
 static int seqno64b = 0;
 static int reversetest = 0;
 static int udphistogram = 0;
+static int l2checks = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
@@ -147,6 +148,7 @@ const struct option long_options[] =
 {"linux-congestion", required_argument, NULL, 'Z'},
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
 {"udp-histogram", required_argument, &udphistogram, 1},
+{"l2checks", no_argument, &l2checks, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -314,6 +316,7 @@ void Settings_Copy( thread_Settings *from, thread_Settings **into ) {
     (*into)->mTID = thread_zeroid();
     (*into)->runNext = NULL;
     (*into)->runNow = NULL;
+    (*into)->mSockDrop = INVALID_SOCKET;
 }
 
 /* -------------------------------------------------------------------
@@ -807,6 +810,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
+    // UDP histogram settings
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
 	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {
 	    char *tmp = new char [strlen(results) + 1];
@@ -828,6 +832,23 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	    }
 	}
     }
+    // L2 settings
+    if (l2checks && isUDP(mExtSettings)) {
+	l2checks = 0;
+#ifdef HAVE_AF_PACKET
+	// Client controls hash or not
+	if (mExtSettings->mThreadMode == kMode_Client) {
+	    setL2MACHash(mExtSettings);
+	    setL2FrameHash(mExtSettings);
+	} else {
+	    // Request server to do length checks
+	    setL2LengthCheck(mExtSettings);
+	}
+#else
+	fprintf(stderr, "l2checks no supported\n");
+#endif
+    }
+
 
 #ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mExtSettings)) {

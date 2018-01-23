@@ -68,6 +68,8 @@ public:
     // destroy the server object
     ~Server();
 
+    void SetScheduler(void);
+
     // accepts connection and receives data
     void RunUDP ( void );
     void RunTCP ( void );
@@ -80,6 +82,31 @@ private:
     thread_Settings *mSettings;
     char* mBuf;
     Timestamp mEndTime;
+    ReportStruct *reportstruct;
+
+    void InitTimeStamping (void);
+    void InitTrafficLoop (void);
+    int ReadWithRxTimestamp (int *readerr);
+    int ReadPacketID (void);
+    void L2_processing (void);
+    void Isoch_processing (void);
+
+#ifdef HAVE_DECL_SO_TIMESTAMP
+    // Structures needed for recvmsg
+    // Use to get kernel timestamps of packets
+    struct sockaddr_storage srcaddr;
+    struct iovec iov[1];
+    struct msghdr message;
+    char ctrl[CMSG_SPACE(sizeof(struct timeval))];
+    struct cmsghdr *cmsg;
+#endif
+
+#ifdef HAVE_AF_PACKET
+    struct ether_header *eth_hdr;
+    struct iphdr *ip_hdr;
+    struct udphdr *udp_hdr;
+    uint32_t murmur3_32(uint32_t len, uint32_t seed);
+#endif
 
 }; // end class Server
 
