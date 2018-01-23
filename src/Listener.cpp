@@ -668,8 +668,8 @@ int Listener::L2_setup (void) {
     // Now optimize packet flow up the raw socket
     // Establish the flow BPF to forward up only "connected" packets to this raw socket
     if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
-	struct in6_addr *v6p = SockAddr_get_in6_addr(p);
-	struct in6_addr *v6l = SockAddr_get_in6_addr(l);
+	struct in6_addr *v6p = SockAddr_get_in6_addr(&server->peer);
+	struct in6_addr *v6l = SockAddr_get_in6_addr(&server->local);
 //	rc = SockAddr_v6_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in6 *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 //	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     } else {
