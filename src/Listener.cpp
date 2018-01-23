@@ -594,7 +594,7 @@ int Listener::L2_setup (void) {
     //
     //  Supporting parallel L2 UDP threads is a bit tricky.  Below are some notes as to why and the approach used.
     //
-    //  The primary issues for UDP are two:
+    //  The primary issues for UDP are:
     //
     //  1) We want the listener thread to hand off the flow to a server thread and not be burdened by that flow
     //  2) For -P support, the listener thread neads to detect new flows which will share the same UDP port
@@ -605,22 +605,26 @@ int Listener::L2_setup (void) {
     //  The OS will then route established connected flows to the socket descriptor handled by a server thread and won't
     //  burden the listener thread with these packets.
     //
-    //  For L2 verification, we have to create a new packet (raw) socket (which will receive L2 frames) and which bypasses
-    //  the OS network stack.  When using packet sockets there is inherent packet duplication, the hand off to a server
+    //  For L2 verification, we have to create a two sockets that will exist for the life of the flow.  A
+    //  new packet socket (AF_PACKET) will receive L2 frames and bypasses
+    //  the OS network stack.  The original AF_INET socket will still send up packets
+    //  to the network stack.
+    //
+    //  When using packet sockets there is inherent packet duplication, the hand off to a server
     //  thread is not so straight forward as packets will continue being sent up to the listener thread
     //  (technical problem is that packet sockets do not support connect() which binds the IP quintuple as the
-    //  forwarding key) Since the Listener uses recvfrom(), there is no OS mechanism to detect new flows nor to drop packets.
-    //  The listener can't listen on quintuple based connected flows because the source port is unknown.  Therefore
-    //  the Listener thread will continue to receive packets from all established flows sharing the same dst port which will
-    //  impact CPU utilization and hence performance.
+    //  forwarding key) Since the Listener uses recvfrom(), there is no OS mechanism to detect new flows nor
+    //  to drop packets.  The listener can't listen on quintuple based connected flows because the client's source
+    //  port is unknown.  Therefore the Listener thread will continue to receive packets from all established
+    //  flows sharing the same dst port which will impact CPU utilization and hence performance.
     //
-    //  The technique used to address this is to open the AF_PACKET socket and leave the AF_INET socket open as well use the
-    //  packet socket. (This also aligns with BSD based systems)  The original AF_INET socket will remain in the (connected)
-    //  state it can be used to cause the kernel to fast drop those packets.  A cBPF is set up to drop such packets and
-    //  should minimize overall CPU impacts.  The test traffic will then only come over the packet (raw) socket and not the
-    //  AF_INET socket. If we were to try to close the original AF_INET socket (vs leave it open w/the fast drop cBPF)
-    //  then the existing traffic will trigger the Listener thread, flooding it with packets, again
-    //  something we want to avoid.
+    //  The technique used to address this is to open an AF_PACKET socket and leave the AF_INET socket open.
+    //  (This also aligns with BSD based systems)  The original AF_INET socket will remain in the (connected)
+    //  state so the network stack has it's connected state.  A cBPF is then used to cause the kernel to fast drop
+    //  those packets.  A cBPF is set up to drop such packets.  The test traffic will then only come over the
+    //  packet (raw) socket and not the  AF_INET socket. If we were to try to close the original AF_INET socket
+    //  (vs leave it open w/the fast drop cBPF) then the existing traffic will be sent up by the network stack
+    //  to he Listener thread, flooding it with packets, again something we want to avoid.
     //
     //  On the packet (raw) socket itself, we do two more things to better handle performance
     //
@@ -633,14 +637,20 @@ int Listener::L2_setup (void) {
     int rc = 0;
 
     //
-    // For -P support, more things are needed
+    // For  support, more things are needed
     //
     // 1) Have the kernel drop the original AF_INET packet as fast as possible, use a CBPF to achieve this
-    // 2) Bind the AF_PACKET socket to a server socket (and hence thread) via the PACKET_FANOUT_CBPF binding
+    // 2) Bind the AF_PACKET socket to a server socket (and hence thread) via
+    //    the PACKET_FANOUT_CBPF or PACKET_FANOUT_HASH binding so the flow only hits one socket/thread
     //
     // Establish a packet (raw) socket to be used by the server thread giving it full L2 packets
-    server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
-    WARN_errno(server->mSock == INVALID_SOCKET, "packet socket (AF_PACKET)");
+    if (p->ss_family == AF_INET6) {
+	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
+	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
+    } else {
+	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
+	WARN_errno(server->mSock == INVALID_SOCKET, "ip packet socket (AF_PACKET)");
+    }
     if (server->mSock < 0) {
 	return server->mSock;
     }
@@ -657,8 +667,13 @@ int Listener::L2_setup (void) {
 
     // Now optimize packet flow up the raw socket
     // Establish the flow BPF to forward up only "connected" packets to this raw socket
-    rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
-    WARN_errno( rc == SOCKET_ERROR, "l2 connect bpf");
+    if (p->ss_family == AF_INET6) {
+	rc = SockAddr_v6_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in6 *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
+	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
+    } else {
+	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
+	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
+    }
 #ifdef HAVE_PACKET_FANOUT
     int fanout_arg = (PACKET_FANOUT_HASH << 16) | (++mPacketGroup & 0xFFFF);
     rc = setsockopt(server->mSock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
