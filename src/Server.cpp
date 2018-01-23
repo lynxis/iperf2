@@ -438,7 +438,7 @@ void Server::L2_processing (void) {
     } else  
 #  endif  // V6
     {
-	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct iphdr) + sizeof(struct ether_header);
     }
     // reportstruct->m3hash = murmur3_32(rxlen, l2mac_hash);
 #endif // HAVE_AF_PACKET
