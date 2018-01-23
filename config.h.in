@@ -6,6 +6,9 @@
 /* Define if debugging info is desired */
 #undef DBG_MJZ
 
+/* AF_PACKET support is available */
+#undef HAVE_AF_PACKET
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -98,6 +101,18 @@
 /* Define if libws2_32 exists. */
 #undef HAVE_LIBWS2_32
 
+/* Define to 1 if you have the <linux/filter.h> header file. */
+#undef HAVE_LINUX_FILTER_H
+
+/* Define to 1 if you have the <linux/if_packet.h> header file. */
+#undef HAVE_LINUX_IF_PACKET_H
+
+/* Define to 1 if you have the <linux/ip.h> header file. */
+#undef HAVE_LINUX_IP_H
+
+/* Define to 1 if you have the <linux/udp.h> header file. */
+#undef HAVE_LINUX_UDP_H
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -118,6 +133,12 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <net/ethernet.h> header file. */
+#undef HAVE_NET_ETHERNET_H
+
+/* Recent packet fanout support is available */
+#undef HAVE_PACKET_FANOUT
 
 /* */
 #undef HAVE_POSIX_THREAD
