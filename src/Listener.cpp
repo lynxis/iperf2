@@ -644,7 +644,7 @@ int Listener::L2_setup (void) {
     //    the PACKET_FANOUT_CBPF or PACKET_FANOUT_HASH binding so the flow only hits one socket/thread
     //
     // Establish a packet (raw) socket to be used by the server thread giving it full L2 packets
-    if (p->sa_family == AF_INET6) {
+    if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
     } else {
@@ -667,9 +667,11 @@ int Listener::L2_setup (void) {
 
     // Now optimize packet flow up the raw socket
     // Establish the flow BPF to forward up only "connected" packets to this raw socket
-    if (p->sa_family == AF_INET6) {
-	rc = SockAddr_v6_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in6 *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
-	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
+    if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
+	struct in6_addr* v6p SockAddr_get_in6_addr(p);
+	struct in6_addr* v6l SockAddr_get_in6_addr(l);
+//	rc = SockAddr_v6_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in6 *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
+//	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     } else {
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
