@@ -68,6 +68,10 @@
 #ifdef HAVE_MLOCKALL
 #include <sys/mman.h>
 #endif
+#ifdef HAVE_IPV6
+#include <linux/ipv6.h>
+#endif
+
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
  * ------------------------------------------------------------------- */
@@ -376,11 +380,18 @@ int Server::ReadPacketID (void) {
     int terminate = 0;
     // Adjust the mbuf start pointer to reflect the L2 payload
     int offset = 0;
-#ifdef HAVE_AF_PACKET    
+#ifdef HAVE_AF_PACKET
     if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
-	offset = sizeof(udphdr) + sizeof(struct iphdr) + sizeof(struct ether_header);
+#  ifdef HAVE_IPV6
+	if (isIPV6(mSettings)) {
+	    offset = sizeof(udphdr) + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+	} else
+#  endif
+        {
+	    offset = sizeof(udphdr) + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+	}
     }
-#endif    
+#endif
     struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) (mBuf + offset);
 
     // terminate when datagram begins with negative index
