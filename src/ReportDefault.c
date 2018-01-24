@@ -470,6 +470,7 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
                               0),
 
 #endif
+	         (stats->l2mode ? " (l2mode)" : '\0'),
 	         stats->peerversion);
     }
     return NULL;

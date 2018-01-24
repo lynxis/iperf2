@@ -215,6 +215,7 @@ typedef struct Connection_Info {
     iperf_sockaddr local;
     Socklen_t size_local;
     char *peerversion;
+    int l2mode;
 } Connection_Info;
 
 typedef struct ReporterData {

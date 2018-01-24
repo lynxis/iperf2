@@ -339,7 +339,7 @@ const char report_sum_outoforder[] =
 "[SUM] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
 
 const char report_peer [] =
-"[%3d] local %s port %u connected with %s port %u%s\n";
+"[%3d] local %s port %u connected with %s port %u%s%s\n";
 
 const char report_mss_unsupported[] =
 "[%3d] MSS and MTU size unknown (TCP_MAXSEG not supported by OS?)\n";
