@@ -90,10 +90,35 @@
 // AF_PACKET HEADERS
 #ifdef HAVE_AF_PACKET
 #include <net/ethernet.h>
+// Bummer, AF_PACKET requires kernel headers as <netpacket/packet.h> isn't sufficient
 #include <linux/if_packet.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
-#endif
+// In older linux kernels, the kernel headers and glibc headers are in conflict,
+// specificially <linux/in6.h> and <netinit/in.h>
+// preventing the following include:
+//   #include <linux/ipv6.h> (which includes <linux/in6.h>)
+//   and the use of sizeof(struct ipv6hdr)
+//
+// See https://patchwork.ozlabs.org/patch/631400/
+//
+// "In upstream kernel 56c176c9 the _UAPI prefix was stripped and
+// this broke our synchronized headers again. We now need to check
+// for _LINUX_IN6_H and _IPV6_H, and keep checking the old versions
+// of the header guard checks for maximum backwards compatibility
+// with older Linux headers (the history is actually a bit muddled
+// here and it appears upstream linus kernel broke this 10 months
+// *before* our fix was ever applied to glibc, but without glibc
+// testing we didn't notice and distro kernels have their own
+// testing to fix this)."
+//
+// The use cases fixed by this patch are:
+// #include <linux/in6.h>
+// #include <netinet/in.h>
+//
+// force the ipv6hdr length to 40 vs use of sizeof(struct ipv6hdr)
+#define  IPV6HDRLEN 40
+#endif // HAVE_AF_PACKET
 
 #ifdef WIN32
 

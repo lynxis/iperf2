@@ -68,9 +68,6 @@
 #ifdef HAVE_MLOCKALL
 #include <sys/mman.h>
 #endif
-#ifdef HAVE_IPV6
-#include <linux/ipv6.h>
-#endif
 
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
@@ -384,11 +381,11 @@ int Server::ReadPacketID (void) {
     if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
 #  ifdef HAVE_IPV6
 	if (isIPV6(mSettings)) {
-	    offset = sizeof(udphdr) + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+	    offset = sizeof(struct udphdr) + IPV6HDRLEN + sizeof(struct ether_header);
 	} else
 #  endif
         {
-	    offset = sizeof(udphdr) + sizeof(struct iphdr) + sizeof(struct ether_header);
+	    offset = sizeof(struct udphdr) + sizeof(struct iphdr) + sizeof(struct ether_header);
 	}
     }
 #endif
@@ -423,7 +420,7 @@ void Server::L2_processing (void) {
     ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
 #  ifdef HAVE_IPV6
     if (isIPV6(mSettings)) {
-	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct ipv6hdr) + sizeof(struct ether_header));
+	udp_hdr = (struct udphdr *) (mBuf + IPV6HDRLEN + sizeof(struct ether_header));
     } else  
 #  endif // V6
     {
@@ -434,7 +431,7 @@ void Server::L2_processing (void) {
     reportstruct->packetLen = ntohs(udp_hdr->len);
 #  ifdef HAVE_IPV6
     if (isIPV6(mSettings)) {
-	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+	reportstruct->expected_l2len = reportstruct->packetLen + IPV6HDRLEN + sizeof(struct ether_header);
     } else  
 #  endif  // V6
     {
