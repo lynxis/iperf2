@@ -923,7 +923,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		if (stats->mUDP == kMode_Server) {
 #ifdef HAVE_AF_PACKET
 		    if (packet->l2len && (packet->expected_l2len != packet->l2len)) {
-			printf("[%3d] l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", stats->transferID, packet->l2len, packet->expected_l2len, packet->packetID);
+			fprintf(stdout, "[%3d] l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", stats->transferID, packet->l2len, packet->expected_l2len, packet->packetID);
 		    }
 #endif
 		    //subsequent packets
