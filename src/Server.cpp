@@ -388,7 +388,7 @@ int Server::ReadPacketID (void) {
 	} else
 #  endif
         {
-	    offset = sizeof(udphdr) + sizeof(struct ipv6hdr) + sizeof(struct ether_header);
+	    offset = sizeof(udphdr) + sizeof(struct iphdr) + sizeof(struct ether_header);
 	}
     }
 #endif
