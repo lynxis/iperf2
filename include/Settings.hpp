@@ -116,6 +116,7 @@ typedef enum RateUnits {
  * and contains only C elements so it can be manipulated
  * by either C or C++.
  */
+#define PEERBUFSIZE 80
 typedef struct thread_Settings {
     // Pointers
     char*  mFileName;               // -F
@@ -193,7 +194,7 @@ typedef struct thread_Settings {
     Socklen_t size_local;
     nthread_t mTID;
     char* mCongestion;
-    char peerversion[80];
+    char peerversion[PEERBUFSIZE];
     int mUDPbins;
     int mUDPbinsize;
     unsigned short mUDPunits;

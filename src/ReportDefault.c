@@ -431,6 +431,17 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
         struct sockaddr *local = ((struct sockaddr*)&stats->local);
         struct sockaddr *peer = ((struct sockaddr*)&stats->peer);
 
+	char extbuf[2*PEERBUFSIZE];
+	char *b = &extbuf[0];
+	extbuf[0]= '\0';
+	if (stats->l2mode) {
+	    snprintf(b, PEERBUFSIZE, " (l2mode)");
+	    b += strlen(b);
+	}
+	if (stats->peerversion) {
+	    snprintf(b, PEERBUFSIZE, stats->peerversion);
+	}
+
         if ( local->sa_family == AF_INET ) {
             inet_ntop( AF_INET, &((struct sockaddr_in*)local)->sin_addr,
                        local_addr, REPORT_ADDRLEN);
@@ -452,8 +463,7 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
                        remote_addr, REPORT_ADDRLEN);
         }
 #endif
-
-        printf( report_peer,
+	 printf( report_peer,
                 ID,
                 local_addr,  ( local->sa_family == AF_INET ?
                               ntohs(((struct sockaddr_in*)local)->sin_port) :
@@ -467,11 +477,9 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
 #ifdef HAVE_IPV6
 			      ntohs(((struct sockaddr_in6*)peer)->sin6_port)),
 #else
-                              0),
-
+	                      0),
 #endif
-	         (stats->l2mode ? " (l2mode)" : '\0'),
-	         stats->peerversion);
+	         extbuf);
     }
     return NULL;
 }
