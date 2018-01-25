@@ -435,11 +435,11 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
 	char *b = &extbuf[0];
 	extbuf[0]= '\0';
 	if (stats->l2mode) {
-	    snprintf(b, PEERBUFSIZE, " (l2mode)");
+	    snprintf(b, PEERBUFSIZE, "%s"," (l2mode)");
 	    b += strlen(b);
 	}
 	if (stats->peerversion) {
-	    snprintf(b, PEERBUFSIZE, stats->peerversion);
+	    snprintf(b, PEERBUFSIZE, "%s", stats->peerversion);
 	}
 
         if ( local->sa_family == AF_INET ) {

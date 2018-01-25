@@ -763,8 +763,7 @@ void Listener::Accept( thread_Settings *server ) {
 
 	    // Handle connection for UDP sockets.
 	    exist = Iperf_present( &server->peer, clients);
-	    uint32_t datagramID = ntohl( ((UDP_datagram*) mBuf)->id );
-	    if ( exist == NULL && datagramID >= 0 ) {
+	    if ( exist == NULL ) {
 		// We have a new UDP flow so let's start the
 		// process to handle it and in a new server thread (yet to be created)
 		server->mSock = mSettings->mSock;
