@@ -590,8 +590,9 @@ void Server::write_UDP_AckFIN( ) {
         }
 
         // write data
-        write( mSettings->mSock, mBuf, mSettings->mBufLen );
-
+	// If in l2mode, use the AF_INET socket to write this packet
+	//
+	write(((mSettings->mSockDrop > 0 ) ? mSettings->mSockDrop : mSettings->mSock), mBuf, mSettings->mBufLen);
         // wait until the socket is readable, or our timeout expires
         FD_SET( mSettings->mSock, &readSet );
         timeout.tv_sec  = 1;
