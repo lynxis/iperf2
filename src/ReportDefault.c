@@ -89,6 +89,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	} else {
 	    if( !header_printed ) {
 		printf((stats->mTCP == (char)kMode_Server ? report_bw_read_enhanced_header : report_bw_write_enhanced_header), (stats->tcp.read.binsize/1024.0));
+		header_printed = 1;
 	    }
 	    if (stats->mTCP == (char)kMode_Server) {
 		printf(report_bw_read_enhanced_format,
