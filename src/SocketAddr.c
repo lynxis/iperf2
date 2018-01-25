@@ -54,7 +54,6 @@
 #include "headers.h"
 
 #include "SocketAddr.h"
-#include <linux/filter.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -91,6 +91,7 @@
 #ifdef HAVE_AF_PACKET
 #include <net/ethernet.h>
 // Bummer, AF_PACKET requires kernel headers as <netpacket/packet.h> isn't sufficient
+#include <linux/filter.h>
 #include <linux/if_packet.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
