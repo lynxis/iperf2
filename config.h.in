@@ -137,9 +137,6 @@
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
 
-/* Recent packet fanout support is available */
-#undef HAVE_PACKET_FANOUT_FLAG_UNIQUEID
-
 /* */
 #undef HAVE_POSIX_THREAD
 

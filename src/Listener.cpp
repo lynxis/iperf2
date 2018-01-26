@@ -638,13 +638,8 @@ int Listener::L2_setup (void) {
     int rc = 0;
 
     //
-    // For  support, more things are needed
-    //
-    // 1) Have the kernel drop the original AF_INET packet as fast as possible, use a CBPF to achieve this
-    // 2) Bind the AF_PACKET socket to a server socket (and hence thread) via
-    //    the PACKET_FANOUT_CBPF or PACKET_FANOUT_HASH binding so the flow only hits one socket/thread
-    //
     // Establish a packet (raw) socket to be used by the server thread giving it full L2 packets
+    //
     if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
@@ -660,7 +655,7 @@ int Listener::L2_setup (void) {
     // now packets will use the AF_PACKET (raw) socket
     // Also, store the original AF_INET socket descriptor so it can be
     // closed in the Server's destructor.  (Note: closing the
-    // socket descriptors will also free the cBFS.)
+    // socket descriptors will also free the cBPF.)
     //
     server->mSockDrop = mSettings->mSock;
     rc = SockAddr_Drop_All_BPF(mSettings->mSock);
@@ -677,11 +672,6 @@ int Listener::L2_setup (void) {
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     }
-#ifdef HAVE_PACKET_FANOUT_FLAG_UNIQUEID
-    int fanout_arg = (((PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_UNIQUEID) << 16) & 0xFFFF0000);
-    rc = setsockopt(server->mSock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
-    WARN_errno( rc == SOCKET_ERROR, "l2 setsockopt packet fanout");
-#endif
     return 1;
 #endif
 }
