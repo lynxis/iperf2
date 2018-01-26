@@ -138,7 +138,7 @@
 #undef HAVE_NET_ETHERNET_H
 
 /* Recent packet fanout support is available */
-#undef HAVE_PACKET_FANOUT
+#undef HAVE_PACKET_FANOUT_FLAG_UNIQUEID
 
 /* */
 #undef HAVE_POSIX_THREAD

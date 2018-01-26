@@ -678,8 +678,8 @@ int Listener::L2_setup (void) {
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     }
-#ifdef HAVE_PACKET_FANOUT
-    int fanout_arg = (PACKET_FANOUT_HASH << 16) | (++mPacketGroup & 0xFFFF);
+#ifdef HAVE_PACKET_FANOUT_FLAG_UNIQUEID
+    int fanout_arg = (((PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_UNIQUEID) << 16) & 0xFFFF0000);
     rc = setsockopt(server->mSock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
     WARN_errno( rc == SOCKET_ERROR, "l2 setsockopt packet fanout");
 #endif

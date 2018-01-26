@@ -4379,11 +4379,11 @@ else
   enable_af_packet="no"
 fi
 
-   ac_fn_c_check_decl "$LINENO" "PACKET_FANOUT_HASH" "ac_cv_have_decl_PACKET_FANOUT_HASH" "#include <linux/if_packet.h>
+   ac_fn_c_check_decl "$LINENO" "PACKET_FANOUT_FLAG_UNIQUEID" "ac_cv_have_decl_PACKET_FANOUT_FLAG_UNIQUEID" "#include <linux/if_packet.h>
 "
-if test "x$ac_cv_have_decl_PACKET_FANOUT_HASH" = xyes; then :
+if test "x$ac_cv_have_decl_PACKET_FANOUT_FLAG_UNIQUEID" = xyes; then :
 
-$as_echo "#define HAVE_PACKET_FANOUT 1" >>confdefs.h
+$as_echo "#define HAVE_PACKET_FANOUT_FLAG_UNIQUEID 1" >>confdefs.h
 
 fi
 

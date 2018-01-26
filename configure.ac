@@ -59,8 +59,8 @@ AS_IF([test "x$enable_af_packet" = "xyes"], [
       [enable_af_packet="no"],
       [[#include <sys/socket.h>
       #include <linux/if_packet.h>]])
-   AC_CHECK_DECL([PACKET_FANOUT_HASH],
-      AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Recent packet fanout support is available]),
+   AC_CHECK_DECL([PACKET_FANOUT_FLAG_UNIQUEID],
+      AC_DEFINE([HAVE_PACKET_FANOUT_FLAG_UNIQUEID],[1],[Recent packet fanout support is available]),
       [],
       [[#include <linux/if_packet.h>]])
 ])

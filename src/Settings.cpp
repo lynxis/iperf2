@@ -864,7 +864,13 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 		    if ((results = strtok(NULL, ",")) != NULL) {
 			mExtSettings->mVariance = bitorbyte_atof(results);
 		    }
+		} else {
+		    mExtSettings->mMean = 1000000.0;
+		    mExtSettings->mVariance = 0.0;
 		}
+	    } else {
+		fprintf(stderr, "Invalid --isochronous value, format is <fps>:<mean>,<variance> (e.g. 60:18M,1m)\n");
+		mExtSettings->mFPS = 60.0;
 	    }
 	    // default the burst IPG to 5 microseconds
 	    if (!burstipg_set)

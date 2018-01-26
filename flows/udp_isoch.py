@@ -51,7 +51,7 @@ loop.set_debug(False)
 plottitle='('+ args.offered_load + ' ' + args.tos +') ' + args.title + ' ' + str(args.time) + 'sec '
 
 #main udp isochronous traffic flow
-flows = [iperf_flow(name="ISOCH", server=args.server, client=args.client, dst=args.dst, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, tos=args.tos, debug=False)]
+flows = [iperf_flow(name="ISOCH", user='root', server=args.server, client=args.client, dst=args.dst, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, tos=args.tos, debug=False)]
 
 #optional "stressor flow"
 if args.stress_server and args.stress_client and args.stress_dst :
