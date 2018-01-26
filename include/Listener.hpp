@@ -95,7 +95,6 @@ protected:
     thread_Settings *mSettings;
     thread_Settings *server;
     Timestamp mEndTime;
-    uint16_t mPacketGroup;
 
 private:
     int ReadClientHeader(client_hdr *hdr);

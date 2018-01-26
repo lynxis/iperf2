@@ -94,7 +94,6 @@ Listener::Listener( thread_Settings *inSettings ) {
 
     mClients = inSettings->mThreads;
     mBuf = NULL;
-    mPacketGroup = 0;
     /*
      * These thread settings are stored in three places
      *
