@@ -638,7 +638,7 @@ void Client::RunUDP( void ) {
 void Client::RunUDPIsochronous (void) {
 #ifndef HAVE_ISOCHRONOUS
     FAIL_errno(1, "UDP isochronous not supported, recompile after using config --enable-isochronous\n", mSettings );
-    return
+    return;
 #else
     // Indicates if the stream is readable
     bool mMode_Time = isModeTime( mSettings );
