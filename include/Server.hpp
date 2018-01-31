@@ -80,6 +80,7 @@ private:
     thread_Settings *mSettings;
     char* mBuf;
     Timestamp mEndTime;
+    Timestamp now;
     ReportStruct *reportstruct;
 
     void InitTimeStamping (void);

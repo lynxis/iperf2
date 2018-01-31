@@ -169,7 +169,7 @@ void Server::RunTCP( void ) {
     ReportStruct *reportstruct = NULL;
     int running;
     bool mMode_Time = isServerModeTime( mSettings );
-    Timestamp time1, time2, rxtime;
+    Timestamp time1, time2;
     double tokens=0.000004;
 
     reportstruct = new ReportStruct;
@@ -192,9 +192,9 @@ void Server::RunTCP( void ) {
 	    }
 	    if (tokens >= 0.0) {
 		currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
-		rxtime.setnow();
-		reportstruct->packetTime.tv_sec = rxtime.getSecs();
-		reportstruct->packetTime.tv_usec = rxtime.getUsecs();
+		now.setnow();
+		reportstruct->packetTime.tv_sec = now.getSecs();
+		reportstruct->packetTime.tv_usec = now.getUsecs();
 		if (currLen <= 0) {
 		    reportstruct->emptyreport=1;
 		    // End loop on 0 read or socket error
@@ -226,9 +226,9 @@ void Server::RunTCP( void ) {
         } while (running);
 
         // stop timing
-	rxtime.setnow();
-	reportstruct->packetTime.tv_sec = rxtime.getSecs();
-	reportstruct->packetTime.tv_usec = rxtime.getUsecs();
+	now.setnow();
+	reportstruct->packetTime.tv_sec = now.getSecs();
+	reportstruct->packetTime.tv_usec = now.getUsecs();
 
 	if(0.0 == mSettings->mInterval) {
 	    reportstruct->packetLen = totLen;
@@ -343,9 +343,9 @@ int Server::ReadWithRxTimestamp (int *readerr) {
     }
 
     if (!tsdone) {
-	Timestamp rxtime;
-	reportstruct->packetTime.tv_sec = rxtime.getSecs();
-	reportstruct->packetTime.tv_usec = rxtime.getUsecs();
+	now.setnow();
+	reportstruct->packetTime.tv_sec = now.getSecs();
+	reportstruct->packetTime.tv_usec = now.getUsecs();
     }
     return currLen;
 }

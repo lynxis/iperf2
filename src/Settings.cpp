@@ -838,8 +838,9 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 #ifdef HAVE_AF_PACKET
 	// Client controls hash or not
 	if (mExtSettings->mThreadMode == kMode_Client) {
-	    setL2MACHash(mExtSettings);
-	    setL2FrameHash(mExtSettings);
+	    // setL2MACHash(mExtSettings);
+	    // setL2FrameHash(mExtSettings);
+	    setL2LengthCheck(mExtSettings);
 	} else {
 	    // Request server to do length checks
 	    setL2LengthCheck(mExtSettings);
@@ -1129,9 +1130,10 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	if (isIsochronous(client))
 	    testflags |= HEADER_UDP_ISOCH;
 	// Write flags to header
-	((client_hdr_udp_tests *)(hdr))->testflags = htonl(testflags);
-	((client_hdr_udp_tests *)(hdr))->version_u = htonl(IPERF_VERSION_MAJORHEX);
-	((client_hdr_udp_tests *)(hdr))->version_l = htonl(IPERF_VERSION_MINORHEX);
+	hdr->udp.testflags = htonl(testflags);
+	hdr->udp.version_u = htonl(IPERF_VERSION_MAJORHEX);
+	hdr->udp.version_l = htonl(IPERF_VERSION_MINORHEX);
+	printf("Debug: udp test flags = %x\n",testflags);
     }
     /*
      * Finally, update the header flags (to be passed to the remote server)
