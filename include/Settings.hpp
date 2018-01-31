@@ -210,6 +210,7 @@ typedef struct thread_Settings {
     int mJitterBufSize; //Server jitter buffer size, units is frames
     double mBurstIPG; //Interpacket gap
 #endif
+    int l4offset; // used in l2 mode to offset the raw packet
 } thread_Settings;
 
 /*

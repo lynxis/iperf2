@@ -297,23 +297,11 @@ int Server::ReadWithRxTimestamp (int *readerr) {
     return currLen;
 }
 
-int Server::ReadPacketID (void) {
-    int terminate = 0;
-    // Adjust the mbuf start pointer to reflect the L2 payload
-    int offset = 0;
-#ifdef HAVE_AF_PACKET
-    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
-#  ifdef HAVE_IPV6
-	if (isIPV6(mSettings)) {
-	    offset = sizeof(struct udphdr) + IPV6HDRLEN + sizeof(struct ether_header);
-	} else
-#  endif
-        {
-	    offset = sizeof(struct udphdr) + sizeof(struct iphdr) + sizeof(struct ether_header);
-	}
-    }
-#endif
-    struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) (mBuf + offset);
+// Returns false if the client has indicated this is the
+// last packet.
+bool Server::ReadPacketID (void) {
+    bool terminate = false;
+    struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) (mBuf + mSettings->l4offset);
 
     // terminate when datagram begins with negative index
     // the datagram ID should be correct, just negated
@@ -321,13 +309,13 @@ int Server::ReadPacketID (void) {
 	reportstruct->packetID = (((max_size_t) (ntohl(mBuf_UDP->id2)) << 32) | ntohl(mBuf_UDP->id));
 	if (reportstruct->packetID & 0x8000000000000000LL) {
 	    reportstruct->packetID = (reportstruct->packetID & 0x7FFFFFFFFFFFFFFFLL);
-	    terminate = 1;
+	    terminate = true;
 	}
     } else {
 	reportstruct->packetID = ntohl(mBuf_UDP->id);
 	if (reportstruct->packetID & 0x80000000L) {
 	    reportstruct->packetID = (reportstruct->packetID & 0x7FFFFFFFL);
-	    terminate = 1;
+	    terminate = true;
 	}
     }
 
@@ -340,28 +328,18 @@ int Server::ReadPacketID (void) {
 
 void Server::L2_processing (void) {
 #ifdef HAVE_AF_PACKET
-    eth_hdr = (struct ether_header *) mBuf;
-    ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
-#  ifdef HAVE_IPV6
-    if (isIPV6(mSettings)) {
-	udp_hdr = (struct udphdr *) (mBuf + IPV6HDRLEN + sizeof(struct ether_header));
-    } else
-#  endif // V6
-    {
-	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct iphdr) + sizeof(struct ether_header));
+    // Adjust the mbuf start pointer to reflect the L2 payload
+    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
+	eth_hdr = (struct ether_header *) mBuf;
+	ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
+	// L4 offest is set by the listener and depends upon IPv4 or IPv6
+	udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
+	//  uint32_t l2mac_hash = murmur3_32(sizeof(struct ether_header), 0xDEADBEEF);
+	// Read the packet to get the UDP length
+	reportstruct->packetLen = ntohs(udp_hdr->len);
+	reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
+        // Reportstruct->m3hash = murmur3_32(rxlen, l2mac_hash);
     }
-    //  uint32_t l2mac_hash = murmur3_32(sizeof(struct ether_header), 0xDEADBEEF);
-    // Read the packet to get the UDP length
-    reportstruct->packetLen = ntohs(udp_hdr->len);
-#  ifdef HAVE_IPV6
-    if (isIPV6(mSettings)) {
-	reportstruct->expected_l2len = reportstruct->packetLen + IPV6HDRLEN + sizeof(struct ether_header);
-    } else
-#  endif  // V6
-    {
-	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct iphdr) + sizeof(struct ether_header);
-    }
-    // reportstruct->m3hash = murmur3_32(rxlen, l2mac_hash);
 #endif // HAVE_AF_PACKET
 }
 
@@ -403,7 +381,6 @@ void Server::RunUDP( void ) {
 	// read the next packet with timestamp
 	rxlen=ReadWithRxTimestamp(&readerr);
 	if (!readerr) {
-	    done = ReadPacketID();
 	    // Above returns true if this is the last UDP packet sent by the client
 	    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
 		reportstruct->l2len = rxlen;
@@ -413,6 +390,7 @@ void Server::RunUDP( void ) {
 		// Set the packet length to the socket received length
 		reportstruct->packetLen = rxlen;
 	    }
+	    done = ReadPacketID();
 	    if (isIsochronous(mSettings)) {
 		Isoch_processing();
 	    }

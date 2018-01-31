@@ -86,7 +86,7 @@ private:
     void InitTimeStamping (void);
     void InitTrafficLoop (void);
     int ReadWithRxTimestamp (int *readerr);
-    int ReadPacketID (void);
+    bool ReadPacketID (void);
     void L2_processing (void);
     void Isoch_processing (void);
 

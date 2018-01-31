@@ -179,7 +179,6 @@ void Listener::Run( void ) {
         Settings_Copy( mSettings, &server );
         server->mThreadMode = kMode_Server;
 
-
         // Accept each packet,
         // If there is no existing client, then start
         // a new thread to service the new client
@@ -647,10 +646,12 @@ int Listener::L2_setup (void) {
     if (isIPV6(server)) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
+	server->l4offset = sizeof(struct udphdr) + IPV6HDRLEN + sizeof(struct ether_header);
     } else {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip packet socket (AF_PACKET)");
 	unsetIPV6(server);
+	server->l4offset = sizeof(struct udphdr) + sizeof(struct iphdr) + sizeof(struct ether_header);
     }
     if (server->mSock < 0) {
 	return server->mSock;
@@ -668,12 +669,19 @@ int Listener::L2_setup (void) {
 
     // Now optimize packet flow up the raw socket
     // Establish the flow BPF to forward up only "connected" packets to this raw socket
-    if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
+    if (isIPV6(server)) {
 	struct in6_addr *v6peer = SockAddr_get_in6_addr(&server->peer);
 	struct in6_addr *v6local = SockAddr_get_in6_addr(&server->local);
 	rc = SockAddr_v6_Connect_BPF(server->mSock, v6local, v6peer, ((struct sockaddr_in6 *)(l))->sin6_port, ((struct sockaddr_in6 *)(p))->sin6_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
-    } else if (p->sa_family == AF_INET) {
+    } else {
+	// Convert from AF_INET6 sa_family to AF_INET so the BPF can get a formated IPV4 address from the sockadd_in struct
+	if (l->sa_family == AF_INET6) {
+	    int addrform = AF_INET;
+	    size_t len = sizeof(int);
+	    rc = setsockopt(server->mSock, IPPROTO_IP, IPV6_ADDRFORM, &addrform, sizeof(addrform));
+	    WARN_errno( rc == SOCKET_ERROR, "l2 IPV6_ADDRFORM");
+	}
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     }
