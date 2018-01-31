@@ -1038,7 +1038,7 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
     if (isUDP(mSettings)) {
 	flags = ntohl(hdr->base.flags);
 	if ((flags & HEADER_UDPTESTS) != 0) {
-	    testflags = ntohl(((client_hdr_udp_tests *)(hdr))->testflags);
+	    testflags = ntohl(hdr->udp.testflags);
 	    printf("Debug: udp test flags = %x\n",testflags);
 	}
     } else {
