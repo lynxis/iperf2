@@ -1055,6 +1055,8 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    }
 	    if ((testflags & HEADER_L2ETHPIPV6) != 0) {
 		setIPV6(server);
+	    } else {
+		unsetIPV6(server);
 	    }
 	    if ((testflags & HEADER_L2LENCHECK) != 0) {
 		setL2LengthCheck(server);
