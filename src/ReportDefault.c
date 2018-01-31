@@ -436,7 +436,7 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
 	char *b = &extbuf[0];
 	extbuf[0]= '\0';
 	if (stats->l2mode) {
-	    snprintf(b, PEERBUFSIZE, " (%s=0x%x)", "l2mode", stats->l2mode);
+	    snprintf(b, PEERBUFSIZE, " (%s=0x%X)", "l2mode", stats->l2mode);
 	    b += strlen(b);
 	}
 	if (stats->peerversion) {
