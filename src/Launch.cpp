@@ -61,6 +61,30 @@
 #include "Server.hpp"
 #include "PerfSocket.hpp"
 
+#ifdef HAVE_SCHED_SETSCHEDULER
+#include <sched.h>
+#endif
+#ifdef HAVE_MLOCKALL
+#include <sys/mman.h>
+#endif
+static void set_scheduler(thread_Settings *thread) {
+#ifdef HAVE_SCHED_SETSCHEDULER
+    if ( isRealtime( thread ) ) {
+	struct sched_param sp;
+	sp.sched_priority = sched_get_priority_max(SCHED_RR);
+	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
+	if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
+	    perror("Client set scheduler");
+#ifdef HAVE_MLOCKALL
+	} else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+	    // lock the threads memory
+	    perror ("mlockall");
+#endif // MLOCK
+	}
+    }
+#endif // SCHED
+}
+
 /*
  * listener_spawn is responsible for creating a Listener class
  * and launching the listener. It is provided as a means for
@@ -87,8 +111,8 @@ void server_spawn( thread_Settings *thread) {
 
     // Start up the server
     theServer = new Server( thread );
-
-    theServer->SetScheduler();
+    // set traffic thread to realtime if needed
+    set_scheduler(thread);
     // Run the test
     if ( isUDP( thread ) ) {
 	theServer->RunUDP();
@@ -112,6 +136,8 @@ void client_spawn( thread_Settings *thread ) {
     // Let the server know about our settings
     theClient->InitiateServer();
 
+    // set traffic thread to realtime if needed
+    set_scheduler(thread);
     // Run the test
     theClient->Run();
     DELETE_PTR( theClient );

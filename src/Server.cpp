@@ -62,12 +62,6 @@
 #include "Reporter.h"
 #include "Locale.h"
 #include "delay.h"
-#ifdef HAVE_SCHED_SETSCHEDULER
-#include <sched.h>
-#endif
-#ifdef HAVE_MLOCKALL
-#include <sys/mman.h>
-#endif
 
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
@@ -161,23 +155,6 @@ uint32_t Server::murmur3_32(uint32_t len, uint32_t seed) {
 }
 #endif
 
-void Server::SetScheduler(void) {
-#ifdef HAVE_SCHED_SETSCHEDULER
-    if ( isRealtime( mSettings ) ) {
-	struct sched_param sp;
-	sp.sched_priority = sched_get_priority_max(SCHED_RR);
-	// SCHED_OTHER, SCHED_FIFO, SCHED_RR
-	if (sched_setscheduler(0, SCHED_RR, &sp) < 0)  {
-	    perror("Client set scheduler");
-#ifdef HAVE_MLOCKALL
-	} else if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-	    // lock the threads memory
-	    perror ("mlockall");
-#endif // MLOCK
-	}
-    }
-#endif // SCHED
-}
 
 void Server::Sig_Int( int inSigno ) {
 }
@@ -421,7 +398,7 @@ void Server::L2_processing (void) {
 #  ifdef HAVE_IPV6
     if (isIPV6(mSettings)) {
 	udp_hdr = (struct udphdr *) (mBuf + IPV6HDRLEN + sizeof(struct ether_header));
-    } else  
+    } else
 #  endif // V6
     {
 	udp_hdr = (struct udphdr *) (mBuf + sizeof(struct iphdr) + sizeof(struct ether_header));
@@ -432,7 +409,7 @@ void Server::L2_processing (void) {
 #  ifdef HAVE_IPV6
     if (isIPV6(mSettings)) {
 	reportstruct->expected_l2len = reportstruct->packetLen + IPV6HDRLEN + sizeof(struct ether_header);
-    } else  
+    } else
 #  endif  // V6
     {
 	reportstruct->expected_l2len = reportstruct->packetLen + sizeof(struct iphdr) + sizeof(struct ether_header);

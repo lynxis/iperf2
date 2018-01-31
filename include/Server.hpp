@@ -68,8 +68,6 @@ public:
     // destroy the server object
     ~Server();
 
-    void SetScheduler(void);
-
     // accepts connection and receives data
     void RunUDP ( void );
     void RunTCP ( void );

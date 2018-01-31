@@ -266,6 +266,7 @@ typedef struct thread_Settings {
 #define FLAG_L2FRAMEHASH    0x00000080
 #define FLAG_L2LENGTHCHECK  0x00000100
 
+
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
 #define isCompat(settings)         ((settings->flags & FLAG_COMPAT) != 0)
 #define isDaemon(settings)         ((settings->flags & FLAG_DAEMON) != 0)
@@ -304,7 +305,7 @@ typedef struct thread_Settings {
 #define isUDPHistogram(settings)   ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
 #define isL2MACHash(settings)      ((settings->flags_extend & FLAG_L2MACHASH) != 0)
 #define isL2FrameHash(settings)    ((settings->flags_extend & FLAG_L2FRAMEHASH) != 0)
-#define isL2LengthCheck(settings)     ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
+#define isL2LengthCheck(settings)  ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -390,13 +391,15 @@ typedef struct thread_Settings {
  */
 #define HEADER_VERSION1 0x80000000
 #define HEADER_EXTEND   0x40000000
-#define HEADER_EXTEND_TLVCHAINED  0x20000000
+#define HEADER_UDPTESTS 0x20000000
 
 // Below flags are used to pass test settings in *every* UDP packet
 // and not just during the header exchange
-#define HEADER_UDP_ISOCH  0x10000000
-#define HEADER_L2MACHASH    0x08000000
-#define HEADER_L2FRAMEHASH  0x04000000
+#define HEADER_L2ETHPIPV6   0x80000000
+#define HEADER_L2MACHASH    0x40000000
+#define HEADER_L2FRAMEHASH  0x20000000
+#define HEADER_L2LENCHECK   0x10000000
+#define HEADER_UDP_ISOCH    0x08000000
 
 #define RUN_NOW         0x00000001
 // newer flags
@@ -444,11 +447,11 @@ typedef struct UDP_datagram {
     unsigned int tv_usec : 32;
 #endif //32
 #ifdef HAVE_SEQNO64b
-#ifdef HAVE_INT32_T
+#  ifdef HAVE_INT32_T
     u_int32_t id2;
-#else
+#  else
     unsigned int id2      : 32;
-#endif // 32
+#  endif // 32
 #endif //SEQNO64b
 } UDP_datagram;
 
@@ -500,6 +503,8 @@ typedef struct client_hdr_v1 {
 #endif
 } client_hdr_v1;
 
+// This is used for tests that require
+// the initial handshake
 typedef struct client_hdrext {
     hdr_typelen typelen;
 #ifdef HAVE_INT32_T
@@ -521,14 +526,19 @@ typedef struct client_hdrext {
 #endif
 } client_hdrext;
 
+typedef struct UDP_l2_payload {
+#ifdef HAVE_INT32_T
+    int32_t machash;
+    int32_t payloadhash;
+#else
+    unsigned int machash       : 32;
+    unsigned int payloadhash   : 32;
+#endif
+} UDP_l2_payload;
+
 typedef struct UDP_isoch_payload {
 #ifdef HAVE_INT32_T
-    int32_t flags;
-    int32_t extend_flags;
-    int32_t version_u;
-    int32_t version_l;
-    int32_t reserved;
-    u_int32t burstperiod; //period units microseconds
+    u_int32_t burstperiod; //period units microseconds
     u_int32_t start_tv_sec;
     u_int32_t start_tv_usec;
     u_int32_t prevframeid;
@@ -537,10 +547,6 @@ typedef struct UDP_isoch_payload {
     u_int32_t remaining;
     u_int32_t pktsize;
 #else
-    signed int flags       : 32;
-    signed int version_u   : 32;
-    signed int version_l   : 32;
-    signed int reserved    : 32;
     unsigned int burstperiod : 32;
     unsigned int start_tv_sec : 32;
     unsigned int start_tv_usec : 32;
@@ -551,6 +557,31 @@ typedef struct UDP_isoch_payload {
     unsigned int pktsize : 32;
 #endif
 } UDP_isoch_payload;
+
+// This is used for UDP tests that don't
+// require any handshake, i.e they are stateless
+typedef struct client_hdr_udp_tests {
+// for 32 bit systems, skip over this field
+// so it remains interoperable with 64 bit peers
+#ifndef HAVE_SEQNO64b
+#  ifdef HAVE_INT32_T
+    u_int32_t id2;
+#  else
+    unsigned int id2      : 32;
+#  endif // 32
+#endif //SEQNO64b
+#ifdef HAVE_INT32_T
+    u_int32_t testflags;
+    u_int32_t version_u;
+    u_int32_t version_l;
+#else
+    unsigned int testflags   : 32;
+    unsigned int version_u   : 32;
+    unsigned int version_l   : 32;
+#endif
+    UDP_l2_payload l2;
+    UDP_isoch_payload isoch;
+} client_hdr_udp_tests;
 
 typedef struct client_hdr_ack {
     hdr_typelen typelen;
@@ -590,7 +621,10 @@ typedef struct hdr_tlv_magicno {
 
 typedef struct client_hdr {
     client_hdr_v1 base;
-    client_hdrext extend;
+    union {
+	client_hdrext extend;
+	client_hdr_udp_tests udp;
+    };
 } client_hdr;
 
 /*

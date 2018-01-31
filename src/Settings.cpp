@@ -1003,13 +1003,11 @@ void Settings_GenerateListenerSettings( thread_Settings *client, thread_Settings
 }
 
 /*
- * Settings_GenerateSpeakerSettings
- * Called to generate the settings to be passed to the Speaker
- * instance that will handle dual testings from the server side
- * this should only return an instance if it was called on
- * the thread_Settings instance generated from the command line
- * for server side execution. This should be an inverse operation
- * of GenerateClientHdr.
+ * Settings_GenerateClientSettings
+ *
+ * Called by the Listener to generate the settings to be used by clients
+ * per things like dual tests.
+ *
  */
 void Settings_GenerateClientSettings( thread_Settings *server,
                                       thread_Settings **client,
@@ -1080,14 +1078,17 @@ void Settings_GenerateClientSettings( thread_Settings *server,
 
 /*
  * Settings_GenerateClientHdr
- * Called to generate the client header to be passed to the
- * server that will handle dual testings from the server side
- * This should be an inverse operation of GenerateSpeakerSettings
+ *
+ * Called to generate the client header to be passed to the listener/server
+ *
+ * This will handle:
+ * o) dual testings from the listener/server side
+ * o) advanced udp test settings
  *
  * Returns hdr flags set
  */
 int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
-    int flags = 0, extendflags = 0;
+    uint32_t flags = 0, extendflags = 0;
     if (isPeerVerDetect(client) || (client->mMode != kTest_Normal && isBWSet(client))) {
 	flags |= HEADER_EXTEND;
     }
@@ -1113,6 +1114,24 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	if ( client->mMode == kTest_DualTest ) {
 	    flags |= RUN_NOW;
 	}
+    }
+    if (isUDP(client) && (isL2LengthCheck(client) || isL2MACHash(client) ||  isL2FrameHash(client) || isIsochronous(client))) {
+	flags = HEADER_UDPTESTS;
+	uint32_t testflags = 0;
+	if (isL2LengthCheck(client))
+	    testflags |= HEADER_L2LENCHECK;
+	if (isL2MACHash(client))
+	    testflags |= HEADER_L2MACHASH;
+	if (isL2FrameHash(client))
+	    testflags |= HEADER_L2FRAMEHASH;
+	if (testflags && isIPV6(client))
+	    testflags |= HEADER_L2ETHPIPV6;
+	if (isIsochronous(client))
+	    testflags |= HEADER_UDP_ISOCH;
+	// Write flags to header
+	((client_hdr_udp_tests *)(hdr))->testflags = htonl(testflags);
+	((client_hdr_udp_tests *)(hdr))->version_u = htonl(IPERF_VERSION_MAJORHEX);
+	((client_hdr_udp_tests *)(hdr))->version_l = htonl(IPERF_VERSION_MINORHEX);
     }
     /*
      * Finally, update the header flags (to be passed to the remote server)

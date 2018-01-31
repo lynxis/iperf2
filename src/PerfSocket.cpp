@@ -155,4 +155,22 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 #endif
     }
 }
+
+void SetSocketOptionsSendTimeout( thread_Settings *mSettings, int timer) {
+    if (timer > 0) {
+#ifdef WIN32
+	// Windows SO_SNDTIMEO uses ms
+	DWORD timeout = (double) timer / 1e3;
+#else
+	struct timeval timeout;
+	timeout.tv_sec = timer / 1000000;
+	timeout.tv_usec = timer % 1000000;
+#endif
+	if (setsockopt( mSettings->mSock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 ) {
+	    WARN_errno( mSettings->mSock == SO_SNDTIMEO, "socket" );
+	}
+    }
+}
+
+
 // end SetSocketOptions

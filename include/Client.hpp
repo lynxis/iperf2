@@ -66,35 +66,43 @@ public:
     // destroy the client object
     ~Client();
 
-    // connects and sends data
+    // Set up the traffic thread and invokes
+    // appropriate traffic loop per the protocol
+    // and type of traffic
     void Run( void );
 
-    // TCP specific version of above
-    void RunTCP( void );
-
-    // TCP version which supports rate limiting per -b
-    void RunRateLimitedTCP( void );
-
-    void RunUDPIsochronous( void );
-
+    // For things like dual tests a server needs to be started by the client,
+    // The code in src/launch.cpp will invoke this
     void InitiateServer();
 
-    // UDP / TCP
-    void Send( void );
+private:
+    void WritePacketID(void);
+    void InitTrafficLoop(void);
+    void FinishTrafficActions(void);
+    void FinalUDPHandshake(void);
+    void write_UDP_FIN(void);
 
-    void write_UDP_FIN( );
+    ReportStruct *reportstruct;
+    double delay_lower_bounds;
+    max_size_t totLen = 0;
 
+    // TCP plain
+    void RunTCP( void );
+    // TCP version which supports rate limiting per -b
+    void RunRateLimitedTCP( void );
+    // UDP traffic with isochronous and vbr support
+    void RunUDPIsochronous( void );
+    // UDP plain
+    void RunUDP( void );
     // client connect
     void Connect( );
-
-private :
     void HdrXchange(int flags);
 
-protected:
     thread_Settings *mSettings;
     char* mBuf;
     Timestamp mEndTime;
     Timestamp lastPacketTime;
+    Timestamp now;
 }; // end class Client
 
 #endif // CLIENT_H

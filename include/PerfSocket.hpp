@@ -61,6 +61,8 @@
 
     void SetSocketOptions( thread_Settings *inSettings );
 
+    void SetSocketOptionsSendTimeout( thread_Settings *inSettings, int timer);
+
     // handle interupts
     void Sig_Interupt( int inSigno );
 

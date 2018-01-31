@@ -640,12 +640,16 @@ int Listener::L2_setup (void) {
     //
     // Establish a packet (raw) socket to be used by the server thread giving it full L2 packets
     //
+    struct sockaddr s;
+    socklen_t len = sizeof(s);
+    getpeername(mSettings->mSock, &s, &len);
     if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
-    } else {
+    } else if (p->sa_family == AF_INET) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip packet socket (AF_PACKET)");
+	unsetIPV6(server);
     }
     if (server->mSock < 0) {
 	return server->mSock;
@@ -668,7 +672,7 @@ int Listener::L2_setup (void) {
 	struct in6_addr *v6local = SockAddr_get_in6_addr(&server->local);
 	rc = SockAddr_v6_Connect_BPF(server->mSock, v6local, v6peer, ((struct sockaddr_in6 *)(l))->sin6_port, ((struct sockaddr_in6 *)(p))->sin6_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
-    } else {
+    } else if (p->sa_family == AF_INET) {
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     }
@@ -1030,8 +1034,11 @@ void Listener::UDPSingleServer( ) {
 
 int Listener::ReadClientHeader(client_hdr *hdr ) {
     int flags = 0;
+    int testflags = 0;
     if (isUDP(mSettings)) {
 	flags = ntohl(hdr->base.flags);
+	if ((flags & HEADER_UDPTESTS) != 0)
+	    testflags = ntohl(hdr->udp.testflags);
     } else {
 	int n, len;
 	char *p = (char *)hdr;
@@ -1076,20 +1083,29 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    }
 	}
     }
+    // Handle stateless flags
 #ifdef HAVE_ISOCHRONOUS
-    if ((flags & HEADER_UDP_ISOCH) != 0) {
-	struct UDP_isoch_payload* mBuf_isoch = (struct UDP_isoch_payload*) (hdr);
+    if ((testflags & HEADER_UDP_ISOCH) != 0) {
 	setIsochronous(server);
-	reporter_peerversion(server, ntohl(mBuf_isoch->version_u), ntohl(mBuf_isoch->version_l));
     }
 #endif
-    if ((flags & HEADER_L2MACHASH) != 0) {
+    if ((testflags & HEADER_L2MACHASH) != 0) {
 	setL2MACHash(server);
     }
-    if ((flags & HEADER_L2FRAMEHASH) != 0) {
+    if ((testflags & HEADER_L2FRAMEHASH) != 0) {
 	setL2FrameHash(server);
     }
-
+    if ((testflags & HEADER_L2ETHPIPV6) != 0) {
+	setIPV6(server);
+    }
+    if ((testflags & HEADER_L2LENCHECK) != 0) {
+	setL2LengthCheck(server);
+    }
+    if (testflags) {
+	client_hdr_udp_tests *pdu = (client_hdr_udp_tests *)hdr;
+	reporter_peerversion(server, ntohl(pdu->version_u), ntohl(pdu->version_l));
+    }
+    // Handle flags that require an ack back to the client
     if ((flags & HEADER_EXTEND) != 0 ) {
 	reporter_peerversion(server, ntohl(hdr->extend.version_u), ntohl(hdr->extend.version_l));
 	//  Extended header successfully read. Ack the client with our version info now
