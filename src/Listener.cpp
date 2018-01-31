@@ -1040,6 +1040,25 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	if ((flags & HEADER_UDPTESTS) != 0) {
 	    testflags = ntohl(hdr->udp.testflags);
 	    printf("Debug: udp test flags = %x\n",testflags);
+	    reporter_peerversion(server, ntohl(hdr->udp.version_u), ntohl(hdr->udp.version_l));
+	    // Handle stateless flags
+#ifdef HAVE_ISOCHRONOUS
+	    if ((testflags & HEADER_UDP_ISOCH) != 0) {
+		setIsochronous(server);
+	    }
+#endif
+	    if ((testflags & HEADER_L2MACHASH) != 0) {
+		setL2MACHash(server);
+	    }
+	    if ((testflags & HEADER_L2FRAMEHASH) != 0) {
+		setL2FrameHash(server);
+	    }
+	    if ((testflags & HEADER_L2ETHPIPV6) != 0) {
+		setIPV6(server);
+	    }
+	    if ((testflags & HEADER_L2LENCHECK) != 0) {
+		setL2LengthCheck(server);
+	    }
 	}
     } else {
 	int n, len;
@@ -1084,28 +1103,6 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 		return -1;
 	    }
 	}
-    }
-    // Handle stateless flags
-#ifdef HAVE_ISOCHRONOUS
-    if ((testflags & HEADER_UDP_ISOCH) != 0) {
-	setIsochronous(server);
-    }
-#endif
-    if ((testflags & HEADER_L2MACHASH) != 0) {
-	setL2MACHash(server);
-    }
-    if ((testflags & HEADER_L2FRAMEHASH) != 0) {
-	setL2FrameHash(server);
-    }
-    if ((testflags & HEADER_L2ETHPIPV6) != 0) {
-	setIPV6(server);
-    }
-    if ((testflags & HEADER_L2LENCHECK) != 0) {
-	setL2LengthCheck(server);
-    }
-    if (testflags) {
-	client_hdr_udp_tests *pdu = (client_hdr_udp_tests *)hdr;
-	reporter_peerversion(server, ntohl(pdu->version_u), ntohl(pdu->version_l));
     }
     // Handle flags that require an ack back to the client
     if ((flags & HEADER_EXTEND) != 0 ) {
