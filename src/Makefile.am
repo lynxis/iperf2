@@ -51,3 +51,7 @@ checkpdfs_LDADD = -lm
 checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c stdio.c
 checkisoch_LDADD = $(LIBCOMPAT_LDADDS)
 endif
+
+if AF_PACKET
+iperf_SOURCES += murmur3.c
+endif

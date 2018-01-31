@@ -650,6 +650,8 @@ CXXDEPMODE
 ac_ct_CXX
 CXXFLAGS
 CXX
+AF_PACKET_FALSE
+AF_PACKET_TRUE
 am__fastdepCC_FALSE
 am__fastdepCC_TRUE
 CCDEPMODE
@@ -4377,6 +4379,14 @@ $as_echo "#define HAVE_AF_PACKET 1" >>confdefs.h
 
 else
   enable_af_packet="no"
+fi
+
+    if test "x${enable_af_packet}" = "xyes"; then
+  AF_PACKET_TRUE=
+  AF_PACKET_FALSE='#'
+else
+  AF_PACKET_TRUE='#'
+  AF_PACKET_FALSE=
 fi
 
 
@@ -9062,6 +9072,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${AF_PACKET_TRUE}" && test -z "${AF_PACKET_FALSE}"; then
+  as_fn_error $? "conditional \"AF_PACKET\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then

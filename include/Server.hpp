@@ -104,7 +104,6 @@ private:
     struct ether_header *eth_hdr;
     struct iphdr *ip_hdr;
     struct udphdr *udp_hdr;
-    uint32_t murmur3_32(uint32_t len, uint32_t seed);
 #endif
 
 }; // end class Server
