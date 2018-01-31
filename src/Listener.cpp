@@ -282,7 +282,8 @@ sInterupted == SIGALRM
 
 
 	    // Perform L2 setup if needed
-	    if (isUDP(mSettings) && (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings))) {
+	    if (isUDP(mSettings) && (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings) || \
+				     (isL2LengthCheck(server) || isL2MACHash(server) ||  isL2FrameHash(server)))) {
 		if (L2_setup() < 0) {
 		    // L2 not allowed, abort this server try
 		    delete server;
@@ -643,10 +644,10 @@ int Listener::L2_setup (void) {
     struct sockaddr s;
     socklen_t len = sizeof(s);
     getpeername(mSettings->mSock, &s, &len);
-    if (isIPV6(mSettings) && (p->sa_family == AF_INET6)) {
+    if (isIPV6(server)) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
-    } else if (p->sa_family == AF_INET) {
+    } else {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip packet socket (AF_PACKET)");
 	unsetIPV6(server);
@@ -1039,7 +1040,6 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	flags = ntohl(hdr->base.flags);
 	if ((flags & HEADER_UDPTESTS) != 0) {
 	    testflags = ntohl(hdr->udp.testflags);
-	    printf("Debug: udp test flags = %x\n",testflags);
 	    reporter_peerversion(server, ntohl(hdr->udp.version_u), ntohl(hdr->udp.version_l));
 	    // Handle stateless flags
 #ifdef HAVE_ISOCHRONOUS

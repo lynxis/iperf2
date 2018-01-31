@@ -331,7 +331,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->connection.local = agent->local;
             data->connection.size_local = agent->size_local;
 	    data->connection.peerversion = agent->peerversion;
-	    data->connection.l2mode = (isL2MACHash(agent) | isL2FrameHash(agent) | isL2LengthCheck(agent));
+	    data->connection.l2mode = ((isL2MACHash(agent) << 2) | (isL2FrameHash(agent) << 1) | isL2LengthCheck(agent));
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }

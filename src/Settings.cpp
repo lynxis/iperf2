@@ -1133,7 +1133,6 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	hdr->udp.testflags = htonl(testflags);
 	hdr->udp.version_u = htonl(IPERF_VERSION_MAJORHEX);
 	hdr->udp.version_l = htonl(IPERF_VERSION_MINORHEX);
-	printf("Debug: udp test flags = %x\n",testflags);
     }
     /*
      * Finally, update the header flags (to be passed to the remote server)
