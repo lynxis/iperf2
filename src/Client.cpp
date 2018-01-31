@@ -379,7 +379,7 @@ void Client::RunRateLimitedTCP ( void ) {
     double tokens = 0;
     Timestamp time1, time2;
 
-    while (!InProgress()) {
+    while (InProgress()) {
 	// Add tokens per the loop time
 	// clock_gettime is much cheaper than gettimeofday() so
 	// use it if possible.
@@ -461,7 +461,7 @@ void Client::RunUDP( void ) {
     // Set this to > 0 so first loop iteration will delay the IPG
     currLen = 1;
 
-    while (!InProgress()) {
+    while (InProgress()) {
         // Test case: drop 17 packets and send 2 out-of-order:
         // sequence 51, 52, 70, 53, 54, 71, 72
         //switch( datagramID ) {
@@ -603,7 +603,7 @@ void Client::RunUDPIsochronous (void) {
     mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getUsecs());
     mBuf_isoch->burstperiod = htonl(fc->period_us());
 
-    while (!InProgress()) {
+    while (InProgress()) {
 	int bytecnt;
 	mBuf_isoch->prevframeid  = htonl(frameid);
 	frameid =  fc->wait_tick();
