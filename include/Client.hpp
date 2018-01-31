@@ -81,6 +81,7 @@ private:
     void FinishTrafficActions(void);
     void FinalUDPHandshake(void);
     void write_UDP_FIN(void);
+    bool InProgress(void);
 
     ReportStruct *reportstruct;
     double delay_lower_bounds;
@@ -103,6 +104,7 @@ private:
     Timestamp mEndTime;
     Timestamp lastPacketTime;
     Timestamp now;
+    char* readAt;
 }; // end class Client
 
 #endif // CLIENT_H

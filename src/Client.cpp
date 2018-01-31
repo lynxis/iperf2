@@ -258,6 +258,7 @@ void Client::InitTrafficLoop (void) {
     }
 
     lastPacketTime.setnow();
+    readAt = mBuf;
 }
 
 
@@ -280,8 +281,8 @@ void Client::Run( void ) {
     if (isUDP(mSettings)) {
 	// Preset any UDP fields in the mBuf, a non-zero
 	// return indicates some udptests were set
-	int udptests = Settings_GenerateClientHdr(mSettings, (client_hdr *) mBuf);
-	char* readAt;
+	int udptests = Settings_GenerateClientHdr(mSettings, (client_hdr *) (mBuf + sizeof(struct UDP_datagram)));
+
 	if ( isFileInput( mSettings ) ) {
 	    // Due to the UDP timestamps etc, included
 	    // reduce the read size by an amount
@@ -321,20 +322,7 @@ void Client::Run( void ) {
 void Client::RunTCP( void ) {
     int currLen = 0;
 
-    char* readAt = mBuf;
-
-    // Indicates if the stream is readable
-    bool canRead = true, mMode_Time = isModeTime( mSettings );
-
-    while (1) {
-        // Read the next data block from
-        // the file if it's file input
-        if ( isFileInput( mSettings ) ) {
-	    Extractor_getNextDataBlock( readAt, mSettings );
-            canRead = Extractor_canRead( mSettings ) != 0;
-        } else
-            canRead = true;
-
+    while (InProgress()) {
         // perform write
 	reportstruct->errwrite=0;
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
@@ -370,7 +358,7 @@ void Client::RunTCP( void ) {
             ReportPacket( mSettings->reporthdr, reportstruct );
         }
 
-        if ( !mMode_Time ) {
+        if (!isModeTime(mSettings)) {
             /* mAmount may be unsigned, so don't let it underflow! */
             if( mSettings->mAmount >= (unsigned long) currLen ) {
                 mSettings->mAmount -= (unsigned long) currLen;
@@ -378,16 +366,6 @@ void Client::RunTCP( void ) {
                 mSettings->mAmount = 0;
             }
         }
-#ifdef HAVE_SETITIMER
-	if (sInterupted ||
-	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
-	    break;
-#else
-	if (sInterupted ||
-	    (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))  ||
-	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
-	    break;
-#endif
     }
 
     FinishTrafficActions();
@@ -401,19 +379,7 @@ void Client::RunRateLimitedTCP ( void ) {
     double tokens = 0;
     Timestamp time1, time2;
 
-    char* readAt = mBuf;
-
-    // Indicates if the stream is readable
-    bool canRead = true, mMode_Time = isModeTime( mSettings );
-
-    while (1) {
-        // Read the next data block from
-        // the file if it's file input
-        if ( isFileInput( mSettings ) ) {
-            Extractor_getNextDataBlock( readAt, mSettings );
-            canRead = Extractor_canRead( mSettings ) != 0;
-        } else
-            canRead = true;
+    while (!InProgress()) {
 	// Add tokens per the loop time
 	// clock_gettime is much cheaper than gettimeofday() so
 	// use it if possible.
@@ -450,7 +416,7 @@ void Client::RunRateLimitedTCP ( void ) {
 		ReportPacket( mSettings->reporthdr, reportstruct );
 	    }
 
-	    if ( !mMode_Time ) {
+	    if (!isModeTime(mSettings)) {
 		/* mAmount may be unsigned, so don't let it underflow! */
 		if( mSettings->mAmount >= (unsigned long) currLen ) {
 		    mSettings->mAmount -= (unsigned long) currLen;
@@ -462,16 +428,6 @@ void Client::RunRateLimitedTCP ( void ) {
 	    // Use a 4 usec delay to fill tokens
 	    delay_loop(4);
 	}
-#ifdef HAVE_SETITIMER
-	if (sInterupted ||
-	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
-	    break;
-#else
-	if (sInterupted ||
-	    (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))  ||
-	    (!mMode_Time  && (mSettings->mAmount <= 0 || !canRead)))
-	    break;
-#endif
     }
 
     FinishTrafficActions();
@@ -487,11 +443,6 @@ void Client::RunUDP( void ) {
     double delay_target = 0;
     double delay = 0;
     double adjust = 0;
-
-    char* readAt = mBuf;
-
-    // Indicates if the stream is readable
-    bool canRead = true, mMode_Time = isModeTime( mSettings );
 
     // compute delay target in units of nanoseconds
     if (mSettings->mUDPRateUnits == kRate_BW) {
@@ -510,8 +461,7 @@ void Client::RunUDP( void ) {
     // Set this to > 0 so first loop iteration will delay the IPG
     currLen = 1;
 
-    do {
-
+    while (!InProgress()) {
         // Test case: drop 17 packets and send 2 out-of-order:
         // sequence 51, 52, 70, 53, 54, 71, 72
         //switch( datagramID ) {
@@ -575,14 +525,6 @@ void Client::RunUDP( void ) {
 	    delay = delay_target;
 	}
 
-	// Read the next data block from
-	// the file if it's file input
-	if ( isFileInput( mSettings ) ) {
-	    Extractor_getNextDataBlock( readAt, mSettings );
-	    canRead = Extractor_canRead( mSettings ) != 0;
-	} else
-	    canRead = true;
-
 	// perform write
 	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	if ( currLen < 0 ) {
@@ -616,7 +558,7 @@ void Client::RunUDP( void ) {
 	    // and invoke the microsecond delay
 	    delay_loop((unsigned long) (delay / 1000));
 	}
-	if ( !mMode_Time ) {
+	if (!isModeTime(mSettings)) {
 	    /* mAmount may be unsigned, so don't let it underflow! */
 	    if( mSettings->mAmount >= (unsigned long) currLen ) {
 		mSettings->mAmount -= (unsigned long) currLen;
@@ -625,9 +567,7 @@ void Client::RunUDP( void ) {
 	    }
 	}
 
-    } while ( ! (sInterupted  ||
-                 (mMode_Time   &&  mEndTime.before( reportstruct->packetTime ))  ||
-                 (!mMode_Time  &&  0 >= mSettings->mAmount)) && canRead );
+    }
 
     FinishTrafficActions();
 }
@@ -662,7 +602,8 @@ void Client::RunUDPIsochronous (void) {
     mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getSecs());
     mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getUsecs());
     mBuf_isoch->burstperiod = htonl(fc->period_us());
-    do {
+
+    while (!InProgress()) {
 	int bytecnt;
 	mBuf_isoch->prevframeid  = htonl(frameid);
 	frameid =  fc->wait_tick();
@@ -768,7 +709,7 @@ void Client::RunUDPIsochronous (void) {
 		delay_loop((unsigned long) (delay / 1000));
 	    }
 	}
-    } while (!(sInterupted  || (mMode_Time   &&  mEndTime.before(reportstruct->packetTime))));
+    }
 
     FinishTrafficActions();
 
@@ -788,6 +729,29 @@ void Client::WritePacketID (void) {
     reportstruct->packetID++;
 }
 
+bool Client::InProgress (void) {
+    // Read the next data block from
+    // the file if it's file input
+    if (isFileInput(mSettings)) {
+	Extractor_getNextDataBlock( readAt, mSettings );
+        if (Extractor_canRead(mSettings) != 0)
+	    return true;
+	else
+	    return false;
+    }
+
+#ifdef HAVE_SETITIMER
+    if (sInterupted ||
+	(!isModeTime(mSettings) && (mSettings->mAmount <= 0)))
+	return false;
+#else
+    if (sInterupted ||
+	(isModeTime(mSettings) &&  mEndTime.before(reportstruct->packetTime))  ||
+	(!isModeTime(mSettings) && (mSettings->mAmount <= 0)))
+	return false;
+#endif
+    return true;
+}
 
 /*
  * Common things to do to finish a traffic thread
