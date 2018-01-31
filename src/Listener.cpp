@@ -678,9 +678,8 @@ int Listener::L2_setup (void) {
 	// Convert from AF_INET6 sa_family to AF_INET so the BPF can get a formated IPV4 address from the sockadd_in struct
 	if (l->sa_family == AF_INET6) {
 	    int addrform = AF_INET;
-	    size_t len = sizeof(int);
 	    rc = setsockopt(server->mSock, IPPROTO_IP, IPV6_ADDRFORM, &addrform, sizeof(addrform));
-	    WARN_errno( rc == SOCKET_ERROR, "l2 IPV6_ADDRFORM");
+	    FAIL_errno( rc == SOCKET_ERROR, "L2 IPV6_ADDRFORM", server);
 	}
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
