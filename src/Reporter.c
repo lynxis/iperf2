@@ -1253,7 +1253,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 		stats->info.IPGsum = 0;
 	    }
 	    if (stats->info.mEnhanced) {
-		if (stats->info.mTCP == (char)kMode_Client) {
+		if ((stats->info.mTCP == (char)kMode_Client) || (stats->info.mUDP == (char)kMode_Client)) {
 		    stats->info.sock_callstats.write.WriteCnt = 0;
 		    stats->info.sock_callstats.write.WriteErr = 0;
 		} else if (stats->info.mTCP == (char)kMode_Server) {
