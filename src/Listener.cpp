@@ -677,14 +677,14 @@ int Listener::L2_setup (void) {
 	    WARN_errno( rc == SOCKET_ERROR, "l2 connect ipv6 bpf");
 	} else {
 	    // This is an ipv4 address in a v6 family (structure), just pull the lower 32 bits for the v4 addr
-	    rc = SockAddr_v4_Connect_BPF(server->mSock, (uint32_t) v6local->s6_addr32[0], (uint32_t) v6peer->s6_addr32[0], ((struct sockaddr_in6 *)(l))->sin6_port, ((struct sockaddr_in6 *)(p))->sin6_port);
+	    rc = SockAddr_v4_Connect_BPF(server->mSock, (uint32_t) v6local->s6_addr32[3], (uint32_t) v6peer->s6_addr32[3], ((struct sockaddr_in6 *)(l))->sin6_port, ((struct sockaddr_in6 *)(p))->sin6_port);
 	    WARN_errno( rc == SOCKET_ERROR, "l2 v4in6 connect ip bpf");
-	} 
+	}
     } else {
 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
     }
-    if (rc < 0) 
+    if (rc < 0)
 	return -1;
 
     return 1;
