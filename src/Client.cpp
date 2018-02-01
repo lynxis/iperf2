@@ -349,6 +349,7 @@ void Client::RunTCP( void ) {
 	if ((mSettings->mInterval > 0) || isEnhanced(mSettings))
 #endif
 	{
+	    now.setnow();
 	    reportstruct->packetTime.tv_sec = now.getSecs();
 	    reportstruct->packetTime.tv_usec = now.getUsecs();
 	}
