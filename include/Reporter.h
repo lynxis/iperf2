@@ -172,7 +172,7 @@ typedef struct ReportStruct {
 typedef union {
     ReadStats read;
     WriteStats write;
-} TCPStats;
+} SendReadStats;
 
 typedef struct Transfer_Info {
     void *reserved_delay;
@@ -184,7 +184,7 @@ typedef struct Transfer_Info {
     max_size_t IPGcnt;
     int socket;
     TransitStats transit;
-    TCPStats tcp;
+    SendReadStats sock_callstats;
     // Hopefully int64_t's
     umax_size_t TotalLen;
     double jitter;
