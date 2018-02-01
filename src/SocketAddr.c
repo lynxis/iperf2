@@ -473,7 +473,7 @@ int SockAddr_Hostare_Equal( struct sockaddr* first, struct sockaddr* second ) {
     return 0;
 
 }
-#ifdef HAVE_LINUX_FILTER_H
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 
 int SockAddr_Drop_All_BPF (int sock) {
     struct sock_filter udp_filter[] = {

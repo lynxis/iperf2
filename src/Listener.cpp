@@ -589,9 +589,7 @@ void Listener::McastJoin( ) {
 // end McastJoin
 
 int Listener::L2_setup (void) {
-#ifndef HAVE_AF_PACKET
-    return -1;
-#else
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     //
     //  Supporting parallel L2 UDP threads is a bit tricky.  Below are some notes as to why and the approach used.
     //
@@ -688,8 +686,10 @@ int Listener::L2_setup (void) {
     }
     if (rc < 0)
 	return -1;
-
-    return 1;
+    else
+	return 1;
+#else
+    return -1;
 #endif
 }
 /* -------------------------------------------------------------------
