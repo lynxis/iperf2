@@ -379,20 +379,23 @@ void Server::RunUDP( void ) {
     // 3) -t timer expires
     do {
 	// read the next packet with timestamp
-	reportstruct->emptyreport=1;
+	// will also set empty report or not
 	rxlen=ReadWithRxTimestamp(&readerr);
 	if (readerr) {
 	    done = 1;
 	} else if (rxlen > 0) {
-	    // Above returns true if this is the last UDP packet sent by the client
 	    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
 		reportstruct->l2len = rxlen;
 		// L2 processing will set the reportstruct packet length with the length found in the udp header
+		// and also set the expected length in the report struct.  The reporter thread
+		// will do the compare and account and print l2 errors
 		L2_processing();
 	    } else {
-		// Set the packet length to the socket received length
+		// Normal UDP rx, set the length to the socket received length
 		reportstruct->packetLen = rxlen;
 	    }
+	    // ReadPacketID returns true if this is the last UDP packet sent by the client
+	    // aslo sets the packet rx time in the reportstruct
 	    done = ReadPacketID();
 	    if (isIsochronous(mSettings)) {
 		Isoch_processing();
