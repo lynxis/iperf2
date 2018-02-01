@@ -867,6 +867,17 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	if (!packet->emptyreport) {
 	    // update fields common to TCP and UDP, client and server
 	    data->TotalLen += packet->packetLen;
+	    // update fields common to TCP and UDP client
+	    if (reporthdr->report.mThreadMode == kMode_Client) {
+		if (packet->errwrite) {
+		    stats->sock_callstats.write.WriteErr++;
+		    stats->sock_callstats.write.totWriteErr++;
+		}
+		else {
+		    stats->sock_callstats.write.WriteCnt++;
+		    stats->sock_callstats.write.totWriteCnt++;
+		}
+	    }
 	    // update fields common to UDP client and server
             if ( isUDP( data ) ) {
 		data->cntDatagrams++;
@@ -1014,15 +1025,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		bin = (int)floor((packet->packetLen -1)/stats->sock_callstats.read.binsize);
 		stats->sock_callstats.read.bins[bin]++;
 		stats->sock_callstats.read.totbins[bin]++;
-	    } else if (reporthdr->report.mThreadMode == kMode_Client) {
-		if (packet->errwrite) {
-		    stats->sock_callstats.write.WriteErr++;
-		    stats->sock_callstats.write.totWriteErr++;
-		}
-		else {
-		    stats->sock_callstats.write.WriteCnt++;
-		    stats->sock_callstats.write.totWriteCnt++;
-		}
 	    }
 	} else if ((stats->mUDP == kMode_Server) &&	\
 		   (stats->transit.cntTransit == 0)) {
