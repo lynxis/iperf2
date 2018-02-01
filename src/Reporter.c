@@ -175,7 +175,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID) {
                 data->info.mFormat = agent->mFormat;
                 data->info.mTTL = agent->mTTL;
 		if (data->mThreadMode == kMode_Server)
-		    data->info.tcp.read.binsize = data->mBufLen / 8;
+		    data->info.sock_callstats.read.binsize = data->mBufLen / 8;
                 if ( isEnhanced( agent ) ) {
 		    data->info.mEnhanced = 1;
 		} else {
@@ -265,7 +265,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->info.mFormat = agent->mFormat;
             data->info.mTTL = agent->mTTL;
 	    if (data->mThreadMode == kMode_Server)
-		data->info.tcp.read.binsize = data->mBufLen / 8;
+		data->info.sock_callstats.read.binsize = data->mBufLen / 8;
             if ( isUDP( agent ) ) {
 		gettimeofday(&data->IPGstart, NULL);
                 reporthdr->report.info.mUDP = (char)agent->mThreadMode;
@@ -1009,19 +1009,19 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	    } else if (reporthdr->report.mThreadMode == kMode_Server && (packet->packetLen > 0)) {
 		int bin;
 		// mean min max tests
-		stats->tcp.read.cntRead++;
-		stats->tcp.read.totcntRead++;
-		bin = (int)floor((packet->packetLen -1)/stats->tcp.read.binsize);
-		stats->tcp.read.bins[bin]++;
-		stats->tcp.read.totbins[bin]++;
+		stats->sock_callstats.read.cntRead++;
+		stats->sock_callstats.read.totcntRead++;
+		bin = (int)floor((packet->packetLen -1)/stats->sock_callstats.read.binsize);
+		stats->sock_callstats.read.bins[bin]++;
+		stats->sock_callstats.read.totbins[bin]++;
 	    } else if (reporthdr->report.mThreadMode == kMode_Client) {
 		if (packet->errwrite) {
-		    stats->tcp.write.WriteErr++;
-		    stats->tcp.write.totWriteErr++;
+		    stats->sock_callstats.write.WriteErr++;
+		    stats->sock_callstats.write.totWriteErr++;
 		}
 		else {
-		    stats->tcp.write.WriteCnt++;
-		    stats->tcp.write.totWriteCnt++;
+		    stats->sock_callstats.write.WriteCnt++;
+		    stats->sock_callstats.write.totWriteCnt++;
 		}
 	    }
 	} else if ((stats->mUDP == kMode_Server) &&	\
@@ -1081,15 +1081,15 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		current->mTCP = stats->mTCP;
 		if (stats->mTCP == kMode_Server) {
 		    int ix;
-		    current->tcp.read.cntRead = stats->tcp.read.cntRead;
+		    current->sock_callstats.read.cntRead = stats->sock_callstats.read.cntRead;
 		    for (ix = 0; ix < 8; ix++) {
-			current->tcp.read.bins[ix] = stats->tcp.read.bins[ix];
+			current->sock_callstats.read.bins[ix] = stats->sock_callstats.read.bins[ix];
 		    }
 		} else if (stats->mTCP == kMode_Client) {
-		    current->tcp.write.WriteErr = stats->tcp.write.WriteErr;
-		    current->tcp.write.WriteCnt = stats->tcp.write.WriteCnt;
+		    current->sock_callstats.write.WriteErr = stats->sock_callstats.write.WriteErr;
+		    current->sock_callstats.write.WriteCnt = stats->sock_callstats.write.WriteCnt;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-		    current->tcp.write.TCPretry = stats->tcp.write.TCPretry;
+		    current->sock_callstats.write.TCPretry = stats->sock_callstats.write.TCPretry;
 #endif
 		}
                 current->free = 1;
@@ -1101,15 +1101,15 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		current->IPGcnt += stats->IPGcnt;
 		if (stats->mTCP == kMode_Server) {
 		    int ix;
-		    current->tcp.read.cntRead += stats->tcp.read.cntRead;
+		    current->sock_callstats.read.cntRead += stats->sock_callstats.read.cntRead;
 		    for (ix = 0; ix < 8; ix++) {
-			current->tcp.read.bins[ix] += stats->tcp.read.bins[ix];
+			current->sock_callstats.read.bins[ix] += stats->sock_callstats.read.bins[ix];
 		    }
 		} else if (stats->mTCP == kMode_Client) {
-		    current->tcp.write.WriteErr += stats->tcp.write.WriteErr;
-		    current->tcp.write.WriteCnt += stats->tcp.write.WriteCnt;
+		    current->sock_callstats.write.WriteErr += stats->sock_callstats.write.WriteErr;
+		    current->sock_callstats.write.WriteCnt += stats->sock_callstats.write.WriteCnt;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-		    current->tcp.write.TCPretry += stats->tcp.write.TCPretry;
+		    current->sock_callstats.write.TCPretry += stats->sock_callstats.write.TCPretry;
 #endif
 		}
                 if ( current->endTime < stats->endTime ) {
@@ -1144,13 +1144,13 @@ static void gettcpistats (ReporterData *stats) {
 	    WARN_errno( 1 , "getsockopt");
 	    retry = 0;
 	} else {
-	    retry = tcp_internal.tcpi_total_retrans - stats->info.tcp.write.lastTCPretry;
+	    retry = tcp_internal.tcpi_total_retrans - stats->info.sock_callstats.write.lastTCPretry;
 	}
-	stats->info.tcp.write.TCPretry = retry;
-	stats->info.tcp.write.totTCPretry += retry;
-	stats->info.tcp.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
-	stats->info.tcp.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
-	stats->info.tcp.write.rtt = tcp_internal.tcpi_rtt;
+	stats->info.sock_callstats.write.TCPretry = retry;
+	stats->info.sock_callstats.write.totTCPretry += retry;
+	stats->info.sock_callstats.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+	stats->info.sock_callstats.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
+	stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
     }
 }
 #endif
@@ -1183,15 +1183,15 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
 	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
 	if (stats->info.mTCP == kMode_Client) {
-	    stats->info.tcp.write.WriteErr = stats->info.tcp.write.totWriteErr;
-	    stats->info.tcp.write.WriteCnt = stats->info.tcp.write.totWriteCnt;
-	    stats->info.tcp.write.TCPretry = stats->info.tcp.write.totTCPretry;
+	    stats->info.sock_callstats.write.WriteErr = stats->info.sock_callstats.write.totWriteErr;
+	    stats->info.sock_callstats.write.WriteCnt = stats->info.sock_callstats.write.totWriteCnt;
+	    stats->info.sock_callstats.write.TCPretry = stats->info.sock_callstats.write.totTCPretry;
 	}
 	if (stats->info.mTCP == kMode_Server) {
 	    int ix;
-	    stats->info.tcp.read.cntRead = stats->info.tcp.read.totcntRead;
+	    stats->info.sock_callstats.read.cntRead = stats->info.sock_callstats.read.totcntRead;
 	    for (ix = 0; ix < 8; ix++) {
-		stats->info.tcp.read.bins[ix] = stats->info.tcp.read.totbins[ix];
+		stats->info.sock_callstats.read.bins[ix] = stats->info.sock_callstats.read.totbins[ix];
 	    }
 	}
 	if (stats->info.endTime > 0) {
@@ -1252,13 +1252,13 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    }
 	    if (stats->info.mEnhanced) {
 		if (stats->info.mTCP == (char)kMode_Client) {
-		    stats->info.tcp.write.WriteCnt = 0;
-		    stats->info.tcp.write.WriteErr = 0;
+		    stats->info.sock_callstats.write.WriteCnt = 0;
+		    stats->info.sock_callstats.write.WriteErr = 0;
 		} else if (stats->info.mTCP == (char)kMode_Server) {
 		    int ix;
-		    stats->info.tcp.read.cntRead = 0;
+		    stats->info.sock_callstats.read.cntRead = 0;
 		    for (ix = 0; ix < 8; ix++) {
-			stats->info.tcp.read.bins[ix] = 0;
+			stats->info.sock_callstats.read.bins[ix] = 0;
 		    }
 		}
 	    }

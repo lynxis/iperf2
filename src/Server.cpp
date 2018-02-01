@@ -259,7 +259,7 @@ int Server::ReadWithRxTimestamp (int *readerr) {
 
 #if HAVE_DECL_SO_TIMESTAMP
     cmsg = (struct cmsghdr *) &ctrl;
-    currLen = recvmsg( mSettings->mSock, &message, 0 );
+    currLen = recvmsg( mSettings->mSock, &message, mSettings->recvflags );
     if (currLen > 0) {
 	if (cmsg->cmsg_level == SOL_SOCKET &&
 	    cmsg->cmsg_type  == SCM_TIMESTAMP &&
@@ -269,7 +269,7 @@ int Server::ReadWithRxTimestamp (int *readerr) {
 	}
     }
 #else
-    currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, 0 );
+    currLen = recv( mSettings->mSock, mBuf, mSettings->mBufLen, mSettings->recvflags);
 #endif
     if (currLen <=0) {
 	// Socket read timeout or read error

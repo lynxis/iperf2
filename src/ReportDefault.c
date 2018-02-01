@@ -88,31 +88,31 @@ void reporter_printstats( Transfer_Info *stats ) {
 		   buffer, &buffer[sizeof(buffer)/2]);
 	} else {
 	    if( !header_printed ) {
-		printf((stats->mTCP == (char)kMode_Server ? report_bw_read_enhanced_header : report_bw_write_enhanced_header), (stats->tcp.read.binsize/1024.0));
+		printf((stats->mTCP == (char)kMode_Server ? report_bw_read_enhanced_header : report_bw_write_enhanced_header), (stats->sock_callstats.read.binsize/1024.0));
 		header_printed = 1;
 	    }
 	    if (stats->mTCP == (char)kMode_Server) {
 		printf(report_bw_read_enhanced_format,
 		       stats->transferID, stats->startTime, stats->endTime,
 		       buffer, &buffer[sizeof(buffer)/2],
-		       stats->tcp.read.cntRead,
-		       stats->tcp.read.bins[0],
-		       stats->tcp.read.bins[1],
-		       stats->tcp.read.bins[2],
-		       stats->tcp.read.bins[3],
-		       stats->tcp.read.bins[4],
-		       stats->tcp.read.bins[5],
-		       stats->tcp.read.bins[6],
-		       stats->tcp.read.bins[7]);
+		       stats->sock_callstats.read.cntRead,
+		       stats->sock_callstats.read.bins[0],
+		       stats->sock_callstats.read.bins[1],
+		       stats->sock_callstats.read.bins[2],
+		       stats->sock_callstats.read.bins[3],
+		       stats->sock_callstats.read.bins[4],
+		       stats->sock_callstats.read.bins[5],
+		       stats->sock_callstats.read.bins[6],
+		       stats->sock_callstats.read.bins[7]);
 	    } else {
 		printf(report_bw_write_enhanced_format,
 		       stats->transferID, stats->startTime, stats->endTime,
 		       buffer, &buffer[sizeof(buffer)/2],
-		       stats->tcp.write.WriteCnt,
-		       stats->tcp.write.WriteErr,
-		       stats->tcp.write.TCPretry,
-		       stats->tcp.write.cwnd,
-		       stats->tcp.write.rtt);
+		       stats->sock_callstats.write.WriteCnt,
+		       stats->sock_callstats.write.WriteErr,
+		       stats->sock_callstats.write.TCPretry,
+		       stats->sock_callstats.write.cwnd,
+		       stats->sock_callstats.write.rtt);
 	    }
 	}
     } else if ( stats->mUDP == (char)kMode_Client ) {
@@ -131,14 +131,18 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( stats->mEnhanced ? report_bw_pps_enhanced_isoch_format : report_bw_format, stats->transferID,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
-		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0), stats->isochstats.framecnt,
+		    stats->sock_callstats.write.WriteErr,
+		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0),
+		    stats->isochstats.framecnt,
 		    stats->isochstats.framelostcnt, stats->isochstats.slipcnt);
 	else
 #endif
 	    printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->sock_callstats.write.WriteErr,
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
+
     } else {
         // UDP Server Reporting
         if( !header_printed ) {
@@ -287,6 +291,7 @@ void reporter_multistats( Transfer_Info *stats ) {
 	    printf( report_sum_bw_pps_enhanced_format,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->sock_callstats.write.totWriteErr,
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
 	} else {
 	    // TCP Enhanced Reporting
@@ -294,22 +299,22 @@ void reporter_multistats( Transfer_Info *stats ) {
 		printf( report_sum_bw_write_enhanced_format,
 			stats->startTime, stats->endTime,
 			buffer, &buffer[sizeof(buffer)/2],
-			stats->tcp.write.WriteCnt,
-			stats->tcp.write.WriteErr,
-			stats->tcp.write.TCPretry);
+			stats->sock_callstats.write.WriteCnt,
+			stats->sock_callstats.write.WriteErr,
+			stats->sock_callstats.write.TCPretry);
 	    } else {
 		printf( report_sum_bw_read_enhanced_format,
 			stats->startTime, stats->endTime,
 			buffer, &buffer[sizeof(buffer)/2],
-			stats->tcp.read.cntRead,
-			stats->tcp.read.bins[0],
-			stats->tcp.read.bins[1],
-			stats->tcp.read.bins[2],
-			stats->tcp.read.bins[3],
-			stats->tcp.read.bins[4],
-			stats->tcp.read.bins[5],
-			stats->tcp.read.bins[6],
-			stats->tcp.read.bins[7]);
+			stats->sock_callstats.read.cntRead,
+			stats->sock_callstats.read.bins[0],
+			stats->sock_callstats.read.bins[1],
+			stats->sock_callstats.read.bins[2],
+			stats->sock_callstats.read.bins[3],
+			stats->sock_callstats.read.bins[4],
+			stats->sock_callstats.read.bins[5],
+			stats->sock_callstats.read.bins[6],
+			stats->sock_callstats.read.bins[7]);
 	    }
 	}
     }
