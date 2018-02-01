@@ -336,7 +336,7 @@ void Server::L2_processing (void) {
 	udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
 	//  uint32_t l2mac_hash = murmur3_32(sizeof(struct ether_header), 0xDEADBEEF);
 	// Read the packet to get the UDP length
-	reportstruct->packetLen = ntohs(udp_hdr->len);
+	reportstruct->packetLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
 	reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
         // Reportstruct->m3hash = murmur3_32(rxlen, l2mac_hash);
     }
