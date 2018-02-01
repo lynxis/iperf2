@@ -297,11 +297,10 @@ int Server::ReadWithRxTimestamp (int *readerr) {
     return currLen;
 }
 
-// Returns false if the client has indicated this is the
-// last packet.
+// Returns false if the client has indicated this is the final packet
 bool Server::ReadPacketID (void) {
     bool terminate = false;
-    struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) (mBuf + mSettings->l4offset);
+    struct UDP_datagram* mBuf_UDP  = (struct UDP_datagram*) (mBuf + mSettings->l4offset + sizeof(struct udphdr));
 
     // terminate when datagram begins with negative index
     // the datagram ID should be correct, just negated
