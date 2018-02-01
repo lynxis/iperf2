@@ -212,6 +212,7 @@ typedef struct thread_Settings {
 #endif
     int l4offset; // used in l2 mode to offset the raw packet
     int l4payloadoffset;
+    int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L2
 } thread_Settings;
 
 /*

@@ -645,17 +645,19 @@ int Listener::L2_setup (void) {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip6 packet socket (AF_PACKET)");
 	server->l4offset = IPV6HDRLEN + sizeof(struct ether_header);
-	server->l4payloadoffset = server->l4offset + sizeof(struct udphdr);
     } else {
 	server->mSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
 	WARN_errno(server->mSock == INVALID_SOCKET, "ip packet socket (AF_PACKET)");
 	unsetIPV6(server);
 	server->l4offset = sizeof(struct iphdr) + sizeof(struct ether_header);
-	server->l4payloadoffset = server->l4offset + sizeof(struct udphdr);
     }
+    // Didn't get a valid socket, return now
     if (server->mSock < 0) {
 	return server->mSock;
     }
+    // More per thread settings based on using a packet socket
+    server->l4payloadoffset = server->l4offset + sizeof(struct udphdr);
+    server->recvflags = MSG_TRUNC;
     // The original AF_INET socket only exists to keep the connected state
     // in the OS for this flow. Fast drop packets there as
     // now packets will use the AF_PACKET (raw) socket
