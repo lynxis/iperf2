@@ -1184,10 +1184,12 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	stats->info.transit.meanTransit = stats->info.transit.totmeanTransit;
 	stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
 	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
-	if (stats->info.mTCP == kMode_Client) {
+	if ((stats->info.mTCP == kMode_Client) || (stats->info.mUDP == kMode_Client)) {
 	    stats->info.sock_callstats.write.WriteErr = stats->info.sock_callstats.write.totWriteErr;
 	    stats->info.sock_callstats.write.WriteCnt = stats->info.sock_callstats.write.totWriteCnt;
-	    stats->info.sock_callstats.write.TCPretry = stats->info.sock_callstats.write.totTCPretry;
+	    if (stats->info.mTCP == kMode_Client) {
+		stats->info.sock_callstats.write.TCPretry = stats->info.sock_callstats.write.totTCPretry;
+	    }
 	}
 	if (stats->info.mTCP == kMode_Server) {
 	    int ix;
