@@ -90,7 +90,7 @@ private:
     void L2_processing (void);
     void Isoch_processing (void);
 
-#ifdef HAVE_DECL_SO_TIMESTAMP
+#if HAVE_DECL_SO_TIMESTAMP
     // Structures needed for recvmsg
     // Use to get kernel timestamps of packets
     struct sockaddr_storage srcaddr;

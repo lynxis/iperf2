@@ -195,7 +195,7 @@ void Server::RunTCP( void ) {
 }
 
 void Server::InitTimeStamping (void) {
-#ifdef HAVE_DECL_SO_TIMESTAMP
+#if HAVE_DECL_SO_TIMESTAMP
     iov[0].iov_base=mBuf;
     iov[0].iov_len=mSettings->mBufLen;
 
@@ -257,7 +257,7 @@ int Server::ReadWithRxTimestamp (int *readerr) {
     long currLen;
     int tsdone = 0;
 
-#ifdef HAVE_DECL_SO_TIMESTAMP
+#if HAVE_DECL_SO_TIMESTAMP
     cmsg = (struct cmsghdr *) &ctrl;
     currLen = recvmsg( mSettings->mSock, &message, 0 );
     if (currLen > 0) {
