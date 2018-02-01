@@ -331,7 +331,10 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->connection.local = agent->local;
             data->connection.size_local = agent->size_local;
 	    data->connection.peerversion = agent->peerversion;
-	    data->connection.l2mode = ((isIPV6(agent) << 3) | (isL2MACHash(agent) << 2) | (isL2FrameHash(agent) << 1) | isL2LengthCheck(agent));
+	    // Set the l2mode flags
+	    data->connection.l2mode = ((isL2MACHash(agent) << 2) | (isL2FrameHash(agent) << 1) | isL2LengthCheck(agent));
+	    if (data->connection.l2mode)
+		data->connection.l2mode = ((isIPV6(agent) << 3) | data->connection.l2mode);
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
