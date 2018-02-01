@@ -131,6 +131,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( stats->mEnhanced ? report_bw_pps_enhanced_isoch_format : report_bw_format, stats->transferID,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->sock_callstats.write.WriteCnt,
 		    stats->sock_callstats.write.WriteErr,
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0),
 		    stats->isochstats.framecnt,
@@ -140,6 +141,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    printf( stats->mEnhanced ? report_bw_pps_enhanced_format : report_bw_format, stats->transferID,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->sock_callstats.write.WriteCnt,
 		    stats->sock_callstats.write.WriteErr,
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
 
@@ -291,6 +293,7 @@ void reporter_multistats( Transfer_Info *stats ) {
 	    printf( report_sum_bw_pps_enhanced_format,
 		    stats->startTime, stats->endTime,
 		    buffer, &buffer[sizeof(buffer)/2],
+		    stats->sock_callstats.write.totWriteCnt,
 		    stats->sock_callstats.write.totWriteErr,
 		    (stats->IPGcnt ? (stats->IPGcnt / stats->IPGsum) : 0.0));
 	} else {
