@@ -379,8 +379,11 @@ void Server::RunUDP( void ) {
     // 3) -t timer expires
     do {
 	// read the next packet with timestamp
+	reportstruct->emptyreport=1;
 	rxlen=ReadWithRxTimestamp(&readerr);
-	if (!readerr) {
+	if (readerr) {
+	    done = 1;
+	} else if (rxlen > 0) {
 	    // Above returns true if this is the last UDP packet sent by the client
 	    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
 		reportstruct->l2len = rxlen;
@@ -394,12 +397,12 @@ void Server::RunUDP( void ) {
 	    if (isIsochronous(mSettings)) {
 		Isoch_processing();
 	    }
-	} else {
-	    done = 1;
 	}
+
 	if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
 	    done = 1;
 	}
+
 	ReportPacket(mSettings->reporthdr, reportstruct);
     } while (!done);
 
