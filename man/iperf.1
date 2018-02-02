@@ -49,6 +49,9 @@ send or receive isochronous traffic with frequency frames per second and load de
 .BR -l ", " --len " \fIn\fR[kmKM]"
 set read/write buffer size (TCP) or length (UDP) to \fIn\fR (TCP default 128K, UDP default 1470)
 .TP
+.BR "    --l2checks "
+perform layer 2 length checks on received UDP packets (requires systems that support packet sockets, e.g. Linux)
+.TP
 .BR -m ", " --print_mss " "
 print TCP maximum segment size (MTU - TCP/IP header)
 .TP
