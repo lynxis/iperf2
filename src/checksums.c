@@ -160,7 +160,7 @@
  *
  *  Returns zero on checksum success, non zero otherwise
  */
-bool udpchecksum(const void *l3pdu, const void *l4pdu, int udplen, int v6) {
+uint32_t udpchecksum(const void *l3pdu, const void *l4pdu, int udplen, int v6) {
     register uint32_t sum = 0;
     const uint16_t *data;
     int i;
