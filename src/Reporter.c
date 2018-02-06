@@ -935,7 +935,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 #endif
 		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
-#ifdef HAVE_AF_PACKET
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 		    if (packet->l2errs & L2LENERR) {
 			fprintf(stdout, "[%3d] l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", stats->transferID, packet->l2len, packet->expected_l2len, packet->packetID);
 		    }

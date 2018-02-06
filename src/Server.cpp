@@ -62,7 +62,7 @@
 #include "Reporter.h"
 #include "Locale.h"
 #include "delay.h"
-#ifdef HAVE_AF_PACKET
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 #include "checksums.h"
 #endif
 
@@ -74,7 +74,7 @@ Server::Server( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
 
-#ifdef HAVE_AF_PACKET
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     if (isL2LengthCheck(mSettings)) {
 	// For L2 UDP make sure we can receive a full ethernet packet plus a bit more
 	if (mSettings->mBufLen < (2 * ETHER_MAX_LEN)) {
@@ -329,7 +329,7 @@ bool Server::ReadPacketID (void) {
 }
 
 void Server::L2_processing (void) {
-#ifdef HAVE_AF_PACKET
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     // Adjust the mbuf start pointer to reflect the L2 payload
     if (isL2LengthCheck(mSettings)) {
 	eth_hdr = (struct ether_header *) mBuf;

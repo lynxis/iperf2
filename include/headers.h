@@ -88,7 +88,7 @@
 #include <inttypes.h>
 
 // AF_PACKET HEADERS
-#ifdef HAVE_AF_PACKET
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 #include <net/ethernet.h>
 // Bummer, AF_PACKET requires kernel headers as <netpacket/packet.h> isn't sufficient
 #include <linux/filter.h>
