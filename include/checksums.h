@@ -54,7 +54,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-bool udpchecksum(const void *l3pdu, const void *udp_hdr, int udplen, int v6);
+uint16_t udpchecksum(const void *l3pdu, const void *udp_hdr, int udplen, int v6);
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif
