@@ -844,7 +844,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	  // Request server to do length checks
 	  setL2LengthCheck(mExtSettings);
 #else
-	  fprintf(stderr, "l2checks no supported\n");
+	  fprintf(stderr, "--l2checks not supported on this platform\n");
 #endif
 	}
     }

@@ -690,6 +690,7 @@ int Listener::L2_setup (void) {
     else
 	return 1;
 #else
+    fprintf(stderr, "Client requested --l2checks but not supported on this platform\n");
     return -1;
 #endif
 }
