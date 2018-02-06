@@ -547,7 +547,7 @@ void Client::RunUDP( void ) {
 		) {
 		WARN_errno( 1, "write" );
 		break;
-	    } else if ((errno == EAGAIN) || (errno == ENOBUFS)) {
+	    } else if (errno == ENOBUFS) {
 		reportstruct->errwrite = 1;
 	    }
 	}
@@ -697,7 +697,7 @@ void Client::RunUDPIsochronous (void) {
 		    ) {
 		    WARN_errno( 1, "write" );
 		    break;
-		} else if ((errno == EAGAIN) || (errno == ENOBUFS)) {
+		} else if (errno == ENOBUFS) {
 		    reportstruct->errwrite = 1;
 		}
 	    } else {
