@@ -835,17 +835,18 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     // L2 settings
     if (l2checks && isUDP(mExtSettings)) {
 	l2checks = 0;
-#ifdef HAVE_AF_PACKET
+
 	// Client controls hash or not
 	if (mExtSettings->mThreadMode == kMode_Client) {
 	    setL2LengthCheck(mExtSettings);
 	} else {
-	    // Request server to do length checks
-	    setL2LengthCheck(mExtSettings);
-	}
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
+	  // Request server to do length checks
+	  setL2LengthCheck(mExtSettings);
 #else
-	fprintf(stderr, "l2checks no supported\n");
+	  fprintf(stderr, "l2checks no supported\n");
 #endif
+	}
     }
 
 
