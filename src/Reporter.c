@@ -864,27 +864,26 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
             data->TotalLen += packet->packetLen;
         }
     } else {
+	if (reporthdr->report.mThreadMode == kMode_Client) {
+	    if (packet->errwrite) {
+		stats->sock_callstats.write.WriteErr++;
+		stats->sock_callstats.write.totWriteErr++;
+	    } else {
+		stats->sock_callstats.write.WriteCnt++;
+		stats->sock_callstats.write.totWriteCnt++;
+	    }
+	}
 	if (!packet->emptyreport) {
 	    // update fields common to TCP and UDP, client and server
 	    data->TotalLen += packet->packetLen;
 	    // update fields common to TCP and UDP client
-	    if (reporthdr->report.mThreadMode == kMode_Client) {
-		if (packet->errwrite) {
-		    stats->sock_callstats.write.WriteErr++;
-		    stats->sock_callstats.write.totWriteErr++;
-		}
-		else {
-		    stats->sock_callstats.write.WriteCnt++;
-		    stats->sock_callstats.write.totWriteCnt++;
-		}
-	    }
 	    // update fields common to UDP client and server
             if ( isUDP( data ) ) {
 		data->cntDatagrams++;
 		stats->IPGsum += TimeDifference(data->packetTime, data->IPGstart );
 		stats->IPGcnt++;
 		data->IPGstart = data->packetTime;
- #ifdef HAVE_ISOCHRONOUS
+#ifdef HAVE_ISOCHRONOUS
 		{
 		    int framedelta=0;
 		    // very first isochronous frame
