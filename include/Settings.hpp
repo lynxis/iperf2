@@ -265,8 +265,6 @@ typedef struct thread_Settings {
 #define FLAG_ISOCHRONOUS    0x00000008
 #define FLAG_UDPTRIGGERS    0x00000010
 #define FLAG_UDPHISTOGRAM   0x00000020
-#define FLAG_L2MACHASH      0x00000040
-#define FLAG_L2FRAMEHASH    0x00000080
 #define FLAG_L2LENGTHCHECK  0x00000100
 
 
@@ -306,8 +304,6 @@ typedef struct thread_Settings {
 #define isIsochronous(settings)    ((settings->flags_extend & FLAG_ISOCHRONOUS) != 0)
 #define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
 #define isUDPHistogram(settings)   ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
-#define isL2MACHash(settings)      ((settings->flags_extend & FLAG_L2MACHASH) != 0)
-#define isL2FrameHash(settings)    ((settings->flags_extend & FLAG_L2FRAMEHASH) != 0)
 #define isL2LengthCheck(settings)  ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
@@ -344,8 +340,6 @@ typedef struct thread_Settings {
 #define setIsochronous(settings)   settings->flags_extend |= FLAG_ISOCHRONOUS
 #define setUDPTriggers(settings)   settings->flags_extend |= FLAG_UDPTRIGGERS
 #define setUDPHistogram(settings)  settings->flags_extend |= FLAG_UDPHISTOGRAM
-#define setL2MACHash(settings)     settings->flags_extend |= FLAG_L2MACHASH
-#define setL2FrameHash(settings)   settings->flags_extend |= FLAG_L2FRAMEHASH
 #define setL2LengthCheck(settings)    settings->flags_extend |= FLAG_L2LENGTHCHECK
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
@@ -382,8 +376,6 @@ typedef struct thread_Settings {
 #define unsetIsochronous(settings) settings->flags_extend &= ~FLAG_ISOCHRONOUS
 #define unsetUDPTriggers(settings) settings->flags_extend &= ~FLAG_UDPTRIGGERS
 #define unsetUDPHistogram(settings)    settings->flags_extend &= ~FLAG_UDPHISTOGRAM
-#define unsetL2MACHash(settings)   settings->flags_extend &= ~FLAG_L2MACHASH
-#define unsetL2FrameHash(settings) settings->flags_extend &= ~FLAG_L2FRAMEHASH
 #define unsetL2LengthCheck(settings)  settings->flags_extend &= ~FLAG_L2LENGTHCHECK
 
 
@@ -400,9 +392,7 @@ typedef struct thread_Settings {
 // and not just during the header exchange
 #define HEADER_UDP_ISOCH    0x00000001
 #define HEADER_L2ETHPIPV6   0x00000002
-#define HEADER_L2MACHASH    0x00000004
-#define HEADER_L2FRAMEHASH  0x00000008
-#define HEADER_L2LENCHECK   0x00000010
+#define HEADER_L2LENCHECK   0x00000004
 
 
 #define RUN_NOW         0x00000001

@@ -838,8 +838,6 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 #ifdef HAVE_AF_PACKET
 	// Client controls hash or not
 	if (mExtSettings->mThreadMode == kMode_Client) {
-	    // setL2MACHash(mExtSettings);
-	    // setL2FrameHash(mExtSettings);
 	    setL2LengthCheck(mExtSettings);
 	} else {
 	    // Request server to do length checks
@@ -1116,15 +1114,11 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    flags |= RUN_NOW;
 	}
     }
-    if (isUDP(client) && (isL2LengthCheck(client) || isL2MACHash(client) ||  isL2FrameHash(client) || isIsochronous(client))) {
+    if (isUDP(client) && (isL2LengthCheck(client) || isIsochronous(client))) {
 	flags = HEADER_UDPTESTS;
 	uint32_t testflags = 0;
 	if (isL2LengthCheck(client))
 	    testflags |= HEADER_L2LENCHECK;
-	if (isL2MACHash(client))
-	    testflags |= HEADER_L2MACHASH;
-	if (isL2FrameHash(client))
-	    testflags |= HEADER_L2FRAMEHASH;
 	if (testflags && isIPV6(client))
 	    testflags |= HEADER_L2ETHPIPV6;
 	if (isIsochronous(client))

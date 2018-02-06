@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------
- * Copyright (c) 2017
+ * Copyright (c) 2018
  * Broadcom Corporation
  * All Rights Reserved.
  *---------------------------------------------------------------
@@ -39,50 +39,24 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
  *
- * Perform a murmur3 hash for network byte order
- * hton flag will cause host to network byte order
+ *
+ * UDP checksums v4 and v6
+ *
+ * The checksum calculation is defined in RFC 768 
+ * hints as to how to calculate it efficiently are in RFC 1071
  *
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
  * -------------------------------------------------------------------
  */
-#include "headers.h"
-#include "murmur3.h"
 
-uint32_t murmur3_32(const uint8_t* key, size_t len, uint32_t seed, int hton) {
-    uint32_t h = seed;
-    if (len > 3) {
-	const uint32_t* key_x4 = (const uint32_t*) key;
-	size_t i = len >> 2;
-	do {
-	    uint32_t k = (hton ? htonl(*key_x4++) : (*key_x4++));
-	    k *= 0xcc9e2d51;
-	    k = (k << 15) | (k >> 17);
-	    k *= 0x1b873593;
-	    h ^= k;
-	    h = (h << 13) | (h >> 19);
-	    h = (h * 5) + 0xe6546b64;
-	} while (--i);
-	key = (const uint8_t*) key_x4;
-    }
-    if (len & 3) {
-	size_t i = len & 3;
-	// pad to 32 bits
-	uint32_t k = ((*key) << (8 * (4 - i)));
-	k = (hton ? htonl(k) : k);
-	k *= 0xcc9e2d51;
-	k = (k << 15) | (k >> 17);
-	k *= 0x1b873593;
-	h ^= k;
-	h = (h << 13) | (h >> 19);
-	h = (h * 5) + 0xe6546b64;
-    }
-    h ^= len;
-    h ^= h >> 16;
-    h *= 0x85ebca6b;
-    h ^= h >> 13;
-    h *= 0xc2b2ae35;
-    h ^= h >> 16;
-    return h;
-}
+#ifndef CHECKSUMS_H
+#define CHECKSUMS_H
+#ifdef __cplusplus
+extern "C" {
+#endif
+bool udpchecksum(const void *l3pdu, const void *udp_hdr, int udplen, int v6);
+#ifdef __cplusplus
+} /* end extern "C" */
+#endif
 
-
+#endif /* CHEKCSUMS_H */

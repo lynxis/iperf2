@@ -332,9 +332,9 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->connection.size_local = agent->size_local;
 	    data->connection.peerversion = agent->peerversion;
 	    // Set the l2mode flags
-	    data->connection.l2mode = ((isL2MACHash(agent) << 2) | (isL2FrameHash(agent) << 1) | isL2LengthCheck(agent));
+	    data->connection.l2mode = isL2LengthCheck(agent);
 	    if (data->connection.l2mode)
-		data->connection.l2mode = ((isIPV6(agent) << 3) | data->connection.l2mode);
+		data->connection.l2mode = ((isIPV6(agent) << 1) | data->connection.l2mode);
         } else {
             FAIL(1, "Out of Memory!!\n", agent);
         }
@@ -936,8 +936,11 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
 #ifdef HAVE_AF_PACKET
-		    if (packet->l2len && (packet->expected_l2len != packet->l2len)) {
+		    if (packet->l2errs & L2LENERR) {
 			fprintf(stdout, "[%3d] l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", stats->transferID, packet->l2len, packet->expected_l2len, packet->packetID);
+		    }
+		    if (packet->l2errs & L2CSUMERR) {
+			fprintf(stdout, "[%3d] UDP checksum error: seqno = %" IPERFdMAX " \n", stats->transferID, packet->packetID);
 		    }
 #endif
 		    //subsequent packets

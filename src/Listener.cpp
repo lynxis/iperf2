@@ -281,8 +281,7 @@ sInterupted == SIGALRM
 
 
 	    // Perform L2 setup if needed
-	    if (isUDP(mSettings) && (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings) || \
-				     (isL2LengthCheck(server) || isL2MACHash(server) ||  isL2FrameHash(server)))) {
+	    if (isUDP(mSettings) && (isL2LengthCheck(mSettings) || isL2LengthCheck(server))) {
 		if (L2_setup() < 0) {
 		    // L2 not allowed, abort this server try
 		    delete server;
@@ -1061,12 +1060,6 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 		setIsochronous(server);
 	    }
 #endif
-	    if ((testflags & HEADER_L2MACHASH) != 0) {
-		setL2MACHash(server);
-	    }
-	    if ((testflags & HEADER_L2FRAMEHASH) != 0) {
-		setL2FrameHash(server);
-	    }
 	    if ((testflags & HEADER_L2ETHPIPV6) != 0) {
 		setIPV6(server);
 	    } else {

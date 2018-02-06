@@ -139,6 +139,8 @@ typedef struct IsochStats {
  * This struct contains all important information from the sending or
  * recieving thread.
  */
+#define L2LENERR 0x01
+#define L2CSUMERR  0x02
 typedef struct ReportStruct {
     max_size_t packetID;
     umax_size_t packetLen;
@@ -147,7 +149,7 @@ typedef struct ReportStruct {
     int errwrite;
     int emptyreport;
     int socket;
-    uint32_t m3hash;
+    int l2errs;
     int l2len;
     int expected_l2len;
 #ifdef HAVE_ISOCHRONOUS

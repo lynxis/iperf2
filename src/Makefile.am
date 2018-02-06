@@ -53,5 +53,5 @@ checkisoch_LDADD = $(LIBCOMPAT_LDADDS)
 endif
 
 if AF_PACKET
-iperf_SOURCES += murmur3.c
+iperf_SOURCES += checksums.c
 endif

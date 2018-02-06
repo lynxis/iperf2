@@ -62,6 +62,9 @@
 #include "Reporter.h"
 #include "Locale.h"
 #include "delay.h"
+#ifdef HAVE_AF_PACKET
+#include "checksums.h"
+#endif
 
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
@@ -72,7 +75,7 @@ Server::Server( thread_Settings *inSettings ) {
     mBuf = NULL;
 
 #ifdef HAVE_AF_PACKET
-    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
+    if (isL2LengthCheck(mSettings)) {
 	// For L2 UDP make sure we can receive a full ethernet packet plus a bit more
 	if (mSettings->mBufLen < (2 * ETHER_MAX_LEN)) {
 	    mSettings->mBufLen = (2 * ETHER_MAX_LEN);
@@ -328,16 +331,25 @@ bool Server::ReadPacketID (void) {
 void Server::L2_processing (void) {
 #ifdef HAVE_AF_PACKET
     // Adjust the mbuf start pointer to reflect the L2 payload
-    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
+    if (isL2LengthCheck(mSettings)) {
 	eth_hdr = (struct ether_header *) mBuf;
 	ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
 	// L4 offest is set by the listener and depends upon IPv4 or IPv6
 	udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
-	//  uint32_t l2mac_hash = murmur3_32(sizeof(struct ether_header), 0xDEADBEEF);
+	int udplen = ntohs(udp_hdr->len);
 	// Read the packet to get the UDP length
-	reportstruct->packetLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
+	reportstruct->packetLen = udplen - sizeof(struct udphdr);
 	reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
-        // Reportstruct->m3hash = murmur3_32(rxlen, l2mac_hash);
+	reportstruct->l2errs = 0x0;
+	if (reportstruct->l2len != reportstruct->expected_l2len) {
+	    reportstruct->l2errs |= L2LENERR;
+	} else {
+	    // perform UDP checksum test, returns zero on success
+	    int rc;
+	    rc = udpchecksum((void *)ip_hdr, (void *)udp_hdr, udplen, (isIPV6(mSettings) ? 1 : 0));
+	    if (rc)
+		reportstruct->l2errs |= L2CSUMERR;
+	}
     }
 #endif // HAVE_AF_PACKET
 }
@@ -383,7 +395,7 @@ void Server::RunUDP( void ) {
 	if (readerr) {
 	    done = 1;
 	} else if (rxlen > 0) {
-	    if (isL2LengthCheck(mSettings) || isL2MACHash(mSettings) ||  isL2FrameHash(mSettings)) {
+	    if (isL2LengthCheck(mSettings)) {
 		reportstruct->l2len = rxlen;
 		// L2 processing will set the reportstruct packet length with the length found in the udp header
 		// and also set the expected length in the report struct.  The reporter thread
