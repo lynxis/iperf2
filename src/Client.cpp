@@ -526,10 +526,12 @@ void Client::RunUDP( void ) {
 	    delay = delay_target;
 	}
 
+
+	reportstruct->errwrite = 0;
+	reportstruct->emptyreport=0;
 	// perform write
 	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	if ( currLen < 0 ) {
-	    reportstruct->errwrite = 1;
 	    reportstruct->packetID--;
 	    reportstruct->emptyreport=1;
 	    currLen = 0;
@@ -545,6 +547,8 @@ void Client::RunUDP( void ) {
 		) {
 		WARN_errno( 1, "write" );
 		break;
+	    } else if (errno == ENOBUFS) {
+		reportstruct->errwrite = 1;
 	    }
 	}
 
@@ -670,12 +674,14 @@ void Client::RunUDPIsochronous (void) {
 	    //	  delay = delay_target;
 	    // }
 
-	    // perform write
+	    reportstruct->errwrite = 0;
+	    reportstruct->emptyreport=0;
+
 	    mBuf_isoch->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    mBuf_isoch->remaining = htonl(bytecnt);
+	    // perform write
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
-		reportstruct->errwrite = 1;
 		reportstruct->packetID--;
 		reportstruct->emptyreport=1;
 		currLen = 0;
@@ -691,6 +697,8 @@ void Client::RunUDPIsochronous (void) {
 		    ) {
 		    WARN_errno( 1, "write" );
 		    break;
+		} else if (errno == ENOBUFS) {
+		    reportstruct->errwrite = 1;
 		}
 	    } else {
 		bytecnt -= currLen;
