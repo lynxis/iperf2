@@ -62,6 +62,7 @@
 #include "Reporter.h"
 #include "Locale.h"
 #include "delay.h"
+#include "SocketAddr.h"
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 #include "checksums.h"
 #endif
@@ -330,7 +331,6 @@ bool Server::ReadPacketID (void) {
 
 void Server::L2_processing (void) {
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
-    // Adjust the mbuf start pointer to reflect the L2 payload
     if (isL2LengthCheck(mSettings)) {
 	eth_hdr = (struct ether_header *) mBuf;
 	ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
@@ -340,18 +340,106 @@ void Server::L2_processing (void) {
 	// Read the packet to get the UDP length
 	reportstruct->packetLen = udplen - sizeof(struct udphdr);
 	reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
-	reportstruct->l2errs = 0x0;
+	reportstruct->l2errors = 0x0;
 	if (reportstruct->l2len != reportstruct->expected_l2len) {
-	    reportstruct->l2errs |= L2LENERR;
+	    reportstruct->l2errors |= L2LENERR;
 	} else {
 	    // perform UDP checksum test, returns zero on success
 	    int rc;
 	    rc = udpchecksum((void *)ip_hdr, (void *)udp_hdr, udplen, (isIPV6(mSettings) ? 1 : 0));
 	    if (rc)
-		reportstruct->l2errs |= L2CSUMERR;
+		reportstruct->l2errors |= L2CSUMERR;
+	}
+	// in the event of an L2 error, let's double check the packet before passing it to the reporter,
+	// i.e. no reason to run iperf accounting on a packet that has no reasonable L3 or L4 headers
+	if (reportstruct->l2errors && (L2_quintuple_filter() != 0)) {
+	    reportstruct->l2errors |= L2UNKNOWN;
+	    // Mark this as empty so the reporter won't
+	    // try to do iperf accounting on it.
+	    reportstruct->emptyreport = 1;
 	}
     }
 #endif // HAVE_AF_PACKET
+}
+
+// Run the L2 packet through a quintuple check, i.e. proto/ip src/ip dst/src port/src dst
+// and return zero is there is a match, otherwize return nonzero
+int Server::L2_quintuple_filter(void) {
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
+
+#define IPV4SRCOFFSET 12  // the ipv4 source address offset from the l3 pdu
+#define IPV6SRCOFFSET 8 // the ipv6 source address offset
+
+    // Get the expected values from the sockaddr structures
+    // Note: it's expected the initiating socket has aready "connected"
+    // and the sockaddr structs have been populated
+    // 2nd Note:  sockaddr structs are in network byte order
+    struct sockaddr *p = (sockaddr *)&mSettings->peer;
+    struct sockaddr *l = (sockaddr *)&mSettings->local;
+    // make sure sa_family is coherent for both src and dst
+    if (!(((l->sa_family == AF_INET) && (p->sa_family == AF_INET)) || ((l->sa_family == AF_INET6) && (p->sa_family == AF_INET6)))) {
+	return -1;
+    }
+
+    // check the L2 ethertype
+    struct ether_header *l2hdr = (struct ether_header *)mBuf;
+
+    if (!isIPV6(mSettings)) {
+	if (ntohs(l2hdr->ether_type) != ETHERTYPE_IP)
+	    return -1;
+    } else {
+	if (ntohs(l2hdr->ether_type) != ETHERTYPE_IPV6)
+	    return -1;
+    }
+    // check the ip src/dst
+    const uint32_t *data;
+    udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
+
+    // Check plain old v4 using v4 addr structs
+    if (l->sa_family == AF_INET) {
+	data = (const uint32_t *) (mBuf + sizeof(struct ether_header) + IPV4SRCOFFSET);
+	if (((struct sockaddr_in *)(p))->sin_addr.s_addr != *data++)
+	    return -1;
+	if (((struct sockaddr_in *)(l))->sin_addr.s_addr != *data)
+	    return -1;
+	if (udp_hdr->source != ((struct sockaddr_in *)(p))->sin_port)
+	    return -1;
+	if (udp_hdr->dest != ((struct sockaddr_in *)(l))->sin_port)
+	    return -1;
+    } else {
+	// Using the v6 addr structures
+#  ifdef HAVE_IPV6
+	struct in6_addr *v6peer = SockAddr_get_in6_addr(&mSettings->peer);
+	struct in6_addr *v6local = SockAddr_get_in6_addr(&mSettings->local);
+	if (isIPV6(mSettings)) {
+	    int i;
+	    data = (const uint32_t *) (mBuf + sizeof(struct ether_header) + IPV6SRCOFFSET);
+	    // check for v6 src/dst address match
+	    for (i = 0; i < 4; i++) {
+		if (v6peer->s6_addr32[i] != *data++)
+		    return -1;
+	    }
+	    for (i = 0; i < 4; i++) {
+		if (v6local->s6_addr32[i] != *data++)
+		    return -1;
+	    }
+	} else { // v4 addr in v6 family struct
+	    data = (const uint32_t *) (mBuf + sizeof(struct ether_header) + IPV4SRCOFFSET);
+	    if (v6peer->s6_addr32[3] != *data++)
+		return -1;
+	    if (v6peer->s6_addr32[3] != *data)
+		return -1;
+	}
+	// check udp ports
+	if (udp_hdr->source != ((struct sockaddr_in6 *)(l))->sin6_port)
+	    return -1;
+	if (udp_hdr->dest != ((struct sockaddr_in6 *)(l))->sin6_port)
+	    return -1;
+#  endif // HAVE_IPV6
+    }
+#endif // HAVE_AF_PACKET
+    // made it through all the checks
+    return 0;
 }
 
 void Server::Isoch_processing (void) {
@@ -389,6 +477,7 @@ void Server::RunUDP( void ) {
     // 2) Last packet of traffic flow sent by client
     // 3) -t timer expires
     do {
+	reportstruct->l2errors = 0x0;
 	// read the next packet with timestamp
 	// will also set empty report or not
 	rxlen=ReadWithRxTimestamp(&readerr);
@@ -405,11 +494,13 @@ void Server::RunUDP( void ) {
 		// Normal UDP rx, set the length to the socket received length
 		reportstruct->packetLen = rxlen;
 	    }
-	    // ReadPacketID returns true if this is the last UDP packet sent by the client
-	    // aslo sets the packet rx time in the reportstruct
-	    done = ReadPacketID();
-	    if (isIsochronous(mSettings)) {
-		Isoch_processing();
+	    if (!(reportstruct->l2errors & L2UNKNOWN)) {
+		// ReadPacketID returns true if this is the last UDP packet sent by the client
+		// aslo sets the packet rx time in the reportstruct
+		done = ReadPacketID();
+		if (isIsochronous(mSettings)) {
+		    Isoch_processing();
+		}
 	    }
 	}
 

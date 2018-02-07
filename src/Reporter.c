@@ -936,10 +936,11 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
-		    if (packet->l2errs & L2LENERR) {
+		    if (packet->l2errors & L2UNKNOWN) {
+			fprintf(stdout, "[%3d] l2 packet with length %d failed quintuple check\n", stats->transferID, packet->l2len);
+		    } else if (packet->l2errors & L2LENERR) {
 			fprintf(stdout, "[%3d] l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", stats->transferID, packet->l2len, packet->expected_l2len, packet->packetID);
-		    }
-		    if (packet->l2errs & L2CSUMERR) {
+		    } else if (packet->l2errors & L2CSUMERR) {
 			fprintf(stdout, "[%3d] UDP checksum error: seqno = %" IPERFdMAX " \n", stats->transferID, packet->packetID);
 		    }
 #endif

@@ -394,7 +394,6 @@ typedef struct thread_Settings {
 #define HEADER_L2ETHPIPV6   0x00000002
 #define HEADER_L2LENCHECK   0x00000004
 
-
 #define RUN_NOW         0x00000001
 // newer flags
 #define UNITS_PPS             0x00000001
@@ -402,6 +401,7 @@ typedef struct thread_Settings {
 #define REALTIME              0x00000004
 #define REVERSE               0x00000008
 
+// later features
 #define HDRXACKMAX 2500000 // default 2.5 seconds, units microseconds
 #define HDRXACKMIN   10000 // default 10 ms, units microseconds
 #define MAGIC_NUMBER_TYPE 0x100 //
