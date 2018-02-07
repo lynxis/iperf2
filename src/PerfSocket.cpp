@@ -105,26 +105,33 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 #endif
     }
 
-    // check if we're sending multicast, and set TTL
-    if ( isMulticast( inSettings ) && ( inSettings->mTTL > 0 ) ) {
+    // check if we're sending multicast
+    if (isMulticast(inSettings)) {
 #ifdef HAVE_MULTICAST
-	int val = inSettings->mTTL;
-	if ( !SockAddr_isIPv6( &inSettings->local ) ) {
-	    int rc = setsockopt( inSettings->mSock, IPPROTO_IP, IP_MULTICAST_TTL,
-		    (char*) &val, (Socklen_t) sizeof(val));
+	if (!isUDP(inSettings)) {
+	    FAIL(1, "Multicast requires -u option ", inSettings);
+	    exit(1);
+	}  else if (inSettings->mTTL > 0) {
+	    // set TTL
+	    int val = inSettings->mTTL;
+	    if ( !SockAddr_isIPv6( &inSettings->local ) ) {
+		int rc = setsockopt( inSettings->mSock, IPPROTO_IP, IP_MULTICAST_TTL,
+				     (char*) &val, (Socklen_t) sizeof(val));
 
-	    WARN_errno( rc == SOCKET_ERROR, "multicast ttl" );
+		WARN_errno( rc == SOCKET_ERROR, "multicast v4 ttl" );
+	    } else
+#  ifdef HAVE_IPV6_MULTICAST
+	    {
+		int rc = setsockopt( inSettings->mSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+				     (char*) &val, (Socklen_t) sizeof(val));
+		WARN_errno( rc == SOCKET_ERROR, "multicast v6 ttl" );
+	    }
+#  else
+	    FAIL_errno(1, "v6 multicast not supported", inSettings);
+#  endif
 	}
-#ifdef HAVE_IPV6_MULTICAST
-	else {
-	    int rc = setsockopt( inSettings->mSock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-		    (char*) &val, (Socklen_t) sizeof(val));
-	    WARN_errno( rc == SOCKET_ERROR, "multicast ttl" );
-	}
-#endif
 #endif
     }
-
 
 #ifdef IP_TOS
 
