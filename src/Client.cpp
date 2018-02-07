@@ -526,11 +526,14 @@ void Client::RunUDP( void ) {
 	}
 
 	reportstruct->errwrite = 0;
+	reportstruct->emptyreport = 0;
+
 	// perform write
 	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	if ( currLen < 0 ) {
 	    reportstruct->packetID--;
 	    reportstruct->errwrite = 1;
+	    reportstruct->emptyreport = 1;
 	    currLen = 0;
 	    if (
 #ifdef WIN32
@@ -670,7 +673,7 @@ void Client::RunUDPIsochronous (void) {
 	    // }
 
 	    reportstruct->errwrite = 0;
-
+	    reportstruct->emptyreport = 0;
 	    mBuf_isoch->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    mBuf_isoch->remaining = htonl(bytecnt);
 	    // perform write
@@ -678,6 +681,7 @@ void Client::RunUDPIsochronous (void) {
 	    if ( currLen < 0 ) {
 		reportstruct->packetID--;
 		reportstruct->errwrite = 1;
+		reportstruct->emptyreport = 1;
 		currLen = 0;
 		if (
 #ifdef WIN32
