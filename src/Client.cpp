@@ -127,7 +127,6 @@ Client::Client( thread_Settings *inSettings ) {
     reportstruct = new ReportStruct;
     FAIL_errno( reportstruct == NULL, "No memory for report structure\n", mSettings );
     reportstruct->packetID = (isPeerVerDetect(mSettings)) ? 1 : 0;
-    reportstruct->emptyreport=0;
     reportstruct->errwrite=0;
     reportstruct->socket = mSettings->mSock;
 
@@ -526,14 +525,12 @@ void Client::RunUDP( void ) {
 	    delay = delay_target;
 	}
 
-
 	reportstruct->errwrite = 0;
-	reportstruct->emptyreport=0;
 	// perform write
 	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	if ( currLen < 0 ) {
 	    reportstruct->packetID--;
-	    reportstruct->emptyreport=1;
+	    reportstruct->errwrite = 1;
 	    currLen = 0;
 	    if (
 #ifdef WIN32
@@ -547,8 +544,6 @@ void Client::RunUDP( void ) {
 		) {
 		WARN_errno( 1, "write" );
 		break;
-	    } else if (errno == ENOBUFS) {
-		reportstruct->errwrite = 1;
 	    }
 	}
 
@@ -675,7 +670,6 @@ void Client::RunUDPIsochronous (void) {
 	    // }
 
 	    reportstruct->errwrite = 0;
-	    reportstruct->emptyreport=0;
 
 	    mBuf_isoch->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    mBuf_isoch->remaining = htonl(bytecnt);
@@ -683,7 +677,7 @@ void Client::RunUDPIsochronous (void) {
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
 		reportstruct->packetID--;
-		reportstruct->emptyreport=1;
+		reportstruct->errwrite = 1;
 		currLen = 0;
 		if (
 #ifdef WIN32
@@ -697,8 +691,6 @@ void Client::RunUDPIsochronous (void) {
 		    ) {
 		    WARN_errno( 1, "write" );
 		    break;
-		} else if (errno == ENOBUFS) {
-		    reportstruct->errwrite = 1;
 		}
 	    } else {
 		bytecnt -= currLen;

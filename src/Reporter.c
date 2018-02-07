@@ -864,6 +864,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
             data->TotalLen += packet->packetLen;
         }
     } else {
+	// Write counters for client
 	if (reporthdr->report.mThreadMode == kMode_Client) {
 	    if (packet->errwrite) {
 		stats->sock_callstats.write.WriteErr++;
