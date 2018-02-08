@@ -227,8 +227,8 @@ void reporter_printstats( Transfer_Info *stats ) {
 	if (stats->l2counts.unknown || stats->l2counts.lengtherr || stats->l2counts.udpcsumerr) {
 	    printf( report_l2statistics,
 		    stats->transferID, stats->startTime,
-		    stats->endTime, stats->l2counts.unknown,
-		    stats->l2counts.lengtherr, stats->l2counts.udpcsumerr);
+		    stats->endTime, stats->l2counts.lengtherr,
+		    stats->l2counts.udpcsumerr, stats->l2counts.unknown);
 	}
     }
     // Reset the enhanced stats for the next report interval
