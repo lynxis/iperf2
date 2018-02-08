@@ -864,7 +864,10 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
             data->TotalLen += packet->packetLen;
         }
     } else {
-	// Write counters for client
+	// Process error counters that are mostly
+	// unrelated to receiving a valid packet
+	//
+	// First, are client socket write counters
 	if (reporthdr->report.mThreadMode == kMode_Client) {
 	    if (packet->errwrite) {
 		stats->sock_callstats.write.WriteErr++;
@@ -873,7 +876,22 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		stats->sock_callstats.write.WriteCnt++;
 		stats->sock_callstats.write.totWriteCnt++;
 	    }
+	// Next are server l2 errors
+	} else if (packet->l2errors) {
+	    if (packet->l2errors & L2UNKNOWN) {
+		stats->l2counts.unknown++;
+		stats->l2counts.tot_unknown++;
+	    }
+	    if (packet->l2errors & L2LENERR) {
+		stats->l2counts.lengtherr++;
+		stats->l2counts.tot_lengtherr++;
+	    }
+	    if (packet->l2errors & L2CSUMERR) {
+		stats->l2counts.udpcsumerr++;
+		stats->l2counts.tot_udpcsumerr++;
+	    }
 	}
+	// These are valid packets that need standard iperf accounting
 	if (!packet->emptyreport) {
 	    // update fields common to TCP and UDP, client and server
 	    data->TotalLen += packet->packetLen;
@@ -1140,10 +1158,11 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 static void gettcpistats (ReporterData *stats) {
-    struct tcp_info tcp_internal;
-    socklen_t tcp_info_length = sizeof(struct tcp_info);
-    int retry;
     if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
+	struct tcp_info tcp_internal;
+	socklen_t tcp_info_length = sizeof(struct tcp_info);
+	int retry;
+
 	// Read the TCP retry stats for a client.  Do this
 	// on  a report interval period.
 	if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
@@ -1181,13 +1200,18 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         stats->info.TotalLen = stats->TotalLen;
         stats->info.startTime = 0;
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
-	stats->info.transit.minTransit = stats->info.transit.totminTransit;
-	stats->info.transit.maxTransit = stats->info.transit.totmaxTransit;
-	stats->info.transit.cntTransit = stats->info.transit.totcntTransit;
-	stats->info.transit.sumTransit = stats->info.transit.totsumTransit;
-	stats->info.transit.meanTransit = stats->info.transit.totmeanTransit;
-	stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
-	stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
+	if (stats->info.mUDP == kMode_Server) {
+	    stats->info.l2counts.unknown = stats->info.l2counts.tot_unknown;
+	    stats->info.l2counts.udpcsumerr = stats->info.l2counts.tot_udpcsumerr;
+	    stats->info.l2counts.lengtherr = stats->info.l2counts.tot_lengtherr;
+	    stats->info.transit.minTransit = stats->info.transit.totminTransit;
+	    stats->info.transit.maxTransit = stats->info.transit.totmaxTransit;
+	    stats->info.transit.cntTransit = stats->info.transit.totcntTransit;
+	    stats->info.transit.sumTransit = stats->info.transit.totsumTransit;
+	    stats->info.transit.meanTransit = stats->info.transit.totmeanTransit;
+	    stats->info.transit.m2Transit = stats->info.transit.totm2Transit;
+	    stats->info.transit.vdTransit = stats->info.transit.totvdTransit;
+	}
 	if ((stats->info.mTCP == kMode_Client) || (stats->info.mUDP == kMode_Client)) {
 	    stats->info.sock_callstats.write.WriteErr = stats->info.sock_callstats.write.totWriteErr;
 	    stats->info.sock_callstats.write.WriteCnt = stats->info.sock_callstats.write.totWriteCnt;
@@ -1257,6 +1281,11 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    if (stats->info.mUDP) {
 		stats->info.IPGcnt = 0;
 		stats->info.IPGsum = 0;
+		if (stats->info.mUDP == kMode_Server) {
+		    stats->info.l2counts.unknown = 0;
+		    stats->info.l2counts.udpcsumerr = 0;
+		    stats->info.l2counts.lengtherr = 0;
+		}
 	    }
 	    if (stats->info.mEnhanced) {
 		if ((stats->info.mTCP == (char)kMode_Client) || (stats->info.mUDP == (char)kMode_Client)) {

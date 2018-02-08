@@ -179,6 +179,8 @@ extern const char report_sum_bw_jitter_loss_enhanced_format[];
 
 extern const char report_outoforder[];
 
+extern const char report_l2statistics[];
+
 extern const char report_sum_outoforder[];
 
 extern const char report_peer[];

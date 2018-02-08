@@ -335,6 +335,9 @@ const char report_bw_jitter_loss_suppress_enhanced_format[] =
 const char report_outoforder[] =
 "[%3d] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
 
+const char report_l2statistics[] =
+"[%3d] %4.2f-%4.2f sec  L2 errors (length/checksum/uknown)=%" IPERFdMAX "/%" IPERFdMAX "/%" IPERFdMAX "\n";
+
 const char report_sum_outoforder[] =
 "[SUM] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
 

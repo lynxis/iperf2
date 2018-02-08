@@ -143,6 +143,15 @@ typedef struct IsochStats {
 #define L2LENERR   0x02
 #define L2CSUMERR  0x04
 
+typedef struct L2Stats {
+    max_size_t unknown;
+    max_size_t udpcsumerr;
+    max_size_t lengtherr;
+    max_size_t tot_unknown;
+    max_size_t tot_udpcsumerr;
+    max_size_t tot_lengtherr;
+} L2Stats;
+
 typedef struct ReportStruct {
     max_size_t packetID;
     umax_size_t packetLen;
@@ -203,6 +212,7 @@ typedef struct Transfer_Info {
     char   mTCP;
     char   free;
     histogram_t *latency_histogram;
+    L2Stats l2counts;
 #ifdef HAVE_ISOCHRONOUS
     IsochStats isochstats;
     char   mIsochronous;                 // -e
