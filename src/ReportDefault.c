@@ -224,10 +224,10 @@ void reporter_printstats( Transfer_Info *stats ) {
 		    stats->transferID, stats->startTime,
 		    stats->endTime, stats->cntOutofOrder );
 	}
-	if (stats->l2counts.unknown || stats->l2counts.lengtherr || stats->l2counts.udpcsumerr) {
+	if (stats->l2counts.cnt) {
 	    printf( report_l2statistics,
 		    stats->transferID, stats->startTime,
-		    stats->endTime, stats->l2counts.lengtherr,
+		    stats->endTime, stats->l2counts.cnt, stats->l2counts.lengtherr,
 		    stats->l2counts.udpcsumerr, stats->l2counts.unknown);
 	}
     }

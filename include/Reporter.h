@@ -144,9 +144,11 @@ typedef struct IsochStats {
 #define L2CSUMERR  0x04
 
 typedef struct L2Stats {
+    max_size_t cnt;
     max_size_t unknown;
     max_size_t udpcsumerr;
     max_size_t lengtherr;
+    max_size_t tot_cnt;
     max_size_t tot_unknown;
     max_size_t tot_udpcsumerr;
     max_size_t tot_lengtherr;

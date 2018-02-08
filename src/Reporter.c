@@ -878,6 +878,8 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	    }
 	// Next are server l2 errors
 	} else if (packet->l2errors) {
+	    stats->l2counts.cnt++;
+	    stats->l2counts.tot_cnt++;
 	    if (packet->l2errors & L2UNKNOWN) {
 		stats->l2counts.unknown++;
 		stats->l2counts.tot_unknown++;
@@ -953,15 +955,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 #endif
 		// Finally, update UDP server fields
 		if (stats->mUDP == kMode_Server) {
-#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
-		    if (packet->l2errors & L2UNKNOWN) {
-			fprintf(stdout, "[%3d] l2 packet with length %d failed quintuple check\n", stats->transferID, packet->l2len);
-		    } else if (packet->l2errors & L2LENERR) {
-			fprintf(stdout, "[%3d] l2 length error: actual = %d, expected = %d, seqno = %" IPERFdMAX " \n", stats->transferID, packet->l2len, packet->expected_l2len, packet->packetID);
-		    } else if (packet->l2errors & L2CSUMERR) {
-			fprintf(stdout, "[%3d] UDP checksum error: seqno = %" IPERFdMAX " \n", stats->transferID, packet->packetID);
-		    }
-#endif
 		    //subsequent packets
 		    double transit;
 		    double deltaTransit;
@@ -1201,6 +1194,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         stats->info.startTime = 0;
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
 	if (stats->info.mUDP == kMode_Server) {
+	    stats->info.l2counts.cnt = stats->info.l2counts.tot_cnt;
 	    stats->info.l2counts.unknown = stats->info.l2counts.tot_unknown;
 	    stats->info.l2counts.udpcsumerr = stats->info.l2counts.tot_udpcsumerr;
 	    stats->info.l2counts.lengtherr = stats->info.l2counts.tot_lengtherr;
@@ -1282,6 +1276,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 		stats->info.IPGcnt = 0;
 		stats->info.IPGsum = 0;
 		if (stats->info.mUDP == kMode_Server) {
+		    stats->info.l2counts.cnt = 0;
 		    stats->info.l2counts.unknown = 0;
 		    stats->info.l2counts.udpcsumerr = 0;
 		    stats->info.l2counts.lengtherr = 0;
