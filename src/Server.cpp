@@ -336,27 +336,34 @@ void Server::L2_processing (void) {
 	ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
 	// L4 offest is set by the listener and depends upon IPv4 or IPv6
 	udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
-	int udplen = ntohs(udp_hdr->len);
 	// Read the packet to get the UDP length
+	int udplen = ntohs(udp_hdr->len);
+	//
+	// in the event of an L2 error, double check the packet before passing it to the reporter,
+	// i.e. no reason to run iperf accounting on a packet that has no reasonable L3 or L4 headers
+	//
 	reportstruct->packetLen = udplen - sizeof(struct udphdr);
 	reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
 	reportstruct->l2errors = 0x0;
 	if (reportstruct->l2len != reportstruct->expected_l2len) {
 	    reportstruct->l2errors |= L2LENERR;
-	} else {
+	    if (L2_quintuple_filter() != 0) {
+		reportstruct->l2errors |= L2UNKNOWN;
+		reportstruct->l2errors |= L2CSUMERR;
+		reportstruct->emptyreport = 1;
+	    }
+	}
+	if (!(reportstruct->l2errors & L2UNKNOWN)) {
 	    // perform UDP checksum test, returns zero on success
 	    int rc;
 	    rc = udpchecksum((void *)ip_hdr, (void *)udp_hdr, udplen, (isIPV6(mSettings) ? 1 : 0));
-	    if (rc)
+	    if (rc) {
 		reportstruct->l2errors |= L2CSUMERR;
-	}
-	// in the event of an L2 error, let's double check the packet before passing it to the reporter,
-	// i.e. no reason to run iperf accounting on a packet that has no reasonable L3 or L4 headers
-	if (reportstruct->l2errors && (L2_quintuple_filter() != 0)) {
-	    reportstruct->l2errors |= L2UNKNOWN;
-	    // Mark this as empty so the reporter won't
-	    // try to do iperf accounting on it.
-	    reportstruct->emptyreport = 1;
+		if ((!(reportstruct->l2errors & L2LENERR)) && (L2_quintuple_filter() != 0)) {
+		    reportstruct->emptyreport = 1;
+		    reportstruct->l2errors |= L2UNKNOWN;
+		}
+	    }
 	}
     }
 #endif // HAVE_AF_PACKET
