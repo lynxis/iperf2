@@ -257,7 +257,6 @@ void Server::InitTrafficLoop (void) {
 }
 
 int Server::ReadWithRxTimestamp (int *readerr) {
-    reportstruct->emptyreport=0;
     long currLen;
     int tsdone = 0;
 
@@ -331,38 +330,35 @@ bool Server::ReadPacketID (void) {
 
 void Server::L2_processing (void) {
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
-    if (isL2LengthCheck(mSettings)) {
-	eth_hdr = (struct ether_header *) mBuf;
-	ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
-	// L4 offest is set by the listener and depends upon IPv4 or IPv6
-	udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
-	// Read the packet to get the UDP length
-	int udplen = ntohs(udp_hdr->len);
-	//
-	// in the event of an L2 error, double check the packet before passing it to the reporter,
-	// i.e. no reason to run iperf accounting on a packet that has no reasonable L3 or L4 headers
-	//
-	reportstruct->packetLen = udplen - sizeof(struct udphdr);
-	reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
-	reportstruct->l2errors = 0x0;
-	if (reportstruct->l2len != reportstruct->expected_l2len) {
-	    reportstruct->l2errors |= L2LENERR;
-	    if (L2_quintuple_filter() != 0) {
-		reportstruct->l2errors |= L2UNKNOWN;
-		reportstruct->l2errors |= L2CSUMERR;
-		reportstruct->emptyreport = 1;
-	    }
+    eth_hdr = (struct ether_header *) mBuf;
+    ip_hdr = (struct iphdr *) (mBuf + sizeof(struct ether_header));
+    // L4 offest is set by the listener and depends upon IPv4 or IPv6
+    udp_hdr = (struct udphdr *) (mBuf + mSettings->l4offset);
+    // Read the packet to get the UDP length
+    int udplen = ntohs(udp_hdr->len);
+    //
+    // in the event of an L2 error, double check the packet before passing it to the reporter,
+    // i.e. no reason to run iperf accounting on a packet that has no reasonable L3 or L4 headers
+    //
+    reportstruct->packetLen = udplen - sizeof(struct udphdr);
+    reportstruct->expected_l2len = reportstruct->packetLen + mSettings->l4offset + sizeof(struct udphdr);
+    if (reportstruct->l2len != reportstruct->expected_l2len) {
+	reportstruct->l2errors |= L2LENERR;
+	if (L2_quintuple_filter() != 0) {
+	    reportstruct->l2errors |= L2UNKNOWN;
+	    reportstruct->l2errors |= L2CSUMERR;
+	    reportstruct->emptyreport = 1;
 	}
-	if (!(reportstruct->l2errors & L2UNKNOWN)) {
-	    // perform UDP checksum test, returns zero on success
-	    int rc;
-	    rc = udpchecksum((void *)ip_hdr, (void *)udp_hdr, udplen, (isIPV6(mSettings) ? 1 : 0));
-	    if (rc) {
-		reportstruct->l2errors |= L2CSUMERR;
-		if ((!(reportstruct->l2errors & L2LENERR)) && (L2_quintuple_filter() != 0)) {
-		    reportstruct->emptyreport = 1;
-		    reportstruct->l2errors |= L2UNKNOWN;
-		}
+    }
+    if (!(reportstruct->l2errors & L2UNKNOWN)) {
+	// perform UDP checksum test, returns zero on success
+	int rc;
+	rc = udpchecksum((void *)ip_hdr, (void *)udp_hdr, udplen, (isIPV6(mSettings) ? 1 : 0));
+	if (rc) {
+	    reportstruct->l2errors |= L2CSUMERR;
+	    if ((!(reportstruct->l2errors & L2LENERR)) && (L2_quintuple_filter() != 0)) {
+		reportstruct->emptyreport = 1;
+		reportstruct->l2errors |= L2UNKNOWN;
 	    }
 	}
     }
@@ -484,7 +480,13 @@ void Server::RunUDP( void ) {
     // 2) Last packet of traffic flow sent by client
     // 3) -t timer expires
     do {
-	reportstruct->l2errors = 0x0;
+	// The emptyreport flag can be set
+	// by any of the packet processing routines
+	// If it's set the iperf reporter won't do
+	// bandwidth accounting, basically it's indicating
+	// that the reportstruct itself couldn't be
+	// completely filled out.
+	reportstruct->emptyreport=0;
 	// read the next packet with timestamp
 	// will also set empty report or not
 	rxlen=ReadWithRxTimestamp(&readerr);
@@ -496,6 +498,7 @@ void Server::RunUDP( void ) {
 		// L2 processing will set the reportstruct packet length with the length found in the udp header
 		// and also set the expected length in the report struct.  The reporter thread
 		// will do the compare and account and print l2 errors
+		reportstruct->l2errors = 0x0;
 		L2_processing();
 	    } else {
 		// Normal UDP rx, set the length to the socket received length
