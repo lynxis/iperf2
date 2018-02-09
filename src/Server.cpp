@@ -434,7 +434,7 @@ int Server::L2_quintuple_filter(void) {
 		return -1;
 	}
 	// check udp ports
-	if (udp_hdr->source != ((struct sockaddr_in6 *)(l))->sin6_port)
+	if (udp_hdr->source != ((struct sockaddr_in6 *)(p))->sin6_port)
 	    return -1;
 	if (udp_hdr->dest != ((struct sockaddr_in6 *)(l))->sin6_port)
 	    return -1;
