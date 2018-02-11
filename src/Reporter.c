@@ -849,6 +849,7 @@ int reporter_process_report ( ReportHeader *reporthdr ) {
 /*
  * Updates connection stats
  */
+#define L2DROPFILTERCOUNTER 100
 int reporter_handle_packet( ReportHeader *reporthdr ) {
     ReportStruct *packet = &reporthdr->data[reporthdr->reporterindex];
     ReporterData *data = &reporthdr->report;
@@ -876,8 +877,9 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		stats->sock_callstats.write.WriteCnt++;
 		stats->sock_callstats.write.totWriteCnt++;
 	    }
-	// Next are server l2 errors
-	} else if (packet->l2errors) {
+	// Next are server l2 errors, filter out first n L2 errors
+	// due to BPF AF_PACKET race
+	} else if (packet->l2errors && (data->cntDatagrams > L2DROPFILTERCOUNTER)) {
 	    stats->l2counts.cnt++;
 	    stats->l2counts.tot_cnt++;
 	    if (packet->l2errors & L2UNKNOWN) {
