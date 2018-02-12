@@ -235,6 +235,7 @@ void Settings_Initialize( thread_Settings *main ) {
     main->mReportMode = kReport_Default;
     // option, defaults
     main->flags         = FLAG_MODETIME | FLAG_STDOUT; // Default time and stdout
+    main->flags_extend  = 0x0;           // Default all extend flags to off
     //main->mUDPRate      = 0;           // -b,  offered (or rate limited) load (both UDP and TCP)
     main->mUDPRateUnits = kRate_BW;
     //main->mHost         = NULL;        // -c,  none, required for client

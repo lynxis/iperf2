@@ -380,7 +380,7 @@ typedef struct thread_Settings {
 
 
 /*
- * Messasge header flags
+ * Message header flags
  *
  * base flags, keep compatible with older versions
  */
