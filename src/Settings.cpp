@@ -317,7 +317,9 @@ void Settings_Copy( thread_Settings *from, thread_Settings **into ) {
     (*into)->mTID = thread_zeroid();
     (*into)->runNext = NULL;
     (*into)->runNow = NULL;
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     (*into)->mSockDrop = INVALID_SOCKET;
+#endif
 }
 
 /* -------------------------------------------------------------------

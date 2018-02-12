@@ -138,8 +138,10 @@ typedef struct thread_Settings {
 #if WIN32
     SOCKET mSock;
 #else
-    int mSockDrop;
     int mSock;
+#endif
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
+    int mSockDrop;
 #endif
     int Extractor_size;
     int mBufLen;                    // -l

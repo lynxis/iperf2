@@ -98,11 +98,14 @@ Server::~Server() {
         WARN_errno( rc == SOCKET_ERROR, "close" );
         mSettings->mSock = INVALID_SOCKET;
     }
+
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     if ( mSettings->mSockDrop != INVALID_SOCKET ) {
 	int rc = close( mSettings->mSockDrop );
         WARN_errno( rc == SOCKET_ERROR, "close" );
         mSettings->mSockDrop = INVALID_SOCKET;
     }
+#endif
     DELETE_ARRAY( mBuf );
 }
 
@@ -610,9 +613,13 @@ void Server::write_UDP_AckFIN( ) {
         }
 
         // write data
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 	// If in l2mode, use the AF_INET socket to write this packet
 	//
 	write(((mSettings->mSockDrop > 0 ) ? mSettings->mSockDrop : mSettings->mSock), mBuf, mSettings->mBufLen);
+#else
+	write(mSettings->mSock, mBuf, mSettings->mBufLen);
+#endif
         // wait until the socket is readable, or our timeout expires
         FD_SET( mSettings->mSock, &readSet );
         timeout.tv_sec  = 1;
