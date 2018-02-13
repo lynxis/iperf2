@@ -442,13 +442,11 @@ typedef struct UDP_datagram {
     unsigned int tv_sec  : 32;
     unsigned int tv_usec : 32;
 #endif //32
-#ifdef HAVE_SEQNO64b
-#  ifdef HAVE_INT32_T
+#ifdef HAVE_INT32_T
     u_int32_t id2;
-#  else
+#else
     unsigned int id2      : 32;
-#  endif // 32
-#endif //SEQNO64b
+#endif // 32
 } UDP_datagram;
 
 typedef struct hdr_typelen {
@@ -522,16 +520,6 @@ typedef struct client_hdrext {
 #endif
 } client_hdrext;
 
-typedef struct UDP_l2_payload {
-#ifdef HAVE_INT32_T
-    int32_t machash;
-    int32_t payloadhash;
-#else
-    unsigned int machash       : 32;
-    unsigned int payloadhash   : 32;
-#endif
-} UDP_l2_payload;
-
 typedef struct UDP_isoch_payload {
 #ifdef HAVE_INT32_T
     u_int32_t burstperiod; //period units microseconds
@@ -559,13 +547,6 @@ typedef struct UDP_isoch_payload {
 typedef struct client_hdr_udp_tests {
 // for 32 bit systems, skip over this field
 // so it remains interoperable with 64 bit peers
-#ifndef HAVE_SEQNO64b
-#  ifdef HAVE_INT32_T
-    u_int32_t id2;
-#  else
-    unsigned int id2      : 32;
-#  endif // 32
-#endif //SEQNO64b
 #ifdef HAVE_INT32_T
     u_int32_t testflags;
     u_int32_t version_u;
@@ -575,7 +556,6 @@ typedef struct client_hdr_udp_tests {
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
 #endif
-    UDP_l2_payload l2;
     UDP_isoch_payload isoch;
 } client_hdr_udp_tests;
 
