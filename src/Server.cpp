@@ -227,6 +227,7 @@ void Server::InitTrafficLoop (void) {
     mSettings->reporthdr = InitReport( mSettings );
     reportstruct->packetID = 0;
     reportstruct->l2len = 0;
+    reportstruct->l2errors = 0x0;
     if (mSettings->mBufLen < (int) sizeof( UDP_datagram ) ) {
 	mSettings->mBufLen = sizeof( UDP_datagram );
 	fprintf( stderr, warn_buffer_too_small, mSettings->mBufLen );
