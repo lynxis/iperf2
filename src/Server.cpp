@@ -450,7 +450,8 @@ int Server::L2_quintuple_filter(void) {
 
 void Server::Isoch_processing (void) {
 #ifdef HAVE_ISOCHRONOUS
-    struct UDP_isoch_payload* mBuf_isoch = (struct UDP_isoch_payload*) (mBuf + sizeof(struct UDP_datagram));
+    struct client_hdr_udp_tests *testhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
+    struct UDP_isoch_payload* mBuf_isoch = &(testhdr->isoch);
     reportstruct->frameID = ntohl(mBuf_isoch->frameid);
     reportstruct->prevframeID = ntohl(mBuf_isoch->prevframeid);
     reportstruct->burstsize = ntohl(mBuf_isoch->burstsize);

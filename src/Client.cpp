@@ -583,13 +583,10 @@ void Client::RunUDPIsochronous (void) {
     FAIL_errno(1, "UDP isochronous not supported, recompile after using config --enable-isochronous\n", mSettings );
     return;
 #else
-    // Indicates if the stream is readable
-    bool mMode_Time = isModeTime( mSettings );
     struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
     // skip over the UDP datagram (seq no, timestamp) to reach the isoch fields
-    struct client_hdr_udp_tests *testhdr = (client_hdr_udp_tests *)(mBuf_UDP + 1);
+    struct client_hdr_udp_tests *testhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     struct UDP_isoch_payload* mBuf_isoch = &(testhdr->isoch);
-
 
     Isochronous::FrameCounter *fc = NULL;
     double delay_target = mSettings->mBurstIPG * 1000000;  // convert from milliseconds to nanoseconds

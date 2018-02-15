@@ -1054,7 +1054,6 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	flags = ntohl(hdr->base.flags);
 	if ((flags & HEADER_UDPTESTS) != 0) {
 	    testflags = ntohl(hdr->udp.testflags);
-	    reporter_peerversion(server, ntohl(hdr->udp.version_u), ntohl(hdr->udp.version_l));
 	    // Handle stateless flags
 #ifdef HAVE_ISOCHRONOUS
 	    if ((testflags & HEADER_UDP_ISOCH) != 0) {
@@ -1069,6 +1068,7 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    if ((testflags & HEADER_L2LENCHECK) != 0) {
 		setL2LengthCheck(server);
 	    }
+	    reporter_peerversion(server, ntohl(hdr->udp.version_u), ntohl(hdr->udp.version_l));
 	}
     } else {
 	int n, len;
