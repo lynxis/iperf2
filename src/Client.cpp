@@ -616,9 +616,7 @@ void Client::RunUDPIsochronous (void) {
 	mBuf_isoch->frameid  = htonl(frameid);
 	mBuf_isoch->burstsize  = htonl(bytecnt);
 
-	while (bytecnt > 0 &&						\
-	       !(sInterupted  || (mMode_Time   &&  mEndTime.before(reportstruct->packetTime)))) {
-
+	while ((bytecnt > 0) && InProgress()) {				\
 	    t1.setnow();
 	    reportstruct->packetTime.tv_sec = t1.getSecs();
 	    reportstruct->packetTime.tv_usec = t1.getUsecs();
