@@ -135,10 +135,10 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID) {
 		num_multi_slots = (((agent->mThreads * 2) + 1) > NUM_MULTI_SLOTS) ? ((agent->mThreads * 2) + 1) : NUM_MULTI_SLOTS;
 	    }
 	    // printf ("Alloc %d multislots\n", num_multi_slots);
-            multihdr = malloc(sizeof(MultiHeader) +  sizeof(ReporterData) +
-                              num_multi_slots * sizeof(Transfer_Info));
+            multihdr = calloc((sizeof(MultiHeader) +  sizeof(ReporterData) +
+			       num_multi_slots * sizeof(Transfer_Info)), sizeof(char*));
         } else {
-            multihdr = malloc(sizeof(MultiHeader));
+            multihdr = calloc(sizeof(MultiHeader), sizeof(char*));
         }
         if ( multihdr != NULL ) {
             memset( multihdr, 0, sizeof(MultiHeader) );
@@ -313,10 +313,8 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             /*
              * Create in one big chunk
              */
-            reporthdr = malloc( sizeof(ReportHeader) );
+            reporthdr = calloc( sizeof(ReportHeader), sizeof(char*) );
             if ( reporthdr != NULL ) {
-                // Only need to make sure the headers are clean
-                memset( reporthdr, 0, sizeof(ReportHeader));
                 data = &reporthdr->report;
                 data->info.transferID = agent->mSock;
                 data->info.groupID = -1;
