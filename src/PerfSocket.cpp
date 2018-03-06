@@ -114,7 +114,7 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 	}  else if (inSettings->mTTL > 0) {
 	    // set TTL
 	    int val = inSettings->mTTL;
-	    if ( !SockAddr_isIPv6( &inSettings->local ) ) {
+	    if ( !isIPV6(inSettings) ) {
 		int rc = setsockopt( inSettings->mSock, IPPROTO_IP, IP_MULTICAST_TTL,
 				     (char*) &val, (Socklen_t) sizeof(val));
 
