@@ -679,7 +679,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
             mExtSettings->mTOS = strtol( optarg, NULL, 0 );
             break;
 
-        case 'T': // time-to-live for multicast
+        case 'T': // time-to-live for both unicast and multicast
             mExtSettings->mTTL = atoi( optarg );
             break;
 
@@ -940,6 +940,10 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	if ( SockAddr_isMulticast( &tmp ) ) {
 	    setMulticast( mExtSettings );
 	}
+    }
+    if ((mExtSettings->mTTL > 0) && isIPV6(mExtSettings)) {
+	fprintf(stderr, "Fail: IP ttl (-T) setting not supported for IPv6 (-V)\n");
+	exit(-1);
     }
 }
 

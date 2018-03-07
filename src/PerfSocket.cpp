@@ -131,6 +131,11 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 #  endif
 	}
 #endif
+    } else if (inSettings->mTTL > 0) {
+	int val = inSettings->mTTL;
+	int rc = setsockopt( inSettings->mSock, IPPROTO_IP, IP_TTL,
+			     (char*) &val, (Socklen_t) sizeof(val));
+	WARN_errno( rc == SOCKET_ERROR, "v4 ttl" );
     }
 
 #ifdef IP_TOS
