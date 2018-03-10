@@ -601,7 +601,7 @@ void Client::RunUDPIsochronous (void) {
 	// adjust bytecnt so last packet of burst is greater or equal to min packet
 	int remainder = bytecnt % mSettings->mBufLen;
 	if (remainder < bytecntmin) {
-	    bytecnt += (bytecnt - remainder);
+	    bytecnt += (bytecntmin - remainder);
 	}
 	mBuf_isoch->frameid  = htonl(frameid);
 	mBuf_isoch->burstsize  = htonl(bytecnt);
