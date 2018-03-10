@@ -520,6 +520,61 @@ typedef struct client_hdrext {
 #endif
 } client_hdrext;
 
+
+/*
+ * Isoch payload structure
+ *
+ *                 0      7 8     15 16    23 24    31
+ *                +--------+--------+--------+--------+
+ *            1   |          seqno lower              |
+ *                +--------+--------+--------+--------+
+ *            2   |             tv_sec                |
+ *                +--------+--------+--------+--------+
+ *            3   |             tv_usec               |
+ *                +--------+--------+--------+--------+
+ *            4   |    (reserverd) seqno upper        |
+ *                +--------+--------+--------+--------+
+ *            5   |         v1 hdr                    |
+ *                +--------+--------+--------+--------+
+ *            6   |         v1 hdr (continued)        |
+ *                +--------+--------+--------+--------+
+ *            7   |         v1 hdr (continued)        |
+ *                +--------+--------+--------+--------+
+ *            8   |         v1 hdr (continued)        |
+ *                +--------+--------+--------+--------+
+ *            9   |         v1 hdr (continued)        |
+ *                +--------+--------+--------+--------+
+ *            10  |         v1 hdr (final)            |
+ *                +--------+--------+--------+--------+
+ *            11  | udp test flags  | tlv offset      |
+ *                +--------+--------+--------+--------+
+ *            12  |        iperf version major        |
+ *                +--------+--------+--------+--------+
+ *            13  |        iperf version minor        |
+ *                +--------+--------+--------+--------+
+ *            14  |        isoch hdr                  |
+ *                +--------+--------+--------+--------+
+ *            15  |        isoch hdr (continued)      |
+ *                +--------+--------+--------+--------+
+ *            16  |        isoch hdr (continued)      |
+ *                +--------+--------+--------+--------+
+ *            17  |        isoch hdr (continued)      |
+ *                +--------+--------+--------+--------+
+ *            18  |        isoch hdr (continued)      |
+ *                +--------+--------+--------+--------+
+ *            19  |        isoch hdr (continued)      |
+ *                +--------+--------+--------+--------+
+ *            21  |        isoch hdr (continued)      |
+ *                +--------+--------+--------+--------+
+ *            21  |        isoch hdr (final)          |
+ *                +--------+--------+--------+--------+
+ *            22  |        hw timestamps ...          |
+ *                +--------+--------+--------+--------+
+ *            n   |        hw timestamps ...
+ *                +--------+--------+--------+--------+
+ *
+ */
+
 typedef struct UDP_isoch_payload {
 #ifdef HAVE_INT32_T
     u_int32_t burstperiod; //period units microseconds
@@ -548,11 +603,13 @@ typedef struct client_hdr_udp_tests {
 // for 32 bit systems, skip over this field
 // so it remains interoperable with 64 bit peers
 #ifdef HAVE_INT32_T
-    u_int32_t testflags;
+    u_int16_t testflags;
+    u_int16_t tlvoffset;
     u_int32_t version_u;
     u_int32_t version_l;
 #else
-    unsigned int testflags   : 32;
+    unsigned int testflags   : 16;
+    unsigned int tlvoffset   : 16;
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
 #endif
@@ -574,26 +631,6 @@ typedef struct client_hdr_ack {
     signed int reserved2   : 32;
 #endif
 } client_hdr_ack;
-
-#ifdef HAVE_UDPTRIGGERS
-typedef struct hdr_tlv_magicno {
-#ifdef HAVE_INT32_T
-    int32_t flags;
-#else
-    signed int flags    : 32;
-#endif
-    hdr_typelen typelen;
-#ifdef HAVE_INT32_T
-    int32_t type;
-    int32_t length;
-    int32_t magicno;
-#else
-    signed int type     : 32;
-    signed int length    : 32;
-    signed int magicno    : 32;
-#endif
-} hdr_tlv_magicno;
-#endif // UDPTRIGGERS
 
 typedef struct client_hdr {
     client_hdr_v1 base;

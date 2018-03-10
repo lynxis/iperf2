@@ -478,19 +478,6 @@ void Client::RunUDP( void ) {
 	mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
 	mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
 
-
-#ifdef HAVE_UDPTRIGGERS
-	if (isUDPTriggers(mSettings)) {
-	    hdr_tlv_magicno *payload = (hdr_tlv_magicno *)(mBuf_UDP + 1);
-	    // write the fields
-	    payload->flags = htonl(HEADER_EXTEND_TLVCHAINED);
-	    payload->typelen.type = htonl(UDPTRIGGER);
-	    payload->typelen.length = htonl(sizeof(hdr_tlv_magicno));
-	    payload->type = htonl(0x01);
-	    payload->length = htonl(0x04);
-	    payload->magicno = htonl(MAGIC_DHDHOST_TIMESTAMP);
-	}
-#endif
 	if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
 	    // seqno wrapped
 	    fprintf(stderr, "%s", warn_seqno_wrap);
@@ -595,6 +582,7 @@ void Client::RunUDPIsochronous (void) {
     int currLen = 1;
     int frameid=0;
     Timestamp t1;
+    int bytecntmin = sizeof(UDP_datagram) + sizeof(client_hdr_udp_tests);
 
     fc = new Isochronous::FrameCounter(mSettings->mFPS);
 
@@ -610,6 +598,11 @@ void Client::RunUDPIsochronous (void) {
 	lastPacketTime.setnow();
 	delay = 0;
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
+	// adjust bytecnt so last packet of burst is greater or equal to min packet
+	int remainder = bytecnt % mSettings->mBufLen;
+	if (remainder < bytecntmin) {
+	    bytecnt += (bytecnt - remainder);
+	}
 	mBuf_isoch->frameid  = htonl(frameid);
 	mBuf_isoch->burstsize  = htonl(bytecnt);
 
@@ -621,18 +614,6 @@ void Client::RunUDPIsochronous (void) {
 	    mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
 	    WritePacketID();
 
-#ifdef HAVE_UDPTRIGGERS
-	    if (isUDPTriggers(mSettings)) {
-		hdr_tlv_magicno *payload = (hdr_tlv_magicno *)(mBuf_UDP + 1);
-		// write the fields
-		payload->flags = htonl(HEADER_EXTEND_TLVCHAINED);
-		payload->typelen.type = htonl(UDPTRIGGER);
-		payload->typelen.length = htonl(sizeof(hdr_tlv_magicno));
-		payload->type = htonl(0x01);
-		payload->length = htonl(0x04);
-		payload->magicno = htonl(MAGIC_DHDHOST_TIMESTAMP);
-	    }
-#endif
 	    if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
 		// seqno wrapped
 		fprintf(stderr, "%s", warn_seqno_wrap);
@@ -669,7 +650,6 @@ void Client::RunUDPIsochronous (void) {
 
 	    reportstruct->errwrite = 0;
 	    reportstruct->emptyreport = 0;
-	    mBuf_isoch->pktsize = htonl((bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    mBuf_isoch->remaining = htonl(bytecnt);
 	    // perform write
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
