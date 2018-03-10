@@ -1124,7 +1124,7 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
     }
     if (isUDP(client) && (isL2LengthCheck(client) || isIsochronous(client))) {
 	flags = HEADER_UDPTESTS;
-	uint32_t testflags = 0;
+	uint16_t testflags = 0;
 	if (isL2LengthCheck(client)) {
 	    testflags |= HEADER_L2LENCHECK;
 	    if (isIPV6(client))
@@ -1133,7 +1133,8 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	if (isIsochronous(client))
 	    testflags |= HEADER_UDP_ISOCH;
 	// Write flags to header
-	hdr->udp.testflags = htonl(testflags);
+	hdr->udp.testflags = htons(testflags);
+	hdr->udp.tlvoffset = 0x0;
 	hdr->udp.version_u = htonl(IPERF_VERSION_MAJORHEX);
 	hdr->udp.version_l = htonl(IPERF_VERSION_MINORHEX);
     }

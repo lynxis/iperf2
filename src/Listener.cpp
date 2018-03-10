@@ -1053,7 +1053,7 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
     if (isUDP(mSettings)) {
 	flags = ntohl(hdr->base.flags);
 	if ((flags & HEADER_UDPTESTS) != 0) {
-	    testflags = ntohl(hdr->udp.testflags);
+	    testflags = ntohs(hdr->udp.testflags);
 	    // Handle stateless flags
 #ifdef HAVE_ISOCHRONOUS
 	    if ((testflags & HEADER_UDP_ISOCH) != 0) {
