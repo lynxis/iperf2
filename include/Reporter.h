@@ -221,6 +221,9 @@ typedef struct Transfer_Info {
     TransitStats frame;
     histogram_t *framelatency_histogram;
 #endif
+#ifdef HAVE_UDPTRIGGERS
+    TransitStats hosttransit;
+#endif
 } Transfer_Info;
 
 typedef struct Connection_Info {

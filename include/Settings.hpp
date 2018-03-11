@@ -607,12 +607,74 @@ typedef struct client_hdr_udp_tests {
     u_int32_t version_u;
     u_int32_t version_l;
 #else
-    unsigned int testflags   : 16;
-    unsigned int tlvoffset   : 16;
+    unsigned short testflags   : 16;
+    unsigned short tlvoffset   : 16;
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
 #endif
 } client_hdr_udp_tests;
+
+#ifdef HAVE_UDPTRIGGERS
+/*
+ *   UDP FW inline timestamps
+ *
+ *                 0      7 8     15 16    23 24    31
+ *                +--------+--------+--------+--------+
+ *            1   |  type (0x100)  |   length (68)    |   length including the 4 bytes tlv
+ *                +--------+--------+--------+--------+
+ *            2   |             host tx tv sec        |
+ *                +--------+--------+--------+--------+
+ *            3   |             host tx tv usec       |
+ *                +--------+--------+--------+--------+
+ *            4   |             host rx tv sec        |
+ *                +--------+--------+--------+--------+
+ *            5   |             host rx tv usec       |
+ *                +--------+--------+--------+--------+
+ *            6   |     type (0x1)  |      cnt (2)    |    fw rx tlv
+ *                +--------+--------+--------+--------+
+ *            7   |        fw rx ts 1                 |
+ *                +--------+--------+--------+--------+
+ *            8   |        fw rx ts 2                 |
+ *                +--------+--------+--------+--------+
+ *            9   |     type (0x2)  |      cnt (1)    |    fw tx tlv
+ *                +--------+--------+--------+--------+
+ *            10  |        seqno lower                |
+ *                +--------+--------+--------+--------+
+ *            11  |        iperf tv_sec               |
+ *                +--------+--------+--------+--------+
+ *            12  |        iperf tv_usec              |
+ *                +--------+--------+--------+--------+
+ *            13  |        seqno upper ??             |
+ *                +--------+--------+--------+--------+
+ *            14  |        fw rx ts 1                 |
+ *                +--------+--------+--------+--------+
+ *            15  |        fw rx ts 2                 |
+ *                +--------+--------+--------+--------+
+ *            16  |        fw rx ts 3                 |
+ *                +--------+--------+--------+--------+
+ *            17  |        fw rx ts 4                 |
+ *                +--------+--------+--------+--------+
+ *
+ */
+typedef struct UDPfw_tlv {
+#ifdef HAVE_INT32_T
+    u_int16_t type;
+    u_int16_t length;
+    u_int32_t hosttx_tv_sec;
+    u_int32_t hosttx_tv_usec;
+    u_int32_t hostrx_tv_sec;
+    u_int32_t hostrx_tv_usec;
+#else
+    unsigned short type  : 16;
+    unsigned short length  : 16;
+    unsigned int hosttx_tv_sec : 32;
+    unsigned int hosttx_tv_usec : 32;
+    unsigned int hostrx_tv_sec : 32;
+    unsigned int hostrx_tv_usec : 32;
+#endif
+} UDPfw_tlv;
+#endif //UDPTRIGGERS
+
 
 typedef struct client_hdr_udp_isoch_tests {
     client_hdr_udp_tests udptests;
