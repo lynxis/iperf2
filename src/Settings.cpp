@@ -765,7 +765,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
 		}
 	    }
-            break;
 #endif
 #ifdef HAVE_UDPTRIGGERS
 	    if (udptriggers) {
@@ -774,8 +773,8 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		setUDPTriggers(mExtSettings);
 		setSeqNo64b(mExtSettings);  // enable this if udp triggers
 	    }
-	    break;
 #endif
+	    break;
         default: // ignore unknown
             break;
     }
@@ -1128,8 +1127,8 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	 */
 	hdr->udp.tlvoffset = htons((sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
 
-	if ((isL2LengthCheck(client) || isIsochronous(client) || isUDPTriggers(client))) {
-	    flags = HEADER_UDPTESTS;
+	if (isL2LengthCheck(client) || isIsochronous(client) || isUDPTriggers(client)) {
+	    flags |= HEADER_UDPTESTS;
 	    uint16_t testflags = 0;
 
 	    if (isIsochronous(client)) {
