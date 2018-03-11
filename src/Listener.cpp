@@ -1070,6 +1070,7 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    }
 	    if ((testflags & HEADER_UDPTRIGGERS) != 0) {
 		setUDPTriggers(server);
+		setSeqNo64b(server);
 	    }
 	    reporter_peerversion(server, ntohl(hdr->udp.version_u), ntohl(hdr->udp.version_l));
 	}

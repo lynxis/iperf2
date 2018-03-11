@@ -530,7 +530,7 @@ void reporter_peerversion (thread_Settings *inSettings, int upper, int lower) {
     }
     if (isUDPTriggers(inSettings)) {
 	int len=strlen(inSettings->peerversion);
-	snprintf(&inSettings->peerversion[len], PEERBUFSIZE, " (%s)", " triggers");
+	snprintf(&inSettings->peerversion[len], PEERBUFSIZE, " (%s)", "triggers");
     }
 }
 /* -------------------------------------------------------------------
