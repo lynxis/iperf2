@@ -1122,7 +1122,7 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    flags |= RUN_NOW;
 	}
     }
-    if (isUDP(client) && (isL2LengthCheck(client) || isIsochronous(client))) {
+    if (isUDP(client) && (isL2LengthCheck(client) || isIsochronous(client) || isUDPTriggers(client))) {
 	flags = HEADER_UDPTESTS;
 	uint16_t testflags = 0;
 	if (isL2LengthCheck(client)) {
@@ -1130,11 +1130,22 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    if (isIPV6(client))
 		testflags |= HEADER_L2ETHPIPV6;
 	}
-	if (isIsochronous(client))
+	hdr->udp.tlvoffset = htons(0x0);
+	if (isIsochronous(client)) {
 	    testflags |= HEADER_UDP_ISOCH;
+	}
+	if (isUDPTriggers(client)) {
+	    testflags |= HEADER_UDPTRIGGERS;
+	    if (isIsochronous(client)) {
+		hdr->udp.tlvoffset = htons((sizeof(UDP_isoch_payload) + sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
+	    } else {
+		hdr->udp.tlvoffset = htons((sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
+	    }
+	} else {
+	    hdr->udp.tlvoffset = htons((sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
+	}
 	// Write flags to header
 	hdr->udp.testflags = htons(testflags);
-	hdr->udp.tlvoffset = 0x0;
 	hdr->udp.version_u = htonl(IPERF_VERSION_MAJORHEX);
 	hdr->udp.version_l = htonl(IPERF_VERSION_MINORHEX);
     }

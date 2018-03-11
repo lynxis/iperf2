@@ -380,7 +380,6 @@ typedef struct thread_Settings {
 #define unsetUDPHistogram(settings)    settings->flags_extend &= ~FLAG_UDPHISTOGRAM
 #define unsetL2LengthCheck(settings)  settings->flags_extend &= ~FLAG_L2LENGTHCHECK
 
-
 /*
  * Message header flags
  *
@@ -395,6 +394,7 @@ typedef struct thread_Settings {
 #define HEADER_UDP_ISOCH    0x00000001
 #define HEADER_L2ETHPIPV6   0x00000002
 #define HEADER_L2LENCHECK   0x00000004
+#define HEADER_UDPTRIGGERS  0x00000008
 
 #define RUN_NOW         0x00000001
 // newer flags
@@ -418,8 +418,7 @@ typedef enum MsgType {
     CLIENTHDR = 0x1,
     CLIENTHDRACK,
     SERVERHDR,
-    SERVERHDRACK,
-    UDPTRIGGER
+    SERVERHDRACK
 } MsgType;
 
 /*
@@ -552,21 +551,21 @@ typedef struct client_hdrext {
  *                +--------+--------+--------+--------+
  *            13  |        iperf version minor        |
  *                +--------+--------+--------+--------+
- *            14  |        isoch hdr                  |
+ *            14  |        isoch burst period (us)    |
  *                +--------+--------+--------+--------+
- *            15  |        isoch hdr (continued)      |
+ *            15  |        isoch start timestamp (s)  |
  *                +--------+--------+--------+--------+
- *            16  |        isoch hdr (continued)      |
+ *            16  |        isoch start timestamp (us) |
  *                +--------+--------+--------+--------+
- *            17  |        isoch hdr (continued)      |
+ *            17  |        isoch prev frameid         |
  *                +--------+--------+--------+--------+
- *            18  |        isoch hdr (continued)      |
+ *            18  |        isoch frameid              |
  *                +--------+--------+--------+--------+
- *            19  |        isoch hdr (continued)      |
+ *            19  |        isoch burtsize             |
  *                +--------+--------+--------+--------+
- *            21  |        isoch hdr (continued)      |
+ *            21  |        isoch bytes remaining      |
  *                +--------+--------+--------+--------+
- *            21  |        isoch hdr (final)          |
+ *            21  |        isoch reserved             |
  *                +--------+--------+--------+--------+
  *            22  |        hw timestamps ...          |
  *                +--------+--------+--------+--------+
@@ -584,7 +583,7 @@ typedef struct UDP_isoch_payload {
     u_int32_t frameid;
     u_int32_t burstsize;
     u_int32_t remaining;
-    u_int32_t pktsize;
+    u_int32_t resevered;
 #else
     unsigned int burstperiod : 32;
     unsigned int start_tv_sec : 32;
@@ -593,7 +592,7 @@ typedef struct UDP_isoch_payload {
     unsigned int frameid : 32;
     unsigned int burstsize : 32;
     unsigned int remaining : 32;
-    unsigned int pktsize : 32;
+    unsigned int reserved : 32;
 #endif
 } UDP_isoch_payload;
 
@@ -613,8 +612,12 @@ typedef struct client_hdr_udp_tests {
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
 #endif
-    UDP_isoch_payload isoch;
 } client_hdr_udp_tests;
+
+typedef struct client_hdr_udp_isoch_tests {
+    client_hdr_udp_tests udptests;
+    UDP_isoch_payload isoch;
+} client_hdr_udp_isoch_tests;
 
 typedef struct client_hdr_ack {
     hdr_typelen typelen;

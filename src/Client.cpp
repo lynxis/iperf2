@@ -572,7 +572,7 @@ void Client::RunUDPIsochronous (void) {
 #else
     struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
     // skip over the UDP datagram (seq no, timestamp) to reach the isoch fields
-    struct client_hdr_udp_tests *testhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
+    struct client_hdr_udp_isoch_tests *testhdr = (client_hdr_udp_isoch_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     struct UDP_isoch_payload* mBuf_isoch = &(testhdr->isoch);
 
     Isochronous::FrameCounter *fc = NULL;
