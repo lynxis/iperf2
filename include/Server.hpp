@@ -90,6 +90,7 @@ private:
     void L2_processing (void);
     int L2_quintuple_filter (void);
     void Isoch_processing (void);
+    void UDPTriggers_processing (void);
 
 #if HAVE_DECL_SO_TIMESTAMP
     // Structures needed for recvmsg

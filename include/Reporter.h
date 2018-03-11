@@ -171,6 +171,10 @@ typedef struct ReportStruct {
     max_size_t burstsize;
     max_size_t remaining;
 #endif
+#ifdef HAVE_UDPTRIGGERS
+    struct timeval hostTxTime;
+    struct timeval hostRxTime;
+#endif
 } ReportStruct;
 
 
@@ -222,7 +226,7 @@ typedef struct Transfer_Info {
     histogram_t *framelatency_histogram;
 #endif
 #ifdef HAVE_UDPTRIGGERS
-    TransitStats hosttransit;
+    histogram_t *hostlatency_histogram;
 #endif
 } Transfer_Info;
 

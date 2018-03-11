@@ -460,6 +460,18 @@ void Server::Isoch_processing (void) {
 #endif
 }
 
+void Server::UDPTriggers_processing (void) {
+#if HAVE_UDPTRIGGERS
+    struct client_hdr_udp_tests *tlvhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
+    int offset = ntohl(tlvhdr->tlvoffset);
+    UDPTriggers *trig = (UDPTriggers *) (mBuf + offset);
+    // pull the host/driver tx/rx timestamps from the packet
+    reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
+    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
+    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
+    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
+#endif
+}
 /* -------------------------------------------------------------------
  * Receive UDP data from the (connected) socket.
  * Sends termination flag several times at the end.
@@ -515,6 +527,9 @@ void Server::RunUDP( void ) {
 		done = ReadPacketID();
 		if (isIsochronous(mSettings)) {
 		    Isoch_processing();
+		}
+		if (isUDPTriggers(mSettings)) {
+		    UDPTriggers_processing();
 		}
 	    }
 	}

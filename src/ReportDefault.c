@@ -199,6 +199,11 @@ void reporter_printstats( Transfer_Info *stats ) {
 		if (stats->latency_histogram) {
 		    histogram_print(stats->latency_histogram, stats->startTime, stats->endTime,stats->free);
 		}
+#ifdef HAVE_UDPTRIGGERS
+		if (stats->hostlatency_histogram) {
+		    histogram_print(stats->hostlatency_histogram, stats->startTime, stats->endTime,stats->free);
+		}
+#endif
 #ifdef HAVE_ISOCHRONOUS
 		if (stats->framelatency_histogram) {
 		    histogram_print(stats->framelatency_histogram, stats->startTime, stats->endTime,stats->free);
@@ -261,6 +266,12 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    if (stats->framelatency_histogram) {
 		histogram_delete(stats->framelatency_histogram);
 		stats->framelatency_histogram = NULL;
+	    }
+#endif
+#ifdef HAVE_UDPTRIGGERS
+	    if (stats->hostlatency_histogram) {
+		histogram_delete(stats->hostlatency_histogram);
+		stats->hostlatency_histogram = NULL;
 	    }
 #endif
 	}

@@ -284,6 +284,14 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 								   (agent->mUDPunits ? 1e6 : 1e3), \
 								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
 		}
+#ifdef HAVE_UDPTRIGGERS
+		if (isUDPTriggers(agent)) {
+		    char name[] = "T7";
+		    data->info.hostlatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,\
+								   (agent->mUDPunits ? 1e6 : 1e3), \
+								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
+		}
+#endif
 #ifdef HAVE_ISOCHRONOUS
 		if (isUDPHistogram(agent) && isIsochronous(agent)) {
 		    char name[] = "F8";
@@ -698,6 +706,11 @@ again:
 		    histogram_delete(temp->report.info.framelatency_histogram);
 		}
 #endif
+#ifdef HAVE_UDPTRIGGERS
+		if (temp->report.info.hostlatency_histogram) {
+		    histogram_delete(temp->report.info.hostlatency_histogram);
+		}
+#endif
                 free( temp );
                 Condition_Unlock ( ReportCond );
                 Condition_Signal( &ReportDoneCond );
@@ -768,6 +781,11 @@ void process_report ( ReportHeader *report ) {
 		histogram_delete(report->report.info.framelatency_histogram);
 	    }
 #endif
+#ifdef HAVE_UDPTRIGGERS
+	    if (report->report.info.hostlatency_histogram) {
+		histogram_delete(report->report.info.hostlatency_histogram);
+	    }
+#endif
             free( report );
         }
     }
@@ -791,6 +809,11 @@ int reporter_process_report ( ReportHeader *reporthdr ) {
 #ifdef HAVE_ISOCHRONOUS
 	    if (temp->report.info.framelatency_histogram) {
 		histogram_delete(temp->report.info.framelatency_histogram);
+	    }
+#endif
+#ifdef HAVE_UDPTRIGGERS
+	    if (temp->report.info.hostlatency_histogram) {
+		histogram_delete(temp->report.info.hostlatency_histogram);
 	    }
 #endif
             free( temp );
@@ -962,6 +985,12 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    if (stats->latency_histogram) {
 			histogram_insert(stats->latency_histogram, transit);
 		    }
+#ifdef HAVE_UDPTRIGGERS
+		    if (stats->hostlatency_histogram) {
+			double hosttransit = TimeDifference(packet->hostRxTime, packet->hostTxTime);
+			histogram_insert(stats->hostlatency_histogram, hosttransit);
+		    }
+#endif
 		    // packet loss occured if the datagram numbers aren't sequential
 		    if ( packet->packetID != data->PacketID + 1 ) {
 			if (packet->packetID < data->PacketID + 1 ) {

@@ -656,7 +656,7 @@ typedef struct client_hdr_udp_tests {
  *                +--------+--------+--------+--------+
  *
  */
-typedef struct UDPfw_tlv {
+typedef struct UDPTriggers {
 #ifdef HAVE_INT32_T
     u_int16_t type;
     u_int16_t length;
@@ -672,7 +672,7 @@ typedef struct UDPfw_tlv {
     unsigned int hostrx_tv_sec : 32;
     unsigned int hostrx_tv_usec : 32;
 #endif
-} UDPfw_tlv;
+} UDPTriggers;
 #endif //UDPTRIGGERS
 
 
