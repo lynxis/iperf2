@@ -287,9 +287,8 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 #ifdef HAVE_UDPTRIGGERS
 		if (isUDPTriggers(agent)) {
 		    char name[] = "T7";
-		    data->info.hostlatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,\
-								   (agent->mUDPunits ? 1e6 : 1e3), \
-								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
+		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
+								       data->info.transferID, name);
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS

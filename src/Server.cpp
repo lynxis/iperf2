@@ -465,7 +465,7 @@ void Server::UDPTriggers_processing (void) {
     struct client_hdr_udp_tests *tlvhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     int offset = ntohs(tlvhdr->tlvoffset);
     // protect against offets that go over the packet length
-    if ((offset + sizeof(client_hdr_v1) + sizeof(UDP_datagram) + sizeof(UDPTriggers)) <= reportstruct->packetLen) {
+    if ((offset + sizeof(UDP_isoch_payload) + sizeof(client_hdr_v1) + sizeof(UDP_datagram) + sizeof(UDPTriggers)) <= reportstruct->packetLen) {
 	UDPTriggers *trig = (UDPTriggers *) (mBuf + offset);
 	// pull the host/driver tx/rx timestamps from the packet
 	reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
