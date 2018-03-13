@@ -86,6 +86,12 @@ Server::Server( thread_Settings *inSettings ) {
     // initialize buffer, length checking done by the Listener
     mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
     FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
+#ifdef HAVE_UDPTRIGGERS
+    int ix;
+    for (ix=0; ix < HASHTABLESIZE; ix++) {
+	fwtsf_hashtable[ix].free=1;
+    }
+#endif
 }
 
 /* -------------------------------------------------------------------
@@ -666,3 +672,20 @@ void Server::write_UDP_AckFIN( ) {
     fprintf( stderr, warn_ack_failed, mSettings->mSock, count );
 }
 // end write_UDP_AckFIN
+#ifdef HAVE_UDPTRIGGERS
+/*
+ * The iperf 64 bit seq number is a running counter.  For this hash assume the lower bits will be unique most of the time
+ * then hash the upper bits to a small space.  The hash table entry isn't expect to live long.
+ * Hopefully this will provide low collisions at a relatively low memory cost.
+ */
+uint16_t Server::seqnohash (uint32_t lower, uint32_t upper) {
+    uint64_t m = ((((uint64_t)(upper & 0xEFFFFFFF) << 32) | lower) >> 10);
+    int r = m % 17;
+    if (r == 16) {
+	r = m % 13;
+    }
+    uint16_t hash = (r << 10) | (lower & 0x2FF);
+    return hash;
+}
+
+#endif

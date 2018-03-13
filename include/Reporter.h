@@ -154,6 +154,53 @@ typedef struct L2Stats {
     max_size_t tot_lengtherr;
 } L2Stats;
 
+
+#ifdef HAVE_UDPTRIGGERS
+/*
+ *  FW timestamps are broken accross packets, the rx comes first
+ *  then the tx
+ *
+ *
+ *                +--------+--------+--------+--------+
+ *            7   |        fw rx ts 1 (mac)           |
+ *                +--------+--------+--------+--------+
+ *            8   |        fw rx ts 2 (pcie)          |
+ *                +--------+--------+--------+--------+
+ *            9   |     type (0x2)  |      cnt (1)    |    fw tx tlv
+ *                +--------+--------+--------+--------+
+ *            10  |        seqno lower                |
+ *                +--------+--------+--------+--------+
+ *            11  |        iperf tv_sec               |
+ *                +--------+--------+--------+--------+
+ *            12  |        iperf tv_usec              |
+ *                +--------+--------+--------+--------+
+ *            13  |        seqno upper ??             |
+ *                +--------+--------+--------+--------+
+ *            14  |        fw tx ts 1 pcie            |
+ *                +--------+--------+--------+--------+
+ *            15  |        fw tx ts 2 tx dma          |
+ *                +--------+--------+--------+--------+
+ *            16  |        fw tx ts 3 tx status       |
+ *                +--------+--------+--------+--------+
+ *            17  |        fw tx ts 4 pcie rt         |
+ *                +--------+--------+--------+--------+
+ *
+ * TSF histograms
+ * hs1 = 14,8
+ * hs2 = 15,7
+ * hs3 = 14,17
+ * hs4 = 15,16
+ * hs5 = 7,8
+ */
+typedef struct fwtsf_report_entry_t {
+    uint32_t hs1;
+    uint32_t hs2;
+    uint32_t hs3;
+    uint32_t hs4;
+    uint32_t hs5;
+} fwtsf_report_entry_t;
+#endif
+
 typedef struct ReportStruct {
     max_size_t packetID;
     umax_size_t packetLen;
@@ -172,11 +219,13 @@ typedef struct ReportStruct {
     max_size_t remaining;
 #endif
 #ifdef HAVE_UDPTRIGGERS
+#define MAXTSFCHAIN 1470/32
     struct timeval hostTxTime;
     struct timeval hostRxTime;
+    int count;
+    struct fwtsf_report_entry_t tsf[MAXTSFCHAIN];
 #endif
 } ReportStruct;
-
 
 /*
  * The type field of ReporterData is a bitmask

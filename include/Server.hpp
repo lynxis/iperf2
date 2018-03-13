@@ -59,6 +59,8 @@
 #include "util.h"
 #include "Timestamp.hpp"
 
+
+
 /* ------------------------------------------------------------------- */
 class Server {
 public:
@@ -106,7 +108,18 @@ private:
     struct iphdr *ip_hdr;
     struct udphdr *udp_hdr;
 #endif
-
+#ifdef HAVE_UDPTRIGGERS
+    uint16_t seqnohash (uint32_t lower, uint32_t upper);
+    struct fwtsf_entry_t {
+	bool free;
+	uint32_t seqno_lower;
+	uint32_t seqno_upper;
+	uint32_t fwrxts1;
+	uint32_t fwrxts2;
+    };
+#define HASHTABLESIZE (1 << 16)
+    fwtsf_entry_t fwtsf_hashtable[HASHTABLESIZE];
+#endif
 }; // end class Server
 
 #endif // SERVER_H

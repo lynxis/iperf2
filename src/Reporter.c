@@ -287,6 +287,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 #ifdef HAVE_UDPTRIGGERS
 		if (isUDPTriggers(agent)) {
 		    char name[] = "T7";
+		    // Bins, bin size, bin, offset, bin units (1e6 = us), confidence low (e.g. 5%), confidence high (e.g. 95%), id, name)
 		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
 								       data->info.transferID, name);
 		}

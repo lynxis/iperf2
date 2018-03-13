@@ -565,9 +565,9 @@ typedef struct client_hdrext {
  *                +--------+--------+--------+--------+
  *            21  |        isoch bytes remaining      |
  *                +--------+--------+--------+--------+
- *            21  |        isoch reserved             |
+ *            22  |        isoch reserved             |
  *                +--------+--------+--------+--------+
- *            22  |        hw timestamps ...          |
+ *            23  |        hw timestamps ...          |
  *                +--------+--------+--------+--------+
  *            n   |        hw timestamps ...
  *                +--------+--------+--------+--------+
@@ -632,9 +632,9 @@ typedef struct client_hdr_udp_tests {
  *                +--------+--------+--------+--------+
  *            6   |     type (0x1)  |      cnt (2)    |    fw rx tlv
  *                +--------+--------+--------+--------+
- *            7   |        fw rx ts 1                 |
+ *            7   |        fw rx ts 1 (mac)           |
  *                +--------+--------+--------+--------+
- *            8   |        fw rx ts 2                 |
+ *            8   |        fw rx ts 2 (pcie)          |
  *                +--------+--------+--------+--------+
  *            9   |     type (0x2)  |      cnt (1)    |    fw tx tlv
  *                +--------+--------+--------+--------+
@@ -646,32 +646,48 @@ typedef struct client_hdr_udp_tests {
  *                +--------+--------+--------+--------+
  *            13  |        seqno upper ??             |
  *                +--------+--------+--------+--------+
- *            14  |        fw rx ts 1                 |
+ *            14  |        fw tx ts 1  pcie           |
  *                +--------+--------+--------+--------+
- *            15  |        fw rx ts 2                 |
+ *            15  |        fw tx ts 2  tx dma         |
  *                +--------+--------+--------+--------+
- *            16  |        fw rx ts 3                 |
+ *            16  |        fw tx ts 3  tx status      |
  *                +--------+--------+--------+--------+
- *            17  |        fw rx ts 4                 |
+ *            17  |        fw tx ts 4  pcie rt        |
  *                +--------+--------+--------+--------+
  *
+ * TSF histograms
+ * hs1 = 14,8
+ * hs2 = 15,7
+ * hs3 = 14,17
+ * hs4 = 15,16
+ * hs5 = 7,8
  */
+typedef struct fwtsfrx_t {
+    u_int16_t fwtype;
+    u_int16_t fwnct;
+    u_int32_t tsf_rxmac;
+    u_int32_t tsf_rxpcie;
+} fwtsfrx_t;
+
+typedef struct fwtsftx_t {
+    struct UDP_datagram udpid;
+    u_int32_t tsf_txpcie;
+    u_int32_t tsf_txdma;
+    u_int32_t tsf_txstatus;
+    u_int32_t tsf_txpciert;
+} fwtsftx_t;
+
 typedef struct UDPTriggers {
-#ifdef HAVE_INT32_T
     u_int16_t type;
     u_int16_t length;
     u_int32_t hosttx_tv_sec;
     u_int32_t hosttx_tv_usec;
     u_int32_t hostrx_tv_sec;
     u_int32_t hostrx_tv_usec;
-#else
-    unsigned short type  : 16;
-    unsigned short length  : 16;
-    unsigned int hosttx_tv_sec : 32;
-    unsigned int hosttx_tv_usec : 32;
-    unsigned int hostrx_tv_sec : 32;
-    unsigned int hostrx_tv_usec : 32;
-#endif
+    struct fwtsfrx_t fwtsf_rx;
+    u_int16_t fwtsf_type;
+    u_int16_t fwtsf_cnt;
+    struct fwtsftx_t fwtsf_tx[];
 } UDPTriggers;
 #endif //UDPTRIGGERS
 
