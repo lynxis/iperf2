@@ -731,7 +731,7 @@ uint16_t Server::packetidhash (int64_t packetID) {
     if (r == 16) {
 	r = m % 13;
     }
-    uint16_t hash = (r << 10) | (packetID & 0x2FF);
+    uint16_t hash = (r << 10) | (packetID & 0x3FF);
     return hash;
 }
 
