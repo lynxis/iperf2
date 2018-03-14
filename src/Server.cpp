@@ -486,7 +486,7 @@ void Server::UDPTriggers_processing (void) {
 	    // Process tx tsf first
 	    int doprint = 1;
 	    while (txtsfcnt--) {
-		if (fwtsf_hashtable[rxhash].packetID = reportstruct->packetID) {
+		if (fwtsf_hashtable[rxhash].packetID == reportstruct->packetID) {
 		    if (doprint) {
 			doprint = 0;
 			printf("Have tx tsf cnt = txtsfcnt\n");
