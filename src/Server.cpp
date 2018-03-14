@@ -474,8 +474,8 @@ void Server::UDPTriggers_processing (void) {
     if ((offset + sizeof(UDP_isoch_payload) + sizeof(client_hdr_v1) + sizeof(UDP_datagram) + sizeof(UDPTriggers)) <= reportstruct->packetLen) {
 	UDPTriggers *trig = (UDPTriggers *) (mBuf + offset);
 	// pull the host/driver tx/rx timestamps from the packet
-	uint16_t type =ntohs(trig->type);
-	uint16_t len=ntohs(trig->length);
+	uint16_t type = ntohs(trig->type);
+	uint16_t len = ntohs(trig->length);
 	if (type==0x100 && len==68) {
 	    int rxhash = packetidhash(reportstruct->packetID);
 	    int txtsfcnt = ntohs(trig->fwtsf_cnt);
@@ -484,18 +484,20 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Process tx tsf first
-	    int doprint = 1;
-	    fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
-	    while (txtsfcnt--) {
-		int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id)) << 32) | ntohl(fwtimes->udpid.id));
-		int txhash = packetidhash(txpacketID);
-		if (!fwtsf_hashtable[txhash].free) {
-		    if (fwtsf_hashtable[txhash].packetID == txpacketID) {
-			if (doprint) {
-			    doprint = 0;
-			    printf("Have tx tsf match = txtsfcnt\n");
+	    if (txtsfcnt <= MAXTSFCHAIN) {
+		int doprint = 1;
+		fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
+		while (txtsfcnt--) {
+		    int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id)) << 32) | ntohl(fwtimes->udpid.id));
+		    int txhash = packetidhash(txpacketID);
+		    if (!fwtsf_hashtable[txhash].free) {
+			if (fwtsf_hashtable[txhash].packetID == txpacketID) {
+			    if (doprint) {
+				doprint = 0;
+				printf("Have tx tsf match = txtsfcnt\n");
+			    }
+			    fwtsf_hashtable[txhash].free = 1;
 			}
-			fwtsf_hashtable[txhash].free = 1;
 		    }
 		}
 	    }
