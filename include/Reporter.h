@@ -277,6 +277,11 @@ typedef struct Transfer_Info {
 #endif
 #ifdef HAVE_UDPTRIGGERS
     histogram_t *hostlatency_histogram;
+    histogram_t *h1_histogram;
+    histogram_t *h2_histogram;
+    histogram_t *h3_histogram;
+    histogram_t *h4_histogram;
+    histogram_t *h5_histogram;
 #endif
 } Transfer_Info;
 

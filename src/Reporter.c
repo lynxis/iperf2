@@ -290,6 +290,16 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		    // Bins, bin size, bin, offset, bin units (1e6 = us), confidence low (e.g. 5%), confidence high (e.g. 95%), id, name)
 		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
 								       data->info.transferID, name);
+		    strcpy(name,"T6");
+		    data->info.h1_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    strcpy(name,"T5");
+		    data->info.h2_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    strcpy(name,"T4");
+		    data->info.h3_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    strcpy(name,"T3");
+		    data->info.h4_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    strcpy(name,"T2");
+		    data->info.h5_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
@@ -710,6 +720,18 @@ again:
 		if (temp->report.info.hostlatency_histogram) {
 		    histogram_delete(temp->report.info.hostlatency_histogram);
 		}
+		if (temp->report.info.h1_histogram) {
+		    histogram_delete(temp->report.info.h1_histogram);
+		    temp->report.info.h1_histogram = NULL;
+		    histogram_delete(temp->report.info.h2_histogram);
+		    temp->report.info.h2_histogram = NULL;
+		    histogram_delete(temp->report.info.h3_histogram);
+		    temp->report.info.h3_histogram = NULL;
+		    histogram_delete(temp->report.info.h4_histogram);
+		    temp->report.info.h4_histogram = NULL;
+		    histogram_delete(temp->report.info.h5_histogram);
+		    temp->report.info.h5_histogram = NULL;
+		}
 #endif
                 free( temp );
                 Condition_Unlock ( ReportCond );
@@ -989,6 +1011,17 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    if (stats->hostlatency_histogram) {
 			double hosttransit = TimeDifference(packet->hostRxTime, packet->hostTxTime);
 			histogram_insert(stats->hostlatency_histogram, hosttransit);
+		    }
+
+		    if (stats->h1_histogram) {
+			int ix;
+			for (ix = 0; ix < packet->tsfcount; ix ++) {
+			    histogram_insert(stats->h1_histogram,packet->tsf[ix].hs1);
+			    histogram_insert(stats->h2_histogram,packet->tsf[ix].hs2);
+			    histogram_insert(stats->h3_histogram,packet->tsf[ix].hs3);
+			    histogram_insert(stats->h4_histogram,packet->tsf[ix].hs4);
+			    histogram_insert(stats->h5_histogram,packet->tsf[ix].hs5);
+			}
 		    }
 #endif
 		    // packet loss occured if the datagram numbers aren't sequential

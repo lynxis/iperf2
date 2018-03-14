@@ -203,6 +203,13 @@ void reporter_printstats( Transfer_Info *stats ) {
 		if (stats->hostlatency_histogram) {
 		    histogram_print(stats->hostlatency_histogram, stats->startTime, stats->endTime,stats->free);
 		}
+		if (stats->h1_histogram) {
+		    histogram_print(stats->h1_histogram,stats->startTime, stats->endTime,stats->free);
+		    histogram_print(stats->h2_histogram,stats->startTime, stats->endTime,stats->free);
+		    histogram_print(stats->h3_histogram,stats->startTime, stats->endTime,stats->free);
+		    histogram_print(stats->h4_histogram,stats->startTime, stats->endTime,stats->free);
+		    histogram_print(stats->h5_histogram,stats->startTime, stats->endTime,stats->free);
+		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
 		if (stats->framelatency_histogram) {
@@ -272,6 +279,18 @@ void reporter_printstats( Transfer_Info *stats ) {
 	    if (stats->hostlatency_histogram) {
 		histogram_delete(stats->hostlatency_histogram);
 		stats->hostlatency_histogram = NULL;
+	    }
+	    if (stats->h1_histogram) {
+		histogram_delete(stats->h1_histogram);
+		stats->h1_histogram = NULL;
+		histogram_delete(stats->h2_histogram);
+		stats->h2_histogram = NULL;
+		histogram_delete(stats->h3_histogram);
+		stats->h3_histogram = NULL;
+		histogram_delete(stats->h4_histogram);
+		stats->h4_histogram = NULL;
+		histogram_delete(stats->h5_histogram);
+		stats->h5_histogram = NULL;
 	    }
 #endif
 	}
