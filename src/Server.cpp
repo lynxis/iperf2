@@ -476,7 +476,7 @@ void Server::UDPTriggers_processing (void) {
 	// pull the host/driver tx/rx timestamps from the packet
 	uint16_t type = ntohs(trig->type);
 	uint16_t len = ntohs(trig->length);
-	if (type==0x100 && len==68) {
+	if (type==0x100 && len) {
 	    int txtsfcnt = ntohs(trig->fwtsf_cnt);
 	    reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
 	    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
@@ -485,7 +485,7 @@ void Server::UDPTriggers_processing (void) {
 	    // Process tx tsf first
 	    if (txtsfcnt <= MAXTSFCHAIN) {
 		int tsfcount = 0;
-		fwtsftx_t *fwtimes = &trig->fwtsf_tx[tsfcount];
+		fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
 		while (txtsfcnt--) {
 		    int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id2)) << 32) | ntohl(fwtimes->udpid.id));
 		    int txhash = packetidhash(txpacketID);
