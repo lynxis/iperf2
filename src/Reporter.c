@@ -291,15 +291,15 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
 								       data->info.transferID, name);
 		    strcpy(name,"T6");
-		    data->info.h1_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    data->info.h1_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"T5");
-		    data->info.h2_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    data->info.h2_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"T4");
-		    data->info.h3_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    data->info.h3_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"T3");
-		    data->info.h4_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    data->info.h4_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"T2");
-		    data->info.h5_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+		    data->info.h5_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
