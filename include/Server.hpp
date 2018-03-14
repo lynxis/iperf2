@@ -113,7 +113,7 @@ private:
     uint16_t packetidhash (void);
     struct fwtsf_entry_t {
 	bool free;
-	uint64_t packetID;
+	int64_t packetID;
 	uint32_t fwrxts1;
 	uint32_t fwrxts2;
     };
