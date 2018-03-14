@@ -477,7 +477,7 @@ void Server::UDPTriggers_processing (void) {
 	uint16_t type =ntohs(trig->type);
 	uint16_t len=ntohs(trig->length);
 	if (type==0x100 && len==68) {
-	    int rxhash = packetidhash();
+	    int rxhash = packetidhash(reportstruct->packetID);
 	    int txtsfcnt = ntohs(trig->fwtsf_cnt);
 	    reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
 	    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
@@ -485,11 +485,17 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Process tx tsf first
 	    int doprint = 1;
+	    fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
 	    while (txtsfcnt--) {
-		if (fwtsf_hashtable[rxhash].packetID == reportstruct->packetID) {
-		    if (doprint) {
-			doprint = 0;
-			printf("Have tx tsf cnt = txtsfcnt\n");
+		int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id)) << 32) | ntohl(fwtimes->udpid.id));
+		int txhash = packetidhash(txpacketID);
+		if (!fwtsf_hashtable[txhash].free) {
+		    if (fwtsf_hashtable[txhash].packetID == txpacketID) {
+			if (doprint) {
+			    doprint = 0;
+			    printf("Have tx tsf match = txtsfcnt\n");
+			}
+			fwtsf_hashtable[txhash].free = 1;
 		    }
 		}
 	    }
@@ -704,23 +710,13 @@ void Server::write_UDP_AckFIN( ) {
  * then hash the upper bits to a small space.  The hash table entry isn't expect to live long.
  * Hopefully this will provide low collisions at a relatively low memory cost.
  */
-uint16_t Server::seqnohash (uint32_t lower, uint32_t upper) {
-    uint64_t m = ((((uint64_t)(upper & 0xEFFFFFFF) << 32) | lower) >> 10);
+uint16_t Server::packetidhash (int64_t packetID) {
+    uint64_t m = packetID >> 10;
     int r = m % 17;
     if (r == 16) {
 	r = m % 13;
     }
-    uint16_t hash = (r << 10) | (lower & 0x2FF);
-    return hash;
-}
-
-uint16_t Server::packetidhash (void) {
-    uint64_t m = reportstruct->packetID >> 10;
-    int r = m % 17;
-    if (r == 16) {
-	r = m % 13;
-    }
-    uint16_t hash = (r << 10) | (reportstruct->packetID & 0x2FF);
+    uint16_t hash = (r << 10) | (packetID & 0x2FF);
     return hash;
 }
 

@@ -109,8 +109,7 @@ private:
     struct udphdr *udp_hdr;
 #endif
 #ifdef HAVE_UDPTRIGGERS
-    uint16_t seqnohash (uint32_t lower, uint32_t upper);
-    uint16_t packetidhash (void);
+    uint16_t packetidhash (int64_t);
     struct fwtsf_entry_t {
 	bool free;
 	int64_t packetID;
