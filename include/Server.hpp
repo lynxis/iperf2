@@ -110,6 +110,7 @@ private:
 #endif
 #ifdef HAVE_UDPTRIGGERS
     uint16_t seqnohash (uint32_t lower, uint32_t upper);
+    uint16_t packetidhash (void);
     struct fwtsf_entry_t {
 	bool free;
 	uint32_t seqno_lower;

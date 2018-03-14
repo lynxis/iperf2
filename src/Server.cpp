@@ -474,10 +474,29 @@ void Server::UDPTriggers_processing (void) {
     if ((offset + sizeof(UDP_isoch_payload) + sizeof(client_hdr_v1) + sizeof(UDP_datagram) + sizeof(UDPTriggers)) <= reportstruct->packetLen) {
 	UDPTriggers *trig = (UDPTriggers *) (mBuf + offset);
 	// pull the host/driver tx/rx timestamps from the packet
-	reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
-	reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
-	reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
-	reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
+	uint16_t type =ntohs(trig->type);
+	uint16_t len=ntohs(trig->length);
+	if (type==0x100 && len==68) {
+	    int rxhash = packetidhash();
+	    int txtsfcnt = ntohs(trig->fwtsf_cnt);
+	    reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
+	    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
+	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
+	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
+	    // Process tx tsf first
+	    while (txtsfcnt--) {
+		printf("Have tx tsf\n");
+	    }
+	    // Store rx tsf in hash table
+	    if (fwtsf_hashtable[rxhash].free) {
+		reportstruct->hashcollision = 0;
+	    } else {
+		reportstruct->hashcollision = 1;
+	    }
+	    fwtsf_hashtable[rxhash].fwrxts1 = ntohl(trig->fwtsf_rx.tsf_rxmac);
+	    fwtsf_hashtable[rxhash].fwrxts2 = ntohl(trig->fwtsf_rx.tsf_rxpcie);
+	    fwtsf_hashtable[rxhash].free = 0;
+	}
     }
 #endif
 }
@@ -685,6 +704,16 @@ uint16_t Server::seqnohash (uint32_t lower, uint32_t upper) {
 	r = m % 13;
     }
     uint16_t hash = (r << 10) | (lower & 0x2FF);
+    return hash;
+}
+
+uint16_t Server::packetidhash (void) {
+    uint64_t m = reportstruct->packetID >> 10;
+    int r = m % 17;
+    if (r == 16) {
+	r = m % 13;
+    }
+    uint16_t hash = (r << 10) | (reportstruct->packetID & 0x2FF);
     return hash;
 }
 

@@ -222,6 +222,7 @@ typedef struct ReportStruct {
 #define MAXTSFCHAIN 1470/32
     struct timeval hostTxTime;
     struct timeval hostRxTime;
+    bool hashcollision;
     int count;
     struct fwtsf_report_entry_t tsf[MAXTSFCHAIN];
 #endif
