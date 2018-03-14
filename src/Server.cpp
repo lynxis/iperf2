@@ -484,8 +484,14 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Process tx tsf first
+	    int doprint = 1;
 	    while (txtsfcnt--) {
-		printf("Have tx tsf\n");
+		if (fwtsf_hashtable[rxhash].packetID = reportstruct->packetID) {
+		    if (doprint) {
+			doprint = 0;
+			printf("Have tx tsf cnt = txtsfcnt\n");
+		    }
+		}
 	    }
 	    // Store rx tsf in hash table
 	    if (fwtsf_hashtable[rxhash].free) {
@@ -493,6 +499,7 @@ void Server::UDPTriggers_processing (void) {
 	    } else {
 		reportstruct->hashcollision = 1;
 	    }
+	    fwtsf_hashtable[rxhash].packetID = reportstruct->packetID;
 	    fwtsf_hashtable[rxhash].fwrxts1 = ntohl(trig->fwtsf_rx.tsf_rxmac);
 	    fwtsf_hashtable[rxhash].fwrxts2 = ntohl(trig->fwtsf_rx.tsf_rxpcie);
 	    fwtsf_hashtable[rxhash].free = 0;
