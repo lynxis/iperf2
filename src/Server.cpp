@@ -490,14 +490,12 @@ void Server::UDPTriggers_processing (void) {
 		while (txtsfcnt--) {
 		    int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id)) << 32) | ntohl(fwtimes->udpid.id));
 		    int txhash = packetidhash(txpacketID);
-		    if (!fwtsf_hashtable[txhash].free) {
-			if (fwtsf_hashtable[txhash].packetID == txpacketID) {
-			    if (doprint) {
-				doprint = 0;
-				printf("Have tx tsf match = txtsfcnt\n");
-			    }
-			    fwtsf_hashtable[txhash].free = 1;
+		    if ((!fwtsf_hashtable[txhash].free) && (fwtsf_hashtable[txhash].packetID == txpacketID)) {
+			if (doprint) {
+			    doprint = 0;
+			    printf("Have tx tsf match = txtsfcnt\n");
 			}
+			fwtsf_hashtable[txhash].free = 1;
 		    }
 		}
 	    }
@@ -511,6 +509,7 @@ void Server::UDPTriggers_processing (void) {
 	    fwtsf_hashtable[rxhash].fwrxts1 = ntohl(trig->fwtsf_rx.tsf_rxmac);
 	    fwtsf_hashtable[rxhash].fwrxts2 = ntohl(trig->fwtsf_rx.tsf_rxpcie);
 	    fwtsf_hashtable[rxhash].free = 0;
+	    printf("rx %x\n",rxhash);
 	}
     }
 #endif
