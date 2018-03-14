@@ -223,7 +223,7 @@ typedef struct ReportStruct {
     struct timeval hostTxTime;
     struct timeval hostRxTime;
     bool hashcollision;
-    int count;
+    int tsfcount;
     struct fwtsf_report_entry_t tsf[MAXTSFCHAIN];
 #endif
 } ReportStruct;

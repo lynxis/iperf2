@@ -485,19 +485,34 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Process tx tsf first
 	    if (txtsfcnt <= MAXTSFCHAIN) {
-		int doprint = 1;
+		int tsfcount = 0;
 		fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
 		while (txtsfcnt--) {
+		    tsfcount++;
 		    int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id2)) << 32) | ntohl(fwtimes->udpid.id));
 		    int txhash = packetidhash(txpacketID);
+                    /*
+		     * TSF histograms
+		     * hs1 = 14,8
+		     * hs2 = 15,7
+		     * hs3 = 14,17
+		     * hs4 = 15,16
+		     * hs5 = 7,8 (7-1,8-2)
+		     */
 		    if ((!fwtsf_hashtable[txhash].free) && (fwtsf_hashtable[txhash].packetID == txpacketID)) {
-			if (doprint) {
-			    doprint = 0;
-			    printf("Have tx tsf match = txtsfcnt\n");
-			}
+			u_int32_t h14 = ntohl(fwtimes->tsf_txpcie);
+			u_int32_t h15 = ntohl(fwtimes->tsf_txdma);
+			u_int32_t h16 = ntohl(fwtimes->tsf_txstatus);
+			u_int32_t h17 = ntohl(fwtimes->tsf_txpciert);
+			reportstruct->tsf[0].hs1 = h14 - fwtsf_hashtable[rxhash].fwrxts2;
+			reportstruct->tsf[0].hs2 = h15 - fwtsf_hashtable[rxhash].fwrxts1;
+			reportstruct->tsf[0].hs3 = h14 - h17;
+			reportstruct->tsf[0].hs4 = h15 - h16;
+			reportstruct->tsf[0].hs5 = fwtsf_hashtable[rxhash].fwrxts1 - fwtsf_hashtable[rxhash].fwrxts2;
 			fwtsf_hashtable[txhash].free = 1;
 		    }
 		}
+		reportstruct->tsfcount = tsfcount;
 	    }
 	    // Insert rx tsf in hash table
 	    if (fwtsf_hashtable[rxhash].free) {
