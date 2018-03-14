@@ -504,11 +504,11 @@ void Server::UDPTriggers_processing (void) {
 			u_int32_t h15 = ntohl(fwtimes->tsf_txdma);
 			u_int32_t h16 = ntohl(fwtimes->tsf_txstatus);
 			u_int32_t h17 = ntohl(fwtimes->tsf_txpciert);
-			reportstruct->tsf[0].hs1 = h14 - fwtsf_hashtable[txhash].fwrxts2;
-			reportstruct->tsf[0].hs2 = h15 - fwtsf_hashtable[txhash].fwrxts1;
+			reportstruct->tsf[0].hs1 = fwtsf_hashtable[txhash].fwrxts2 - h14;
+			reportstruct->tsf[0].hs2 = fwtsf_hashtable[txhash].fwrxts1 - h15;
 			reportstruct->tsf[0].hs3 = h17 - h14;
 			reportstruct->tsf[0].hs4 = h16 - h15;
-			reportstruct->tsf[0].hs5 = fwtsf_hashtable[txhash].fwrxts1 - fwtsf_hashtable[txhash].fwrxts2;
+			reportstruct->tsf[0].hs5 = fwtsf_hashtable[txhash].fwrxts2 - fwtsf_hashtable[txhash].fwrxts1;
 			fwtsf_hashtable[txhash].free = 1;
 		    }
 		}
