@@ -285,21 +285,30 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
 		}
 #ifdef HAVE_UDPTRIGGERS
+/*
+ * TSF histograms
+ * DHDRX-DHDTX 'DRRx-DRTx;'
+ * hs1 = 14,8 T6 "FWR2-FWT1"
+ * hs2 = 15,7 T5 "FWR1-FWT2'
+ * hs3 = 14,17 T4 'FWT4-FWT1'
+ * hs4 = 15,16 T3 'FWT3-FWT2'
+ * hs5 = 7,8 T2 'FWR2-FWR1'
+ */
 		if (isUDPTriggers(agent)) {
-		    char name[] = "T7";
+		    char name[] = "DRRx-DRTx";
 		    // Bins, bin size, bin, offset, bin units (1e6 = us), confidence low (e.g. 5%), confidence high (e.g. 95%), id, name)
-		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
+		    data->info.hostlatency_histogram =  histogram_init(100000,100, 0, 1e6, 5, 95,  \
 								       data->info.transferID, name);
-		    strcpy(name,"T6");
-		    data->info.h1_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
-		    strcpy(name,"T5");
-		    data->info.h2_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
-		    strcpy(name,"T4");
-		    data->info.h3_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
-		    strcpy(name,"T3");
-		    data->info.h4_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
-		    strcpy(name,"T2");
-		    data->info.h5_histogram =  histogram_init(100000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    strcpy(name,"FWR2-FWT1");
+		    data->info.h1_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    strcpy(name,"FWR1-FWT2");
+		    data->info.h2_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    strcpy(name,"FWT4-FWT1");
+		    data->info.h3_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    strcpy(name,"FWT3-FWT2");
+		    data->info.h4_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    strcpy(name,"FWR2-FWR1");
+		    data->info.h5_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS

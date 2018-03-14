@@ -656,11 +656,12 @@ typedef struct client_hdr_udp_tests {
  *                +--------+--------+--------+--------+
  *
  * TSF histograms
- * hs1 = 14,8
- * hs2 = 15,7
- * hs3 = 14,17
- * hs4 = 15,16
- * hs5 = 7,8
+ * DHDRX-DHDTX 'DRRx-DRTx;'
+ * hs1 = 14,8 T6 "FWR2-FWT1"
+ * hs2 = 15,7 T5 "FWR1-FWT2'
+ * hs3 = 14,17 T4 'FWT4-FWT1'
+ * hs4 = 15,16 T3 'FWT3-FWT2'
+ * hs5 = 7,8 T2 'FWR2-FWR1'
  */
 typedef struct fwtsfrx_t {
     u_int16_t fwtype;

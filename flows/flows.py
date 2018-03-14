@@ -644,7 +644,7 @@ class iperf_client(object):
             iperftime = time + 30
         else :
             ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-B 192.168.1.3:' + str(self.port), '--udp-triggers', '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window]
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
