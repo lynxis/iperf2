@@ -164,5 +164,5 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     h->outbuf[strlen(h->outbuf)-1] = '\0';
     if (!upperci)
        upperci=h->bincount;
-    fprintf(stdout, "%s (%d/%d/%d%=%d/%d,obl/obu=%d/%d)\n", h->outbuf,h->ci_lower, h->ci_upper, h->ci_upper, h->ci_outlier, lowerci, upperci, outlierci, oob_l, oob_u);
+    fprintf(stdout, "%s (%d/%d/%d%=%d/%d/%d,obl/obu=%d/%d)\n", h->outbuf,h->ci_lower, h->ci_upper, h->ci_upper, h->ci_outlier, lowerci, upperci, outlierci, oob_l, oob_u);
 }
