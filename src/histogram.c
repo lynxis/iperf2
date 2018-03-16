@@ -127,7 +127,7 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     if (!h->prev) {
 	h->prev = histogram_init(h->bincount, h->binwidth, h->offset, h->units, h->ci_lower, h->ci_upper, h->id, h->myname);
     }
-    int n = 0, ix, delta, lowerci, upperci, outliercnt, iqr25, iqr75;
+    int n = 0, ix, delta, lowerci, upperci, outliercnt, fence_lower, fence_upper;
     int running=0;
     int intervalpopulation, oob_u, oob_l;
     intervalpopulation = h->populationcnt - h->prev->populationcnt;
@@ -137,9 +137,9 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     lowerci=0;
     upperci=0;
     outliercnt=0;
-    iqr25 = 0;
-    iqr75 = 0;
-    int iqr3 = 0;
+    fence_lower = 0;
+    fence_upper = 0;
+    int outside3fences = 0;
     h->prev->populationcnt = h->populationcnt;
     oob_l = h->cntloweroutofbounds - h->prev->cntloweroutofbounds;
     h->prev->cntloweroutofbounds = h->cntloweroutofbounds;
@@ -153,14 +153,15 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
 	    if (!lowerci && ((float)running/intervalpopulation > h->ci_lower/100.0)) {
 		lowerci = ix;
 	    }
-	    if ((float)running/intervalpopulation < 0.05) {
-		iqr25=ix;
+	    // use 10% and 90% for inner fence post, then 3 times for outlier
+	    if ((float)running/intervalpopulation < 0.1) {
+		fence_lower=ix;
 	    }
-	    if ((float)running/intervalpopulation < 0.95) {
-		iqr75=ix;
-	    } else if (!iqr3) {
-		iqr3 = iqr75 + (3 * (iqr75 - iqr25));
-	    } else if (ix > iqr3) {
+	    if ((float)running/intervalpopulation < 0.9) {
+		fence_upper=ix;
+	    } else if (!outside3fences) {
+		outside3fences = fence_upper + (3 * (fence_upper - fence_lower));
+	    } else if (ix > outside3fences) {
 		outliercnt += delta;
 	    }
 	    if (!upperci && ((float)running/intervalpopulation > h->ci_upper/100.0)) {
