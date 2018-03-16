@@ -153,13 +153,13 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
 	    if (!lowerci && ((float)running/intervalpopulation > h->ci_lower/100.0)) {
 		lowerci = ix;
 	    }
-	    if ((float)running/intervalpopulation < 0.25) {
+	    if ((float)running/intervalpopulation < 0.05) {
 		iqr25=ix;
 	    }
-	    if ((float)running/intervalpopulation < 0.75) {
+	    if ((float)running/intervalpopulation < 0.95) {
 		iqr75=ix;
 	    } else if (!iqr3) {
-		iqr3 = 3 * (iqr75 - iqr25);
+		iqr3 = iqr75 + (3 * (iqr75 - iqr25));
 	    } else if (ix > iqr3) {
 		outliercnt += delta;
 	    }
@@ -173,5 +173,5 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     h->outbuf[strlen(h->outbuf)-1] = '\0';
     if (!upperci)
        upperci=h->bincount;
-    fprintf(stdout, "%s (%d/%d%%/3IQR=%d/%d/%d,obl/obu=%d/%d)\n", h->outbuf, h->ci_lower, h->ci_upper, lowerci, upperci, outliercnt, oob_l, oob_u);
+    fprintf(stdout, "%s (%d/%d%%=%d/%d,Outliers=%d,obl/obu=%d/%d)\n", h->outbuf, h->ci_lower, h->ci_upper, lowerci, upperci, outliercnt, oob_l, oob_u);
 }
