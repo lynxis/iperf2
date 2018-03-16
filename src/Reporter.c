@@ -285,15 +285,15 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
 		}
 #ifdef HAVE_UDPTRIGGERS
-/*
- * TSF histograms
- * DHDRX-DHDTX 'DRRx-DRTx;'
- * hs1 = 14,8 T6 "FWR2-FWT1"
- * hs2 = 15,7 T5 "FWR1-FWT2'
- * hs3 = 14,17 T4 'FWT4-FWT1'
- * hs4 = 15,16 T3 'FWT3-FWT2'
- * hs5 = 7,8 T2 'FWR2-FWR1'
- */
+                /*
+		 * TSF histograms
+		 * DHDRX-DHDTX 'DRRx-DRTx;'
+		 * hs1 = 14,8 T6 "FWR2-FWT1"
+		 * hs2 = 15,7 T5 "FWR1-FWT2'
+		 * hs3 = 14,17 T4 'FWT4-FWT1'
+		 * hs4 = 15,16 T3 'FWT3-FWT2'
+		 * hs5 = 7,8 T2 'FWR2-FWR1'
+		 */
 		if (isUDPTriggers(agent)) {
 		    char name[] = "DRRx-DRTx";
 		    // Bins, bin size, bin, offset, bin units (1e6 = us), confidence low (e.g. 5%), confidence high (e.g. 95%), id, name)

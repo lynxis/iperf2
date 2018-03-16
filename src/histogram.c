@@ -70,6 +70,7 @@ histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float 
     this->cntupperoutofbounds=0;
     this->ci_lower = ci_lower;
     this->ci_upper = ci_upper;
+    this->ci_outlier = 99;
     this->prev = NULL;
     // printf("histogram init\n");
     return this;
@@ -127,7 +128,7 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     if (!h->prev) {
 	h->prev = histogram_init(h->bincount, h->binwidth, h->offset, h->units, h->ci_lower, h->ci_upper, h->id, h->myname);
     }
-    int n = 0, ix, delta, lowerci, upperci;
+    int n = 0, ix, delta, lowerci, upperci, outlierci;
     int running=0;
     int intervalpopulation, oob_u, oob_l;
     intervalpopulation = h->populationcnt - h->prev->populationcnt;
@@ -136,6 +137,7 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     n = strlen(h->outbuf);
     lowerci=0;
     upperci=0;
+    outlierci=0;
     h->prev->populationcnt = h->populationcnt;
     oob_l = h->cntloweroutofbounds - h->prev->cntloweroutofbounds;
     h->prev->cntloweroutofbounds = h->cntloweroutofbounds;
@@ -152,6 +154,9 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
 	    if (!upperci && ((float)running/intervalpopulation > h->ci_upper/100.0)) {
 		upperci = ix;
 	    }
+	    if (!outlierci && ((float)running/intervalpopulation > h->ci_outlier/100.0)) {
+		upperci = ix;
+	    }
 	    n += sprintf(h->outbuf + n,"%d:%d,", ix, delta);
 	    h->prev->mybins[ix] = h->mybins[ix];
 	}
@@ -159,5 +164,5 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
     h->outbuf[strlen(h->outbuf)-1] = '\0';
     if (!upperci)
        upperci=h->bincount;
-    fprintf(stdout, "%s (%d/%d%%=%d/%d,obl/obu=%d/%d)\n", h->outbuf,h->ci_lower, h->ci_upper, lowerci, upperci, oob_l, oob_u);
+    fprintf(stdout, "%s (%d/%d%/%d%=%d/%d,obl/obu=%d/%d)\n", h->outbuf,h->ci_lower, h->ci_upper, h->ci_upper, lowerci, upperci, outlierci, oob_l, oob_u);
 }

@@ -134,14 +134,16 @@ class iperf_flow(object):
         tasks = []
         for flow in flows :
             for this_name in flow.histogram_names :
+                path = directory + '/' + this_name
+                os.makedirs(path, exist_ok=True)
                 i = 0
                 # group by name
                 histograms = [h for h in flow.histograms if h.name == this_name]
                 for histogram in histograms :
                     if histogram.ks_index is not None :
-                        histogram.output_dir = directory + '/' + this_name + '_' + str(i)
+                        histogram.output_dir = directory + '/' + this_name + '/' + this_name + str(i)
                     else :
-                        histogram.output_dir = directory + '/' + this_name + '_' + str(histogram.ks_index)
+                        histogram.output_dir = directory + '/' + this_name + '/' + this_name + str(histogram.ks_index)
 
                     logging.info('scheduling task {}'.format(histogram.output_dir))
                     tasks.append(asyncio.ensure_future(histogram.async_plot(directory=histogram.output_dir, title=title), loop=iperf_flow.loop))
@@ -211,15 +213,20 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='150K', debug = False):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', debug = False, udptriggers = False, isoch = False):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
         self.loop = iperf_flow.loop
         self.name = name
         self.flowname = name
-        iperf_flow.port += 1
-        self.port = iperf_flow.port
+        self.udptriggers = udptriggers;
+        if not self.udptriggers :
+            iperf_flow.port += 1
+            self.port = iperf_flow.port
+        else:
+            self.port = 6001
+
         self.server = server
         self.client = client
         if not user :
@@ -229,6 +236,7 @@ class iperf_flow(object):
         self.proto = proto
         self.dst = dst
         self.tos = tos
+        self.isoch = isoch;
         self.interval = round(interval,3)
         self.offered_load = offered_load
         self.debug = debug
@@ -327,16 +335,19 @@ class iperf_flow(object):
                         raise
             logging.info('{}(condensed distance matrix)\n{}'.format(this_name,self.condensed_distance_matrix))
             self.linkage_matrix=linkage(self.condensed_distance_matrix, 'ward')
-            plt.figure()
-            dn = hierarchy.dendrogram(self.linkage_matrix)
-            plt.title("{}".format(this_name))
-            plt.savefig('{}/dn_{}.png'.format(directory,this_name))
-            logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
-            print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
-            logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
-            flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.75*self.condensed_distance_matrix.max(), criterion='distance')
-            print('Clusters:{}'.format(flattened))
-            logging.info('Clusters:{}'.format(flattened))
+            try :
+                plt.figure()
+                dn = hierarchy.dendrogram(self.linkage_matrix)
+                plt.title("{}".format(this_name))
+                plt.savefig('{}/dn_{}.png'.format(directory,this_name))
+                logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
+                print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
+                logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
+                flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.75*self.condensed_distance_matrix.max(), criterion='distance')
+                print('Clusters:{}'.format(flattened))
+                logging.info('Clusters:{}'.format(flattened))
+            except:
+                pass
 
 class iperf_server(object):
 
@@ -472,7 +483,7 @@ class iperf_server(object):
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
-        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Z][0-9])\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/[0-9]+,obl/obu=[0-9]+/[0-9]+\)')
+        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/[0-9]+,obl/obu=[0-9]+/[0-9]+\)')
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -489,6 +500,9 @@ class iperf_server(object):
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
             self.sshcmd.extend(['-u', '--udp-histogram 10u,50000'])
+        if self.updtriggers :
+            self.sshcmd.extend(['-B 192.168.1.3:6001', '--udp-triggers'])
+
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
         await self.opened.wait()
@@ -648,8 +662,11 @@ class iperf_client(object):
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
-        if self.proto == 'UDP' and self.offered_load :
-            self.sshcmd.extend(['-u', '--isochronous', self.offered_load])
+        if self.proto == 'UDP' :
+             if self.isoch :
+                 self.sshcmd.extend(['-u', '--isochronous', self.offered_load])
+             else :
+                 self.sshcmd.extend(['-u', '-b', self.offered_load])
         elif self.proto == 'TCP' and self.offered_load :
             self.sshcmd.extend(['-b', self.offered_load])
 
@@ -696,13 +713,13 @@ class flow_histogram(object):
     @classmethod
     async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.') :
 
-        title = 'Two Sample KS({},{})'.format(h1.ks_index, h2.ks_index)
+        title = 'Two Sample KS({},{} ({} samples)'.format(h1.ks_index, h2.ks_index, h1.population)
         if h1.basefilename is None :
-            h1.output_dir = directory + '/' + h1.name + '_' + str(h1.ks_index)
+            h1.output_dir = directory + '/' + h1.name + '/' + h1.name + '_' + str(h1.ks_index)
             await h1.write(directory=h1.output_dir)
 
         if h2.basefilename is None :
-            h2.output_dir = directory + '/' + h2.name + '_' + str(h2.ks_index)
+            h2.output_dir = directory + '/' + h2.name + '/' + h2.name + '_' + str(h2.ks_index)
             await h2.write(directory=h2.output_dir)
 
         if (h1.basefilename is not None) and (h2.basefilename is not None) :

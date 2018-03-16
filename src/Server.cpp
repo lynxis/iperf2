@@ -508,7 +508,12 @@ void Server::UDPTriggers_processing (void) {
 			reportstruct->tsf[tsfcount].hs4 = h16 - h15;
 			reportstruct->tsf[tsfcount].hs5 = fwtsf_hashtable[txhash].fwrxts2 - fwtsf_hashtable[txhash].fwrxts1;
 			fwtsf_hashtable[txhash].free = 1;
-			tsfcount++;
+			// A TSF of all ones indicates invalid, ignore those samples
+			if ((h14 != 0xFFFFFFFF) && (h15 != 0xFFFFFFFF) && (h16 != 0xFFFFFFFF) \
+			    && (h14 != 0xFFFFFFFF) && (fwtsf_hashtable[txhash].fwrxts2 != 0xFFFFFFFF) \
+			    && (fwtsf_hashtable[txhash].fwrxts1 != 0xFFFFFFFF)) {
+			    tsfcount++;
+			}
 		    }
 		    fwtimes++;
 		}

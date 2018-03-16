@@ -62,6 +62,7 @@ typedef struct histogram_t {
     float units;
     unsigned short ci_lower;
     unsigned short ci_upper;
+    unsigned short ci_outlier;
     struct histogram_t *prev;
 } histogram_t;
 
