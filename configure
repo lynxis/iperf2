@@ -669,8 +669,8 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
-udptriggers_FALSE
-udptriggers_TRUE
+UDPTRIGGERS_FALSE
+UDPTRIGGERS_TRUE
 ISOCHRONOUS_FALSE
 ISOCHRONOUS_TRUE
 MAINT
@@ -3312,11 +3312,11 @@ if test "${enable_udptriggers+set}" = set; then :
 fi
 
  if test "x$enable_udptriggers" = "xyes"; then
-  udptriggers_TRUE=
-  udptriggers_FALSE='#'
+  UDPTRIGGERS_TRUE=
+  UDPTRIGGERS_FALSE='#'
 else
-  udptriggers_TRUE='#'
-  udptriggers_FALSE=
+  UDPTRIGGERS_TRUE='#'
+  UDPTRIGGERS_FALSE=
 fi
 
 
@@ -9062,8 +9062,8 @@ if test -z "${ISOCHRONOUS_TRUE}" && test -z "${ISOCHRONOUS_FALSE}"; then
   as_fn_error $? "conditional \"ISOCHRONOUS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${udptriggers_TRUE}" && test -z "${udptriggers_FALSE}"; then
-  as_fn_error $? "conditional \"udptriggers\" was never defined.
+if test -z "${UDPTRIGGERS_TRUE}" && test -z "${UDPTRIGGERS_FALSE}"; then
+  as_fn_error $? "conditional \"UDPTRIGGERS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then

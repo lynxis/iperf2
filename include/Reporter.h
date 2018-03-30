@@ -192,12 +192,18 @@ typedef struct L2Stats {
  * hs4 = 15,16
  * hs5 = 7,8
  */
+typedef struct gps_tsf_sync_t {
+    u_int32_t tsf_sample;
+    struct timeval gps_sample;
+} gps_tsf_sync_t;
+
 typedef struct fwtsf_report_entry_t {
-    uint32_t hs1;
-    uint32_t hs2;
-    uint32_t hs3;
-    uint32_t hs4;
-    uint32_t hs5;
+    u_int32_t tsf_rxmac; // 7
+    u_int32_t tsf_rxpcie; // 8
+    u_int32_t tsf_txpcie; // 14
+    u_int32_t tsf_txdma; // 15
+    u_int32_t tsf_txstatus; // 16
+    u_int32_t tsf_txpciert; // 17
 } fwtsf_report_entry_t;
 #endif
 
@@ -224,6 +230,7 @@ typedef struct ReportStruct {
     struct timeval hostRxTime;
     bool hashcollision;
     int tsfcount;
+    struct gps_tsf_sync_t txsync;
     struct fwtsf_report_entry_t tsf[MAXTSFCHAIN];
 #endif
 } ReportStruct;
@@ -282,6 +289,9 @@ typedef struct Transfer_Info {
     histogram_t *h3_histogram;
     histogram_t *h4_histogram;
     histogram_t *h5_histogram;
+    histogram_t *h6_histogram;
+    struct gps_tsf_sync_t rxsync;
+    struct gps_tsf_sync_t txsync;
 #endif
 } Transfer_Info;
 

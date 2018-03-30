@@ -128,6 +128,7 @@ Client::Client( thread_Settings *inSettings ) {
     FAIL_errno( reportstruct == NULL, "No memory for report structure\n", mSettings );
     reportstruct->packetID = (isPeerVerDetect(mSettings)) ? 1 : 0;
     reportstruct->errwrite=0;
+    reportstruct->emptyreport=0;
     reportstruct->socket = mSettings->mSock;
 
 } // end Client
@@ -141,6 +142,12 @@ Client::~Client() {
         WARN_errno( rc == SOCKET_ERROR, "close" );
         mSettings->mSock = INVALID_SOCKET;
     }
+#ifdef HAVE_UDPTRIGGERS
+    if ( mSettings->mSockIoctl > 0 ) {
+	int rc = close( mSettings->mSockIoctl );
+        WARN_errno( rc == SOCKET_ERROR, "ioctl close" );
+    }
+#endif
     DELETE_ARRAY( mBuf );
     DELETE_PTR(reportstruct);
 } // end ~Client
@@ -196,6 +203,8 @@ void Client::Connect( ) {
                  &mSettings->size_local );
     getpeername( mSettings->mSock, (sockaddr*) &mSettings->peer,
                  &mSettings->size_peer );
+    SockAddr_Ifrname(mSettings);
+
 } // end Connect
 
 
@@ -540,7 +549,6 @@ void Client::RunUDP( void ) {
 	// report packets
 	reportstruct->packetLen = (unsigned long) currLen;
 	ReportPacket( mSettings->reporthdr, reportstruct );
-
 	// Insert delay here only if the running delay is greater than 1 usec,
 	// otherwise don't delay and immediately continue with the next tx.
 	if ( delay >= 1000 ) {

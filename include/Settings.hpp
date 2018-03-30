@@ -143,6 +143,9 @@ typedef struct thread_Settings {
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     int mSockDrop;
 #endif
+#ifdef HAVE_UDPTRIGGERS
+    int mSockIoctl;
+#endif
     int Extractor_size;
     int mBufLen;                    // -l
     int mMSS;                       // -M
@@ -551,23 +554,29 @@ typedef struct client_hdrext {
  *                +--------+--------+--------+--------+
  *            13  |        iperf version minor        |
  *                +--------+--------+--------+--------+
- *            14  |        isoch burst period (us)    |
+ *            14  |        tsf sync sample            |
  *                +--------+--------+--------+--------+
- *            15  |        isoch start timestamp (s)  |
+ *            15  |        gps sync sample tv_sec     |
  *                +--------+--------+--------+--------+
- *            16  |        isoch start timestamp (us) |
+ *            16  |        gps sync sample tv_usec    |
  *                +--------+--------+--------+--------+
- *            17  |        isoch prev frameid         |
+ *            17  |        isoch burst period (us)    |
  *                +--------+--------+--------+--------+
- *            18  |        isoch frameid              |
+ *            18  |        isoch start timestamp (s)  |
  *                +--------+--------+--------+--------+
- *            19  |        isoch burtsize             |
+ *            19  |        isoch start timestamp (us) |
  *                +--------+--------+--------+--------+
- *            21  |        isoch bytes remaining      |
+ *            20  |        isoch prev frameid         |
  *                +--------+--------+--------+--------+
- *            22  |        isoch reserved             |
+ *            21  |        isoch frameid              |
  *                +--------+--------+--------+--------+
- *            23  |        hw timestamps ...          |
+ *            22  |        isoch burtsize             |
+ *                +--------+--------+--------+--------+
+ *            23  |        isoch bytes remaining      |
+ *                +--------+--------+--------+--------+
+ *            24  |        isoch reserved             |
+ *                +--------+--------+--------+--------+
+ *            25  |        hw timestamps ...          |
  *                +--------+--------+--------+--------+
  *            n   |        hw timestamps ...
  *                +--------+--------+--------+--------+
@@ -606,11 +615,17 @@ typedef struct client_hdr_udp_tests {
     u_int16_t tlvoffset;
     u_int32_t version_u;
     u_int32_t version_l;
+    u_int32_t tsf_sync;
+    u_int32_t gps_sync_tv_sec;
+    u_int32_t gps_sync_tv_usec;
 #else
     unsigned short testflags   : 16;
     unsigned short tlvoffset   : 16;
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
+    unsigned int tsf_sync : 32;
+    unsigned int gps_sync_tv_sec : 32;
+    unsigned int gps_sync_tv_usec : 32;
 #endif
 } client_hdr_udp_tests;
 

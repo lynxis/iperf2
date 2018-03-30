@@ -54,6 +54,7 @@
 #include "headers.h"
 
 #include "SocketAddr.h"
+#include <ifaddrs.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -473,8 +474,90 @@ int SockAddr_Hostare_Equal( struct sockaddr* first, struct sockaddr* second ) {
     return 0;
 
 }
-#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
+/* -------------------------------------------------------------------
+ * Find the interface name of a connected socket (when not already set)
+ * Can be forced with -B <ip>%<name> (server), -c <ip>%<name> (client)
+ * Note that kernel maps, e.g. via routing tables, to the actual device
+ * so these can change.  Assume they won't change during the life
+ * of a thread.
+ *
+ * Store (and cache) the results in the thread settings structure
+ * Return 0 if set, -1 if not
+ * ------------------------------------------------------------------- */
+int SockAddr_Ifrname(thread_Settings *inSettings) {
+    if (inSettings->mIfrname == NULL) {
+	struct sockaddr_storage myaddr;
+	struct ifaddrs* ifaddr;
+	struct ifaddrs* ifa;
+	socklen_t addr_len;
+	addr_len = sizeof(struct sockaddr_storage);
+	getsockname(inSettings->mSock, (struct sockaddr*)&myaddr, &addr_len);
+	getifaddrs(&ifaddr);
 
+        // look which interface contains the desired IP per getsockname() which sets myaddr
+        // When found, ifa->ifa_name contains the name of the interface (eth0, eth1, ppp0...)
+	if (myaddr.ss_family == AF_INET) {
+	    // v4 socket family (supports v4 only)
+	    struct sockaddr_in* addr = (struct sockaddr_in*)&myaddr;
+	    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if ((ifa->ifa_addr) && (ifa->ifa_addr->sa_family == AF_INET)) {
+		    struct sockaddr_in* inaddr = (struct sockaddr_in*)ifa->ifa_addr;
+		    if ((inaddr->sin_addr.s_addr == addr->sin_addr.s_addr) && (ifa->ifa_name)) {
+			// Found v4 address in v4 addr family, copy it to thread settings structure
+			inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
+			strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
+			break;
+		    }
+		}
+	    }
+	} else if (myaddr.ss_family == AF_INET6) {
+	    // v6 socket family (supports both v4 and v6)
+	    struct sockaddr_in6* addr = (struct sockaddr_in6*)&myaddr;
+	    // Link local address are shared amongst all devices
+	    // Try to pull the interface from the destination
+	    if ((inSettings->mThreadMode == kMode_Client) && (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))) {
+		char *results;
+		char *copy = (char *)malloc(strlen(inSettings->mHost)+1);
+		strcpy(copy,(const char *)inSettings->mHost);
+		if (((results = strtok(copy, "%")) != NULL) && ((results = strtok(NULL, "%")) != NULL)) {
+		    inSettings->mIfrname = calloc (strlen(results) + 1, sizeof(char));
+		    strncpy(inSettings->mIfrname, results, strlen(results) + 1);
+		}
+		free(copy);
+	    } else if ((inSettings->mThreadMode == kMode_Server) && (IN6_IS_ADDR_V4MAPPED (&addr->sin6_addr))) {
+		for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		    if ((ifa->ifa_addr) && (ifa->ifa_addr->sa_family == AF_INET)) {
+			struct sockaddr_in* inaddr = (struct sockaddr_in*)ifa->ifa_addr;
+			if ((inaddr->sin_addr.s_addr == addr->sin6_addr.s6_addr32[3]) && (ifa->ifa_name)) {
+			    // Found v4 address in v4 addr family, copy it to thread settings structure
+			    inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
+			    strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
+			    break;
+			}
+		    }
+		}
+	    } else {
+		// Hunt the v6 interfaces
+		for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		    if ((ifa->ifa_addr) && (ifa->ifa_addr->sa_family == AF_INET6)) {
+			struct sockaddr_in6* inaddr = (struct sockaddr_in6*)ifa->ifa_addr;
+			if ((ifa->ifa_name) && (IN6_ARE_ADDR_EQUAL(&addr->sin6_addr, &inaddr->sin6_addr))) {
+			    // Found v6 address in v6 addr family, copy it to thread settings structure
+			    inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
+			    strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
+			    break;
+			}
+		    }
+		}
+	    }
+	}
+	freeifaddrs(ifaddr);
+    }
+    return ((inSettings->mIfrname == NULL) ? -1 : 0);
+}
+
+
+#if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 int SockAddr_Drop_All_BPF (int sock) {
     struct sock_filter udp_filter[] = {
 	{ 0x6, 0, 0, 0x00000000 },

@@ -940,10 +940,6 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	    setMulticast( mExtSettings );
 	}
     }
-    if ((mExtSettings->mTTL > 0) && isIPV6(mExtSettings)) {
-	fprintf(stderr, "Fail: IP ttl (-T) setting not supported for IPv6 (-V)\n");
-	exit(-1);
-    }
 }
 
 void Settings_GetUpperCaseArg(const char *inarg, char *outarg) {
@@ -1131,15 +1127,13 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    flags |= HEADER_UDPTESTS;
 	    uint16_t testflags = 0;
 
-	    if (isIsochronous(client)) {
-		hdr->udp.tlvoffset = htons((sizeof(UDP_isoch_payload) + sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
-	    }
 	    if (isL2LengthCheck(client)) {
 		testflags |= HEADER_L2LENCHECK;
 		if (isIPV6(client))
 		    testflags |= HEADER_L2ETHPIPV6;
 	    }
 	    if (isIsochronous(client)) {
+		hdr->udp.tlvoffset = htons((sizeof(UDP_isoch_payload) + sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
 		testflags |= HEADER_UDP_ISOCH;
 	    }
 	    if (isUDPTriggers(client)) {

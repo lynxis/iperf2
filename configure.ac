@@ -47,7 +47,7 @@ AM_CONDITIONAL([ISOCHRONOUS], [test "x${enable_isochronous}" = "xyes"])
 
 AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
 	    [enable support for udp triggers in udp payloads (default is disable)]))
-AM_CONDITIONAL([udptriggers], [test "x$enable_udptriggers" = "xyes"])
+AM_CONDITIONAL([UDPTRIGGERS], [test "x$enable_udptriggers" = "xyes"])
 
 dnl AF_PACKET support
 AC_ARG_ENABLE(af-packet,

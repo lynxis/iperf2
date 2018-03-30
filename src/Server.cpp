@@ -92,6 +92,7 @@ Server::Server( thread_Settings *inSettings ) {
 	fwtsf_hashtable[ix].free=1;
     }
 #endif
+    SockAddr_Ifrname(mSettings);
 }
 
 /* -------------------------------------------------------------------
@@ -110,6 +111,12 @@ Server::~Server() {
 	int rc = close( mSettings->mSockDrop );
         WARN_errno( rc == SOCKET_ERROR, "close" );
         mSettings->mSockDrop = INVALID_SOCKET;
+    }
+#endif
+#ifdef HAVE_UDPTRIGGERS
+    if ( mSettings->mSockIoctl > 0 ) {
+	int rc = close( mSettings->mSockIoctl );
+        WARN_errno( rc == SOCKET_ERROR, "ioctl close" );
     }
 #endif
     DELETE_ARRAY( mBuf );
@@ -229,6 +236,7 @@ void Server::InitTimeStamping (void) {
 
 void Server::InitTrafficLoop (void) {
     reportstruct = new ReportStruct;
+    reportstruct->emptyreport=0;
     FAIL(reportstruct == NULL, "Out of memory! Closing server thread\n", mSettings);
     mSettings->reporthdr = InitReport( mSettings );
     reportstruct->packetID = 0;
@@ -482,6 +490,11 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
+	    // Grab the TX side sync timestamps here with ntohl
+	    reportstruct->txsync.tsf_sample = ntohl(tlvhdr->tsf_sync);
+	    reportstruct->txsync.gps_sample.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
+	    reportstruct->txsync.gps_sample.tv_usec = ntohl(tlvhdr->gps_sync_tv_usec);
+
 	    // Process tx tsf first
 	    if (txtsfcnt <= MAXTSFCHAIN) {
 		int tsfcount = 0;
@@ -489,31 +502,15 @@ void Server::UDPTriggers_processing (void) {
 		while (txtsfcnt--) {
 		    int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id2)) << 32) | ntohl(fwtimes->udpid.id));
 		    int txhash = packetidhash(txpacketID);
-                    /*
-		     * TSF histograms
-		     * hs1 = 14,8
-		     * hs2 = 15,7
-		     * hs3 = 14,17
-		     * hs4 = 15,16
-		     * hs5 = 7,8 (7-1,8-2)
-		     */
 		    if ((!fwtsf_hashtable[txhash].free) && (fwtsf_hashtable[txhash].packetID == txpacketID)) {
-			u_int32_t h14 = ntohl(fwtimes->tsf_txpcie);
-			u_int32_t h15 = ntohl(fwtimes->tsf_txdma);
-			u_int32_t h16 = ntohl(fwtimes->tsf_txstatus);
-			u_int32_t h17 = ntohl(fwtimes->tsf_txpciert);
-			reportstruct->tsf[tsfcount].hs1 = fwtsf_hashtable[txhash].fwrxts2 - h14;
-			reportstruct->tsf[tsfcount].hs2 = fwtsf_hashtable[txhash].fwrxts1 - h15;
-			reportstruct->tsf[tsfcount].hs3 = h17 - h14;
-			reportstruct->tsf[tsfcount].hs4 = h16 - h15;
-			reportstruct->tsf[tsfcount].hs5 = fwtsf_hashtable[txhash].fwrxts2 - fwtsf_hashtable[txhash].fwrxts1;
+			reportstruct->tsf[tsfcount].tsf_rxmac = fwtsf_hashtable[txhash].fwrxts1;
+			reportstruct->tsf[tsfcount].tsf_rxpcie = fwtsf_hashtable[txhash].fwrxts2;
+			reportstruct->tsf[tsfcount].tsf_txpcie =  ntohl(fwtimes->tsf_txpcie);
+			reportstruct->tsf[tsfcount].tsf_txdma = ntohl(fwtimes->tsf_txdma);
+			reportstruct->tsf[tsfcount].tsf_txstatus = ntohl(fwtimes->tsf_txstatus);
+			reportstruct->tsf[tsfcount].tsf_txpcie = ntohl(fwtimes->tsf_txpciert);
 			fwtsf_hashtable[txhash].free = 1;
-			// A TSF of all ones indicates invalid, ignore those samples
-			if ((h14 != 0xFFFFFFFF) && (h15 != 0xFFFFFFFF) && (h16 != 0xFFFFFFFF) \
-			    && (h14 != 0xFFFFFFFF) && (fwtsf_hashtable[txhash].fwrxts2 != 0xFFFFFFFF) \
-			    && (fwtsf_hashtable[txhash].fwrxts1 != 0xFFFFFFFF)) {
-			    tsfcount++;
-			}
+			tsfcount++;
 		    }
 		    fwtimes++;
 		}

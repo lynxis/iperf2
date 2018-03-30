@@ -293,22 +293,25 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		 * hs3 = 14,17 T4 'FWT4-FWT1'
 		 * hs4 = 15,16 T3 'FWT3-FWT2'
 		 * hs5 = 7,8 T2 'FWR2-FWR1'
+		 * hs6 = 15, 14  "FWT2-FWT1'
 		 */
 		if (isUDPTriggers(agent)) {
 		    char name[] = "DRRx-DRTx";
 		    // Bins, bin size, bin, offset, bin units (1e6 = us), confidence low (e.g. 5%), confidence high (e.g. 95%), id, name)
-		    data->info.hostlatency_histogram =  histogram_init(100000,100, 0, 1e6, 5, 95,  \
+		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
 								       data->info.transferID, name);
 		    strcpy(name,"FWR2-FWT1");
-		    data->info.h1_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h1_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWR1-FWT2");
-		    data->info.h2_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h2_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWT4-FWT1");
-		    data->info.h3_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h3_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWT3-FWT2");
-		    data->info.h4_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h4_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWR2-FWR1");
-		    data->info.h5_histogram =  histogram_init(100000,100, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h5_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    strcpy(name,"FWT2-FWT1");
+		    data->info.h6_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
@@ -740,6 +743,8 @@ again:
 		    temp->report.info.h4_histogram = NULL;
 		    histogram_delete(temp->report.info.h5_histogram);
 		    temp->report.info.h5_histogram = NULL;
+		    histogram_delete(temp->report.info.h6_histogram);
+		    temp->report.info.h6_histogram = NULL;
 		}
 #endif
                 free( temp );
@@ -1025,14 +1030,54 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    if (stats->h1_histogram) {
 			int ix;
 			for (ix = 0; ix < packet->tsfcount; ix ++) {
-			    histogram_insert(stats->h1_histogram,packet->tsf[ix].hs1);
-			    histogram_insert(stats->h2_histogram,packet->tsf[ix].hs2);
-			    histogram_insert(stats->h3_histogram,packet->tsf[ix].hs3);
-			    histogram_insert(stats->h4_histogram,packet->tsf[ix].hs4);
-			    histogram_insert(stats->h5_histogram,packet->tsf[ix].hs5);
+			    /*
+			     * TSF histograms
+			     * hs1 = 14,8
+			     * hs2 = 15,7
+			     * hs3 = 14,17
+			     * hs4 = 15,16
+			     * hs5 = 7,8 (7-1,8-2)
+			     * hs6 = 14,15
+			     *
+			     * u_int32_t tsf_rxmac   7
+			     * u_int32_t tsf_rxpcie  8
+			     * u_int32_t tsf_txpcie  14
+			     * u_int32_t tsf_txdma   15
+			     * u_int32_t tsf_txstatus 16
+			     * u_int32_t tsf_txpciert  17
+			     */
+			    // A TSF of all ones indicates invalid, ignore those samples
+			    if ((packet->tsf[ix].tsf_rxmac != 0xFFFFFFFF) && \
+				(packet->tsf[ix].tsf_rxpcie != 0xFFFFFFFF) && \
+				(packet->tsf[ix].tsf_txpcie != 0xFFFFFFFF) && \
+				(packet->tsf[ix].tsf_txdma != 0xFFFFFFFF) && \
+				(packet->tsf[ix].tsf_txstatus != 0xFFFFFFFF) && \
+				(packet->tsf[ix].tsf_txpciert != 0xFFFFFFFF)) {
+				u_int32_t hs1 = packet->tsf[ix].tsf_rxpcie - packet->tsf[ix].tsf_txpcie;
+				u_int32_t hs2 = packet->tsf[ix].tsf_rxmac - packet->tsf[ix].tsf_txdma;
+				u_int32_t hs3 = packet->tsf[ix].tsf_txpcie - packet->tsf[ix].tsf_txpciert;
+				u_int32_t hs4 = packet->tsf[ix].tsf_txstatus - packet->tsf[ix].tsf_txdma;
+				u_int32_t hs5 = packet->tsf[ix].tsf_rxpcie - packet->tsf[ix].tsf_rxmac;
+				u_int32_t hs6 = packet->tsf[ix].tsf_txdma - packet->tsf[ix].tsf_txpcie;
+#if 0
+				if (debug_tsf) {
+				    fprintf(stderr, "TSF ERR: tsf now=%d(%x)\n", tsfnow, tsfnow);
+				    fprintf(stderr, "TSF ERR: rxmac=%d(%x) rxpcie=%d(%x)\n", fwtsf_hashtable[txhash].fwrxts1, fwtsf_hashtable[txhash].fwrxts1, fwtsf_hashtable[txhash].fwrxts2, fwtsf_hashtable[txhash].fwrxts2);
+				    fprintf(stderr, "TSF ERR: txdma=%d(%x) txpcie=%d(%x)\n", h15,  h15, h14, h14);
+				    fprintf(stderr, "TSF ERR: txstatus=%d(%x) txpciert=%d(%x)\n\n", h16,  h16, h17, h17);
+				}
+#endif
+				histogram_insert(stats->h1_histogram, hs1);
+				histogram_insert(stats->h2_histogram, hs2);
+				histogram_insert(stats->h3_histogram, hs3);
+				histogram_insert(stats->h4_histogram, hs4);
+				histogram_insert(stats->h5_histogram, hs5);
+				histogram_insert(stats->h6_histogram, hs6);
+			    }
 			}
 		    }
 #endif
+
 		    // packet loss occured if the datagram numbers aren't sequential
 		    if ( packet->packetID != data->PacketID + 1 ) {
 			if (packet->packetID < data->PacketID + 1 ) {
