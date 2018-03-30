@@ -528,7 +528,7 @@ int SockAddr_Ifrname(thread_Settings *inSettings) {
 		for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
 		    if ((ifa->ifa_addr) && (ifa->ifa_addr->sa_family == AF_INET)) {
 			struct sockaddr_in* inaddr = (struct sockaddr_in*)ifa->ifa_addr;
-			if ((inaddr->sin_addr.s_addr == addr->sin6_addr.s6_addr32[3]) && (ifa->ifa_name)) {
+			if ((IN6_V4_V4MAPPED_ARE_ADDR_EQUAL(inaddr, addr)) && (ifa->ifa_name)) {
 			    // Found v4 address in v4 addr family, copy it to thread settings structure
 			    inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
 			    strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
