@@ -107,9 +107,6 @@ extern "C" {
     int SockAddr_v6_Connect_BPF (int sock, struct in6_addr *src, struct in6_addr *dst, uint16_t dstport, uint16_t srcport);
 #  endif // v6
 #endif // linux_filter
-#define IN6_V4_V4MAPPED_ARE_ADDR_EQUAL(v4,v4mapped) \
-    (*(const __uint32_t *)(const void *)(&(v4)->sin_addr.s_addr) ==  \
-     (*(const __uint32_t *)(const void *)(&(v4mapped)->sin6_addr+12)))
 
 #ifdef __cplusplus
 } /* end extern "C" */
