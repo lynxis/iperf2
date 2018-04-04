@@ -1083,12 +1083,12 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				tsfraw_update(&stats->tsftv_txdma, packet->tsf[ix].tsf_txdma);
 				tsfraw_update(&stats->tsftv_txstatus, packet->tsf[ix].tsf_txstatus);
 				// compute the diffs
-				u_int32_t hs1 = tsf_usec_delta(&stats->tsftv_rxpcie, &stats->tsftv_txpcie);
-				u_int32_t hs2 = tsf_usec_delta(&stats->tsftv_rxmac, &stats->tsftv_txdma);
-				u_int32_t hs3 = tsf_usec_delta(&stats->tsftv_txpcie, &stats->tsftv_txpciert);
-				u_int32_t hs4 = tsf_usec_delta(&stats->tsftv_txstatus, &stats->tsftv_txdma);
-				u_int32_t hs5 = tsf_usec_delta(&stats->tsftv_rxpcie, &stats->tsftv_rxmac);
-				u_int32_t hs6 = tsf_usec_delta(&stats->tsftv_txdma, &stats->tsftv_txpcie);
+				float hs1 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_txpcie);
+				float hs2 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_txdma);
+				float hs3 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txpciert);
+				float hs4 = tsf_sec_delta(&stats->tsftv_txstatus, &stats->tsftv_txdma);
+				float hs5 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_rxmac);
+				float hs6 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_txpcie);
 #if 0
 				{
 				    fprintf(stderr, "TSF Debug: hs1=%d\n", hs1);
@@ -1099,12 +1099,12 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				    fprintf(stderr, "TSF Debug: hs6=%d\n", hs6);
 				}
 #endif
-				histogram_insert(stats->h1_histogram, ((float) hs1)/1e6);
-				histogram_insert(stats->h2_histogram, ((float) hs2)/1e6);
-				histogram_insert(stats->h3_histogram, ((float) hs3)/1e6);
-				histogram_insert(stats->h4_histogram, ((float) hs4)/1e6);
-				histogram_insert(stats->h5_histogram, ((float) hs5)/1e6);
-				histogram_insert(stats->h6_histogram, ((float) hs6)/1e6);
+				histogram_insert(stats->h1_histogram, hs1);
+				histogram_insert(stats->h2_histogram, hs2);
+				histogram_insert(stats->h3_histogram, hs3);
+				histogram_insert(stats->h4_histogram, hs4);
+				histogram_insert(stats->h5_histogram, hs5);
+				histogram_insert(stats->h6_histogram, hs6);
 			    }
 			}
 		    }

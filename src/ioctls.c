@@ -185,3 +185,7 @@ void tsfgps_sync (tsftv_t *tsf,  struct tsfgps_sync_t *t, thread_Settings *agent
 u_int32_t tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
     return ((tsf_a->tsfgps_now.tv_sec  - tsf_b->tsfgps_now.tv_sec) * MILLION) + (tsf_a->tsfgps_now.tv_usec - tsf_b->tsfgps_now.tv_usec);
 }
+
+float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
+    return (((float) ((tsf_a->tsfgps_now.tv_sec  - tsf_b->tsfgps_now.tv_sec) * MILLION) + (tsf_a->tsfgps_now.tv_usec - tsf_b->tsfgps_now.tv_usec)) / 1e6);
+}
