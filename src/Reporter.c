@@ -1099,12 +1099,12 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				    fprintf(stderr, "TSF Debug: hs6=%d\n", hs6);
 				}
 #endif
-				histogram_insert(stats->h1_histogram, hs1);
-				histogram_insert(stats->h2_histogram, hs2);
-				histogram_insert(stats->h3_histogram, hs3);
-				histogram_insert(stats->h4_histogram, hs4);
-				histogram_insert(stats->h5_histogram, hs5);
-				histogram_insert(stats->h6_histogram, hs6);
+				histogram_insert(stats->h1_histogram, ((float) hs1)/1e6);
+				histogram_insert(stats->h2_histogram, ((float) hs2)/1e6);
+				histogram_insert(stats->h3_histogram, ((float) hs3)/1e6);
+				histogram_insert(stats->h4_histogram, ((float) hs4)/1e6);
+				histogram_insert(stats->h5_histogram, ((float) hs5)/1e6);
+				histogram_insert(stats->h6_histogram, ((float) hs6)/1e6);
 			    }
 			}
 		    }
