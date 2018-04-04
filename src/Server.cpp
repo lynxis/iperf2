@@ -66,6 +66,9 @@
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 #include "checksums.h"
 #endif
+#ifdef HAVE_UDPTRIGGERS
+#include "ioctls.h"
+#endif
 
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
@@ -114,10 +117,7 @@ Server::~Server() {
     }
 #endif
 #ifdef HAVE_UDPTRIGGERS
-    if ( mSettings->mSockIoctl > 0 ) {
-	int rc = close( mSettings->mSockIoctl );
-        WARN_errno( rc == SOCKET_ERROR, "ioctl close" );
-    }
+    close_ioctl_sock(mSettings);
 #endif
     DELETE_ARRAY( mBuf );
 }
@@ -475,7 +475,7 @@ void Server::Isoch_processing (void) {
 }
 
 void Server::UDPTriggers_processing (void) {
-#if HAVE_UDPTRIGGERS
+#ifdef HAVE_UDPTRIGGERS
     struct client_hdr_udp_tests *tlvhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     int offset = ntohs(tlvhdr->tlvoffset);
     // protect against offets that go over the packet length
@@ -491,9 +491,9 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Grab the TX side sync timestamps here with ntohl
-	    reportstruct->txsync.tsf_sample = ntohl(tlvhdr->tsf_sync);
-	    reportstruct->txsync.gps_sample.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
-	    reportstruct->txsync.gps_sample.tv_usec = ntohl(tlvhdr->gps_sync_tv_usec);
+	    reportstruct->txsync.tsf_ts = ntohl(tlvhdr->tsf_sync);
+	    reportstruct->txsync.gps_ts.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
+	    reportstruct->txsync.gps_ts.tv_usec = ntohl(tlvhdr->gps_sync_tv_usec);
 
 	    // Process tx tsf first
 	    if (txtsfcnt <= MAXTSFCHAIN) {
@@ -508,7 +508,7 @@ void Server::UDPTriggers_processing (void) {
 			reportstruct->tsf[tsfcount].tsf_txpcie =  ntohl(fwtimes->tsf_txpcie);
 			reportstruct->tsf[tsfcount].tsf_txdma = ntohl(fwtimes->tsf_txdma);
 			reportstruct->tsf[tsfcount].tsf_txstatus = ntohl(fwtimes->tsf_txstatus);
-			reportstruct->tsf[tsfcount].tsf_txpcie = ntohl(fwtimes->tsf_txpciert);
+			reportstruct->tsf[tsfcount].tsf_txpciert = ntohl(fwtimes->tsf_txpciert);
 			fwtsf_hashtable[txhash].free = 1;
 			tsfcount++;
 		    }
@@ -598,6 +598,7 @@ void Server::RunUDP( void ) {
 	}
 
 	ReportPacket(mSettings->reporthdr, reportstruct);
+
     } while (!done);
 
     CloseReport( mSettings->reporthdr, reportstruct );
@@ -737,5 +738,4 @@ uint16_t Server::packetidhash (int64_t packetID) {
     uint16_t hash = (r << 10) | (packetID & 0x3FF);
     return hash;
 }
-
 #endif

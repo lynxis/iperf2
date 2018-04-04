@@ -301,17 +301,28 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
 								       data->info.transferID, name);
 		    strcpy(name,"FWR2-FWT1");
-		    data->info.h1_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h1_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWR1-FWT2");
-		    data->info.h2_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h2_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWT4-FWT1");
-		    data->info.h3_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h3_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWT3-FWT2");
-		    data->info.h4_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h4_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWR2-FWR1");
-		    data->info.h5_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h5_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 		    strcpy(name,"FWT2-FWT1");
-		    data->info.h6_histogram =  histogram_init(1000000,10, 0, 1, 5, 95, data->info.transferID, name);
+		    data->info.h6_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
+
+		    memset(&data->info.tsftv_rxmac,0,sizeof(struct tsftv_t));
+		    memset(&data->info.tsftv_rxpcie,0,sizeof(struct tsftv_t));
+		    memset(&data->info.tsftv_txpcie,0,sizeof(struct tsftv_t));
+		    memset(&data->info.tsftv_txpciert,0,sizeof(struct tsftv_t));
+		    memset(&data->info.tsftv_txdma,0,sizeof(struct tsftv_t));
+		    memset(&data->info.tsftv_txstatus,0,sizeof(struct tsftv_t));
+
+		    // sync the RX tsf structs with gps
+		    tsfgps_sync(&data->info.tsftv_rxpcie, NULL, agent);
+		    data->info.tsftv_rxmac = data->info.tsftv_rxpcie;
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
@@ -1053,18 +1064,39 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				(packet->tsf[ix].tsf_txdma != 0xFFFFFFFF) && \
 				(packet->tsf[ix].tsf_txstatus != 0xFFFFFFFF) && \
 				(packet->tsf[ix].tsf_txpciert != 0xFFFFFFFF)) {
-				u_int32_t hs1 = packet->tsf[ix].tsf_rxpcie - packet->tsf[ix].tsf_txpcie;
-				u_int32_t hs2 = packet->tsf[ix].tsf_rxmac - packet->tsf[ix].tsf_txdma;
-				u_int32_t hs3 = packet->tsf[ix].tsf_txpcie - packet->tsf[ix].tsf_txpciert;
-				u_int32_t hs4 = packet->tsf[ix].tsf_txstatus - packet->tsf[ix].tsf_txdma;
-				u_int32_t hs5 = packet->tsf[ix].tsf_rxpcie - packet->tsf[ix].tsf_rxmac;
-				u_int32_t hs6 = packet->tsf[ix].tsf_txdma - packet->tsf[ix].tsf_txpcie;
+				// apply sync to the TX tsf structs if needed
+				if (!stats->tsftv_txpcie.synced) {
+				    struct tsfgps_sync_t tsfgps;
+				    tsfgps.gps_ts.tv_sec = packet->txsync.gps_ts.tv_sec;
+				    tsfgps.gps_ts.tv_usec = packet->txsync.gps_ts.tv_usec;
+				    tsfgps.tsf_ts = packet->txsync.tsf_ts;
+				    tsfgps_sync(&stats->tsftv_txpcie, &tsfgps, NULL);
+				    stats->tsftv_txpciert = stats->tsftv_txpcie;
+				    stats->tsftv_txdma = stats->tsftv_txpcie;
+				    stats->tsftv_txstatus = stats->tsftv_txpcie;
+				}
+				// Update the TSF timestamp structures using the raw timestamps
+				tsfraw_update(&stats->tsftv_rxpcie, packet->tsf[ix].tsf_rxpcie);
+				tsfraw_update(&stats->tsftv_rxmac, packet->tsf[ix].tsf_rxmac);
+				tsfraw_update(&stats->tsftv_txpcie, packet->tsf[ix].tsf_txpcie);
+				tsfraw_update(&stats->tsftv_txpciert, packet->tsf[ix].tsf_txpciert);
+				tsfraw_update(&stats->tsftv_txdma, packet->tsf[ix].tsf_txdma);
+				tsfraw_update(&stats->tsftv_txstatus, packet->tsf[ix].tsf_txstatus);
+				// compute the diffs
+				float hs1 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_txpcie);
+				float hs2 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_txdma);
+				float hs3 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txpciert);
+				float hs4 = tsf_sec_delta(&stats->tsftv_txstatus, &stats->tsftv_txdma);
+				float hs5 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_rxmac);
+				float hs6 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_txpcie);
 #if 0
-				if (debug_tsf) {
-				    fprintf(stderr, "TSF ERR: tsf now=%d(%x)\n", tsfnow, tsfnow);
-				    fprintf(stderr, "TSF ERR: rxmac=%d(%x) rxpcie=%d(%x)\n", fwtsf_hashtable[txhash].fwrxts1, fwtsf_hashtable[txhash].fwrxts1, fwtsf_hashtable[txhash].fwrxts2, fwtsf_hashtable[txhash].fwrxts2);
-				    fprintf(stderr, "TSF ERR: txdma=%d(%x) txpcie=%d(%x)\n", h15,  h15, h14, h14);
-				    fprintf(stderr, "TSF ERR: txstatus=%d(%x) txpciert=%d(%x)\n\n", h16,  h16, h17, h17);
+				{
+				    fprintf(stderr, "TSF Debug: hs1=%d\n", hs1);
+				    fprintf(stderr, "TSF Debug: hs2=%d\n", hs2);
+				    fprintf(stderr, "TSF Debug: hs3=%d\n", hs3);
+				    fprintf(stderr, "TSF Debug: hs4=%d\n", hs4);
+				    fprintf(stderr, "TSF Debug: hs5=%d\n", hs5);
+				    fprintf(stderr, "TSF Debug: hs6=%d\n", hs6);
 				}
 #endif
 				histogram_insert(stats->h1_histogram, hs1);

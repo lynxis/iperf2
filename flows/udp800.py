@@ -15,6 +15,7 @@ from flows import *
 parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
 parser.add_argument('-s','--server', type=str, default="10.19.87.10", required=True, help='host to run iperf server')
 parser.add_argument('-c','--client', type=str, default="10.19.87.7", required=False, help='host to run iperf client')
+parser.add_argument('-d','--dst', type=str, default="192.168.1.4",required=False, help='iperf destination ip address')
 parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
 parser.add_argument('-l','--length', type=int, required=False, default=200, help='udp payload size')
 parser.add_argument('-n','--runcount', type=int, required=False, default=5, help='number of runs')
@@ -57,7 +58,7 @@ if args.isoch :
     flows = [iperf_flow(name="ISOCHUDP", user='root', server=args.server, client=args.client, udptriggers=True, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.4', tos=args.tos, isoch=True, debug=False)]
 else :
     print("No isoch")
-    flows = [iperf_flow(name="UDP", user='root', server=args.server, client=args.client, udptriggers=True, proto='UDP', offered_load='500pps', interval=args.interval, flowtime=args.time, dst='192.168.1.4', tos=args.tos, length=200, isoch=False, debug=False)]
+    flows = [iperf_flow(name="UDP", user='root', server=args.server, client=args.client, udptriggers=True, proto='UDP', offered_load='500pps', interval=args.interval, flowtime=args.time, dst=args.dst, tos=args.tos, length=200, isoch=False, debug=False)]
 
 #optional "stressor flow"
 if args.stress_server and args.stress_client and args.stress_dst :

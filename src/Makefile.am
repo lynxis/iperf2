@@ -55,3 +55,7 @@ endif
 if AF_PACKET
 iperf_SOURCES += checksums.c
 endif
+
+if UDPTRIGGERS
+iperf_SOURCES += ioctls.c
+endif

@@ -66,11 +66,16 @@
 #include "Settings.hpp"
 #include "Locale.h"
 #include "SocketAddr.h"
-
 #include "util.h"
 #include "version.h"
-
 #include "gnu_getopt.h"
+#ifdef HAVE_ISOCHRONOUS
+#include "isochronous.hpp"
+#include "pdfs.h"
+#endif
+#ifdef HAVE_UDPTRIGGERS
+#include "ioctls.h"
+#endif
 
 static int seqno64b = 0;
 static int reversetest = 0;
@@ -1138,6 +1143,16 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    }
 	    if (isUDPTriggers(client)) {
 		testflags |= HEADER_UDPTRIGGERS;
+		Timestamp gpsnow;
+		hdr->udp.gps_sync_tv_sec = gpsnow.getSecs();
+		hdr->udp.gps_sync_tv_usec = gpsnow.getUsecs();
+		hdr->udp.tsf_sync = htonl(0xFFFFFFFF);
+#ifdef HAVE_UDPTRIGGERS
+		if (client->mIfrname) {
+		    uint32_t tsfnow = read_80211_tsf(client);
+		    hdr->udp.tsf_sync = htonl(tsfnow);
+		}
+#endif
 	    }
 	    // Write flags to header so the listener can determine the tests requested
 	    hdr->udp.testflags = htons(testflags);
