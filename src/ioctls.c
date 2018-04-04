@@ -109,7 +109,7 @@ u_int32_t read_80211_tsf(thread_Settings *inSettings) {
 	    SockAddr_Ifrname(inSettings);
 	}
 	snprintf(ifr.ifr_name, IF_NAMESIZE, inSettings->mIfrname);
-	char buf[6];
+	char buf[8+sizeof(struct sdreg)];
 	snprintf(buf, 6, "sbreg");
 	sbreg.func = 4;
 	sbreg.offset = 0x18001180;
