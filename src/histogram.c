@@ -151,23 +151,23 @@ void histogram_print(histogram_t *h, double start, double end, int final) {
 	if (delta > 0) {
 	    running+=delta;
 	    if (!lowerci && ((float)running/intervalpopulation > h->ci_lower/100.0)) {
-		lowerci = ix;
+		lowerci = ix+1;
 	    }
 	    // use 10% and 90% for inner fence post, then 3 times for outlier
 	    if ((float)running/intervalpopulation < 0.1) {
-		fence_lower=ix;
+		fence_lower=ix+1;
 	    }
 	    if ((float)running/intervalpopulation < 0.9) {
-		fence_upper=ix;
+		fence_upper=ix+1;
 	    } else if (!outside3fences) {
 		outside3fences = fence_upper + (3 * (fence_upper - fence_lower));
 	    } else if (ix > outside3fences) {
 		outliercnt += delta;
 	    }
 	    if (!upperci && ((float)running/intervalpopulation > h->ci_upper/100.0)) {
-		upperci = ix;
+		upperci = ix+1;
 	    }
-	    n += sprintf(h->outbuf + n,"%d:%d,", ix, delta);
+	    n += sprintf(h->outbuf + n,"%d:%d,", ix+1, delta);
 	    h->prev->mybins[ix] = h->mybins[ix];
 	}
     }
