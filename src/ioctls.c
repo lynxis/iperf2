@@ -144,9 +144,9 @@ void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow) {
 	fprintf(stdout,"TSF cannot be synced to GPS time");
 	tsf->tsfgps_now = 0.0;
     } else {
-	int carry_sec = tsf->tsfcarry * TSFCARRYSEC;
-	int carry_usec = (carry_sec ? TSFCARRYUSEC : 0);
-	double tsf_adj = ((carry_sec * 1e6) + carry_usec) + (tsf->tsfraw - tsf->tsfgpssync.tsf_ts);
+	double carry_sec = tsf->tsfcarry * TSFCARRYSEC;
+	double carry_usec = (carry_sec ? TSFCARRYUSEC : 0);
+	double tsf_adj = ((carry_sec * 1e6) + carry_usec) + ((double)tsf->tsfraw - (double)tsf->tsfgpssync.tsf_ts);
 	tsf->tsfgps_now = (tsf->tsfgps_t0.tv_sec * MILLION) + tsf->tsfgps_t0.tv_usec  + tsf_adj;
     }
     return;
