@@ -65,7 +65,7 @@ typedef struct tsftv_t {
     u_int32_t tsfraw;
     struct tsfgps_sync_t tsfgpssync;
     struct timeval tsfgps_t0;
-    float tsfgps_now;
+    double tsfgps_now;
 } tsftv_t;
 
 extern int open_ioctl_sock(struct thread_Settings *inSettings);

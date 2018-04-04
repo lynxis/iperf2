@@ -146,8 +146,8 @@ void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow) {
     } else {
 	int carry_sec = tsf->tsfcarry * TSFCARRYSEC;
 	int carry_usec = (carry_sec ? TSFCARRYUSEC : 0);
-	float tsf_adj = ((carry_sec * 1e6) + carry_usec) + (tsf->tsfraw - tsf->tsfgpssync.tsf_ts);
-	tsf->tsfgps_now = (tsf->tsfgps_t0.tv_usec * MILLION) + tsf_adj;
+	double tsf_adj = ((carry_sec * 1e6) + carry_usec) + (tsf->tsfraw - tsf->tsfgpssync.tsf_ts);
+	tsf->tsfgps_now = (tsf->tsfgps_t0.tv_sec * MILLION) + tsf->tsfgps_t0.tv_usec  + tsf_adj;
     }
     return;
 }
@@ -176,9 +176,9 @@ void tsfgps_sync (tsftv_t *tsf,  struct tsfgps_sync_t *t, thread_Settings *agent
 }
 
 float tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
-    return (tsf_a->tsfgps_now - tsf_b->tsfgps_now);
+    return (float) (tsf_a->tsfgps_now - tsf_b->tsfgps_now);
 }
 
 float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
-    return ((tsf_a->tsfgps_now - tsf_b->tsfgps_now)/1e6);
+    return (float) ((tsf_a->tsfgps_now - tsf_b->tsfgps_now)/1e6);
 }
