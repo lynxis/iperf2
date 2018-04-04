@@ -132,29 +132,23 @@ u_int32_t read_80211_tsf(thread_Settings *inSettings) {
 }
 
 #define MILLION 1000000
-static void tsf2gps (tsftv_t *tsf) {
-    if (!tsf->synced) {
-	fprintf(stdout,"TSF not synced to GPS and tsf2gps() called");
-    }
-    int carry_sec = tsf->tsfcarry * (0xFFFFFFFF / MILLION);
-    int carry_usec = (carry_sec ? (0xFFFFFFFF % MILLION) : 0);
-    int usec = (tsf->tsfraw % MILLION) + carry_usec + tsf->tsfgps_t0.tv_usec;
-    int sec = (tsf->tsfraw / MILLION) + carry_sec + tsf->tsfgps_t0.tv_sec;
-    if (usec > MILLION) {
-	usec = usec - MILLION;
-	sec++;
-    }
-    tsf->tsfgps_now.tv_sec = sec;
-    tsf->tsfgps_now.tv_usec = usec;
-}
-
+#define TSFCARRYSEC (0XFFFFFFFF / MILLION)
+#define TSFCARRYUSEC (0XFFFFFFFF % MILLION)
 // Assumes sequential calls which are monotonic in TSF time
 void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow) {
     if (tsf->tsfraw > tsfrawnow) {
 	tsf->tsfcarry++;
     }
     tsf->tsfraw = tsfrawnow;
-    tsf2gps(tsf);
+    if (!tsf->synced) {
+	fprintf(stdout,"TSF cannot be synced to GPS time");
+	tsf->tsfgps_now = 0.0;
+    } else {
+	int carry_sec = tsf->tsfcarry * TSFCARRYSEC;
+	int carry_usec = (carry_sec ? TSFCARRYUSEC : 0);
+	float tsf_adj = ((carry_sec * 1e6) + carry_usec) + (tsf->tsfraw - tsf->tsfgpssync.tsf_ts);
+	tsf->tsfgps_now = (tsf->tsfgps_t0.tv_usec * MILLION) + tsf_adj;
+    }
     return;
 }
 
@@ -181,11 +175,10 @@ void tsfgps_sync (tsftv_t *tsf,  struct tsfgps_sync_t *t, thread_Settings *agent
     tsf->synced = 1;
 }
 
-
-u_int32_t tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
-    return ((tsf_a->tsfgps_now.tv_sec  - tsf_b->tsfgps_now.tv_sec) * MILLION) + (tsf_a->tsfgps_now.tv_usec - tsf_b->tsfgps_now.tv_usec);
+float tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
+    return (tsf_a->tsfgps_now - tsf_b->tsfgps_now);
 }
 
 float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
-    return (((float) ((tsf_a->tsfgps_now.tv_sec  - tsf_b->tsfgps_now.tv_sec) * MILLION) + (tsf_a->tsfgps_now.tv_usec - tsf_b->tsfgps_now.tv_usec)) / 1e6);
+    return ((tsf_a->tsfgps_now - tsf_b->tsfgps_now)/1e6);
 }

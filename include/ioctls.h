@@ -65,7 +65,7 @@ typedef struct tsftv_t {
     u_int32_t tsfraw;
     struct tsfgps_sync_t tsfgpssync;
     struct timeval tsfgps_t0;
-    struct timeval tsfgps_now;
+    float tsfgps_now;
 } tsftv_t;
 
 extern int open_ioctl_sock(struct thread_Settings *inSettings);
@@ -73,7 +73,7 @@ extern void close_ioctl_sock(struct thread_Settings *inSettings);
 extern u_int32_t read_80211_tsf(struct thread_Settings *inSettings);
 extern void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow);
 extern void tsfgps_sync (tsftv_t *tsf_a,  struct tsfgps_sync_t *t, struct thread_Settings *agent);
-extern u_int32_t tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b);
+extern float tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b);
 extern float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b);
 
 #ifdef __cplusplus
