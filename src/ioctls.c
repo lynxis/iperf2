@@ -147,7 +147,7 @@ void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow) {
 	double carry_sec = tsf->tsfcarry * TSFCARRYSEC;
 	double carry_usec = (carry_sec ? TSFCARRYUSEC : 0);
 	double tsf_adj = ((carry_sec * 1e6) + carry_usec) + ((double)tsf->tsfraw - (double)tsf->tsfgpssync.tsf_ts);
-	tsf->tsfgps_now = (tsf->tsfgps_t0.tv_sec * MILLION) + tsf->tsfgps_t0.tv_usec  + tsf_adj;
+	tsf->tsfgps_now = ((double)(tsf->tsfgps_t0.tv_sec * MILLION) + (double) tsf->tsfgps_t0.tv_usec)  + tsf_adj;
     }
     return;
 }
@@ -156,9 +156,9 @@ void tsfgps_sync (tsftv_t *tsf,  struct tsfgps_sync_t *t, thread_Settings *agent
     if (!t) {
 	struct timespec t1;
 	clock_gettime(CLOCK_REALTIME, &t1);
+	tsf->tsfgpssync.tsf_ts = read_80211_tsf(agent);
 	tsf->tsfgpssync.gps_ts.tv_sec  = t1.tv_sec;
 	tsf->tsfgpssync.gps_ts.tv_usec  = t1.tv_nsec / 1000;
-	tsf->tsfgpssync.tsf_ts = read_80211_tsf(agent);
     } else {
 	tsf->tsfgpssync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
 	tsf->tsfgpssync.gps_ts.tv_usec  = t->gps_ts.tv_usec;
