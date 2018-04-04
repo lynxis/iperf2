@@ -66,6 +66,9 @@
 #include "pdfs.h"
 #include "version.h"
 #endif
+#ifdef HAVE_UDPTRIGGERS
+#include "ioctls.h"
+#endif
 
 // const double kSecs_to_usecs = 1e6;
 const double kSecs_to_nsecs = 1e9;
@@ -143,10 +146,7 @@ Client::~Client() {
         mSettings->mSock = INVALID_SOCKET;
     }
 #ifdef HAVE_UDPTRIGGERS
-    if ( mSettings->mSockIoctl > 0 ) {
-	int rc = close( mSettings->mSockIoctl );
-        WARN_errno( rc == SOCKET_ERROR, "ioctl close" );
-    }
+    close_ioctl_sock(mSettings);
 #endif
     DELETE_ARRAY( mBuf );
     DELETE_PTR(reportstruct);

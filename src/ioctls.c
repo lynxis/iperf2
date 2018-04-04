@@ -56,6 +56,7 @@
 #include "headers.h"
 #include "Settings.hpp"
 #include "SocketAddr.h"
+#include "ioctls.h"
 
 int open_ioctl_sock(thread_Settings *inSettings) {
     if (inSettings->mSockIoctl <=0) {
@@ -74,6 +75,15 @@ void close_ioctl_sock(thread_Settings *inSettings) {
     inSettings->mSockIoctl = 0;
 }
 
+/*
+ *  802.11 TSF are microsecond timers per each BSS that are synchronized in frequency only, i.e. the values
+ *  per any running TSF can vary though they are frequency locked.  They are aslo 32bit values.   This code
+ *  will syncronize them using the GPS timestamps (which are assumed to be synched via something like PTP.)
+ *  This will allow taking usecond measurement across TSF clocks.
+ *
+ *  Note:  The drift between the GPS clock and the TSF clocks is not currently handled.  If one
+ *  needs to measure between these two domains, sychronizing the drift will be required.
+ */
 u_int32_t read_80211_tsf(thread_Settings *inSettings) {
     u_int32_t tsfnow = 0xFFFFFFFF;
     if (open_ioctl_sock(inSettings)) {
@@ -119,4 +129,59 @@ u_int32_t read_80211_tsf(thread_Settings *inSettings) {
 	}
     }
     return(tsfnow);
+}
+
+#define MILLION 1000000
+static void tsf2gps (tsftv_t *tsf) {
+    if (!tsf->synced) {
+	fprintf(stdout,"TSF not synced to GPS and tsf2gps() called");
+    }
+    int carry_sec = tsf->tsfcarry * (0xFFFFFFFF / MILLION);
+    int carry_usec = (carry_sec ? (0xFFFFFFFF % MILLION) : 0);
+    int usec = (tsf->tsfraw % MILLION) + carry_usec + tsf->tsfgps_t0.tv_usec;
+    int sec = (tsf->tsfraw / MILLION) + carry_sec + tsf->tsfgps_t0.tv_sec;
+    if (usec > MILLION) {
+	usec = usec - MILLION;
+	sec++;
+    }
+    tsf->tsfgps_now.tv_sec = sec;
+    tsf->tsfgps_now.tv_usec = usec;
+}
+
+// Assumes sequential calls which are monotonic in TSF time
+void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow) {
+    if (tsf->tsfraw > tsfrawnow) {
+	tsf->tsfcarry++;
+    }
+    tsf->tsfraw = tsfrawnow;
+    tsf2gps(tsf);
+    return;
+}
+
+void tsfgps_sync (tsftv_t *tsf,  struct tsfgps_sync_t *t, thread_Settings *agent) {
+    if (!t) {
+	struct timespec t1;
+	clock_gettime(CLOCK_REALTIME, &t1);
+	tsf->tsfgpssync.gps_ts.tv_sec  = t1.tv_sec;
+	tsf->tsfgpssync.gps_ts.tv_usec  = t1.tv_nsec / 1000;
+	tsf->tsfgpssync.tsf_ts = read_80211_tsf(agent);
+    } else {
+	tsf->tsfgpssync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
+	tsf->tsfgpssync.gps_ts.tv_usec  = t->gps_ts.tv_usec;
+	tsf->tsfgpssync.tsf_ts = t->tsf_ts;
+    }
+    u_int32_t usec = tsf->tsfgpssync.tsf_ts % MILLION;
+    if (usec > tsf->tsfgpssync.gps_ts.tv_usec) {
+	tsf->tsfgps_t0.tv_usec = tsf->tsfgpssync.gps_ts.tv_usec + MILLION - usec;
+	tsf->tsfgps_t0.tv_sec = tsf->tsfgpssync.gps_ts.tv_sec - (tsf->tsfgpssync.tsf_ts / MILLION) - 1;
+    } else {
+	tsf->tsfgps_t0.tv_usec = tsf->tsfgpssync.gps_ts.tv_usec - usec;
+	tsf->tsfgps_t0.tv_sec = tsf->tsfgpssync.gps_ts.tv_sec - (tsf->tsfgpssync.tsf_ts / MILLION);
+    }
+    tsf->synced = 1;
+}
+
+
+u_int32_t tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
+    return ((tsf_a->tsfgps_now.tv_sec  - tsf_b->tsfgps_now.tv_sec) * MILLION) + (tsf_a->tsfgps_now.tv_usec - tsf_b->tsfgps_now.tv_usec);
 }

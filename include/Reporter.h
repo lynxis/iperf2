@@ -56,6 +56,9 @@
 #include "headers.h"
 #include "Mutex.h"
 #include "histogram.h"
+#ifdef HAVE_UDPTRIGGERS
+#include "ioctls.h"
+#endif
 
 struct thread_Settings;
 struct server_hdr;
@@ -192,10 +195,6 @@ typedef struct L2Stats {
  * hs4 = 15,16
  * hs5 = 7,8
  */
-typedef struct gps_tsf_sync_t {
-    u_int32_t tsf_sample;
-    struct timeval gps_sample;
-} gps_tsf_sync_t;
 
 typedef struct fwtsf_report_entry_t {
     u_int32_t tsf_rxmac; // 7
@@ -228,9 +227,9 @@ typedef struct ReportStruct {
 #define MAXTSFCHAIN 1470/32
     struct timeval hostTxTime;
     struct timeval hostRxTime;
+    struct tsfgps_sync_t txsync;
     bool hashcollision;
     int tsfcount;
-    struct gps_tsf_sync_t txsync;
     struct fwtsf_report_entry_t tsf[MAXTSFCHAIN];
 #endif
 } ReportStruct;
@@ -290,8 +289,20 @@ typedef struct Transfer_Info {
     histogram_t *h4_histogram;
     histogram_t *h5_histogram;
     histogram_t *h6_histogram;
-    struct gps_tsf_sync_t rxsync;
-    struct gps_tsf_sync_t txsync;
+    /*
+     * u_int32_t tsf_rxmac   7
+     * u_int32_t tsf_rxpcie  8
+     * u_int32_t tsf_txpcie  14
+     * u_int32_t tsf_txdma   15
+     * u_int32_t tsf_txstatus 16
+     * u_int32_t tsf_txpciert  17
+     */
+    struct tsftv_t tsftv_rxpcie;
+    struct tsftv_t tsftv_rxmac;
+    struct tsftv_t tsftv_txpcie;
+    struct tsftv_t tsftv_txpciert;
+    struct tsftv_t tsftv_txdma;
+    struct tsftv_t tsftv_txstatus;
 #endif
 } Transfer_Info;
 

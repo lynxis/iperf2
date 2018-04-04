@@ -85,10 +85,11 @@ void histogram_delete(histogram_t *h) {
     free(h);
 }
 
+// value is units microseconds
 int histogram_insert(histogram_t *h, float value) {
     int bin;
     // calculate the bin
-    bin = (int) (h->units * (value - h->offset) / h->binwidth);
+    bin = (int) ((h->units / 1e6) * (value - h->offset) / h->binwidth);
     h->populationcnt++;
     if (bin < 0) {
 	h->cntloweroutofbounds++;

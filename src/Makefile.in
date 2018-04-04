@@ -93,6 +93,7 @@ noinst_PROGRAMS = checkdelay$(EXEEXT) $(am__EXEEXT_1)
 @ISOCHRONOUS_TRUE@am__append_1 = pdfs.c isochronous.cpp
 @ISOCHRONOUS_TRUE@am__append_2 = checkpdfs checkisoch
 @AF_PACKET_TRUE@am__append_3 = checksums.c
+@UDPTRIGGERS_TRUE@am__append_4 = ioctls.c
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_create_stdint_h.m4 \
@@ -130,9 +131,10 @@ am__iperf_SOURCES_DIST = Client.cpp Extractor.c Launch.cpp List.cpp \
 	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
 	SocketAddr.c gnu_getopt.c gnu_getopt_long.c histogram.c \
 	main.cpp service.c sockets.c stdio.c tcp_window_size.c pdfs.c \
-	isochronous.cpp checksums.c
+	isochronous.cpp checksums.c ioctls.c
 @ISOCHRONOUS_TRUE@am__objects_1 = pdfs.$(OBJEXT) isochronous.$(OBJEXT)
 @AF_PACKET_TRUE@am__objects_2 = checksums.$(OBJEXT)
+@UDPTRIGGERS_TRUE@am__objects_3 = ioctls.$(OBJEXT)
 am_iperf_OBJECTS = Client.$(OBJEXT) Extractor.$(OBJEXT) \
 	Launch.$(OBJEXT) List.$(OBJEXT) Listener.$(OBJEXT) \
 	Locale.$(OBJEXT) PerfSocket.$(OBJEXT) ReportCSV.$(OBJEXT) \
@@ -140,7 +142,8 @@ am_iperf_OBJECTS = Client.$(OBJEXT) Extractor.$(OBJEXT) \
 	Settings.$(OBJEXT) SocketAddr.$(OBJEXT) gnu_getopt.$(OBJEXT) \
 	gnu_getopt_long.$(OBJEXT) histogram.$(OBJEXT) main.$(OBJEXT) \
 	service.$(OBJEXT) sockets.$(OBJEXT) stdio.$(OBJEXT) \
-	tcp_window_size.$(OBJEXT) $(am__objects_1) $(am__objects_2)
+	tcp_window_size.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3)
 iperf_OBJECTS = $(am_iperf_OBJECTS)
 iperf_DEPENDENCIES = $(am__DEPENDENCIES_1)
 iperf_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(iperf_LDFLAGS) \
@@ -344,7 +347,7 @@ iperf_SOURCES = Client.cpp Extractor.c Launch.cpp List.cpp \
 	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
 	SocketAddr.c gnu_getopt.c gnu_getopt_long.c histogram.c \
 	main.cpp service.c sockets.c stdio.c tcp_window_size.c \
-	$(am__append_1) $(am__append_3)
+	$(am__append_1) $(am__append_3) $(am__append_4)
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
 checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
@@ -473,6 +476,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnu_getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnu_getopt_long.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/histogram.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctls.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isochronous.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pdfs.Po@am__quote@

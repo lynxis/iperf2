@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------
- * Copyright (c) 2017
+ * Copyright (c) 2018
  * Broadcom Corporation
  * All Rights Reserved.
  *---------------------------------------------------------------
@@ -39,37 +39,44 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ________________________________________________________________
  *
- * histogram.h
- * Suppport for isochonronous traffic testing
+ * ioctls.h
+ * Suppport for driver/device ioctls
  *
  * by Robert J. McMahon (rjmcmahon@rjmcmahon.com, bob.mcmahon@broadcom.com)
  * -------------------------------------------------------------------
  */
-#ifndef HISTOGRAMC_H
-#define HISTOGRAMC_H
+#ifndef IOCTLSC_H
+#define IOCTLSC_H
 
-typedef struct histogram_t {
-    unsigned int id;
-    unsigned int *mybins;
-    unsigned int bincount;
-    unsigned int binwidth;
-    unsigned int populationcnt;
-    float offset;
-    unsigned int cntloweroutofbounds;
-    unsigned int cntupperoutofbounds;
-    char *myname;
-    char *outbuf;
-    float units;
-    unsigned short ci_lower;
-    unsigned short ci_upper;
-    struct histogram_t *prev;
-} histogram_t;
+#include "Settings.hpp"
 
-extern histogram_t *histogram_init(unsigned int bincount, unsigned int binwidth, float offset,\
-				   float units, unsigned short ci_lower, unsigned short ci_upper, unsigned int id, char *name);
-extern void histogram_delete(histogram_t *h);
-extern int histogram_insert(histogram_t *h, float value);
-extern void histogram_clear(histogram_t *h);
-extern void histogram_add(histogram_t *to, histogram_t *from);
-extern void histogram_print(histogram_t *h, double, double, int);
-#endif // HISTOGRAMC_H
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct tsfgps_sync_t {
+    u_int32_t tsf_ts;
+    struct timeval gps_ts;
+} tsfgps_sync_t;
+
+typedef struct tsftv_t {
+    int synced;
+    u_int32_t tsfcarry;
+    u_int32_t tsfraw;
+    struct tsfgps_sync_t tsfgpssync;
+    struct timeval tsfgps_t0;
+    struct timeval tsfgps_now;
+} tsftv_t;
+
+extern int open_ioctl_sock(struct thread_Settings *inSettings);
+extern void close_ioctl_sock(struct thread_Settings *inSettings);
+extern u_int32_t read_80211_tsf(struct thread_Settings *inSettings);
+extern void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow);
+extern void tsfgps_sync (tsftv_t *tsf_a,  struct tsfgps_sync_t *t, struct thread_Settings *agent);
+extern u_int32_t tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b);
+
+#ifdef __cplusplus
+} /* end extern "C" */
+#endif
+
+#endif // IOCTLS
