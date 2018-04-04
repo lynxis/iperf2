@@ -213,7 +213,7 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', debug = False, udptriggers = False, isoch = False):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', debug = False, udptriggers = False, isoch = False, length = None):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -236,6 +236,10 @@ class iperf_flow(object):
         self.proto = proto
         self.dst = dst
         self.tos = tos
+        if not length :
+            self.length = 1470
+        else :
+            self.length = length;
         self.isoch = isoch;
         self.interval = round(interval,3)
         self.offered_load = offered_load
@@ -483,7 +487,7 @@ class iperf_server(object):
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
-        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/[0-9]+,obl/obu=[0-9]+/[0-9]+\)')
+        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/[0-9]+,Outliers=[0-9]+,obl/obu=[0-9]+/[0-9]+\)')
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -658,7 +662,7 @@ class iperf_client(object):
             iperftime = time + 30
         else :
             ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-B 192.168.1.3:' + str(self.port), '--udp-triggers', '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-B 192.168.1.3:' + str(self.port), '--udp-triggers', '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
