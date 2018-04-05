@@ -1039,6 +1039,18 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    }
 
 		    if (stats->h1_histogram) {
+			// apply sync to the TX tsf structs if needed
+			if (!stats->tsftv_txpcie.synced) {
+			    struct gpsref_sync_t tsfgps;
+			    tsfgps.gps_ts.tv_sec = packet->gps_sync.tv_sec;
+			    tsfgps.gps_ts.tv_nsec = packet->gps_sync.tv_nsec;
+			    tsfgps.ref_ts.tv_sec = packet->ref_sync.tv_sec;
+			    tsfgps.ref_ts.tv_nsec = packet->ref_sync.tv_nsec;
+			    tsfgps_sync(&stats->tsftv_txpcie, &tsfgps, NULL);
+			    stats->tsftv_txpciert = stats->tsftv_txpcie;
+			    stats->tsftv_txdma = stats->tsftv_txpcie;
+			    stats->tsftv_txstatus = stats->tsftv_txpcie;
+			}
 			int ix;
 			for (ix = 0; ix < packet->tsfcount; ix ++) {
 			    /*
@@ -1064,18 +1076,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				(packet->tsf[ix].tsf_txdma != 0xFFFFFFFF) && \
 				(packet->tsf[ix].tsf_txstatus != 0xFFFFFFFF) && \
 				(packet->tsf[ix].tsf_txpciert != 0xFFFFFFFF)) {
-				// apply sync to the TX tsf structs if needed
-				if (!stats->tsftv_txpcie.synced) {
-				    struct gpsref_sync_t tsfgps;
-				    tsfgps.gps_ts.tv_sec = packet->gps_sync.tv_sec;
-				    tsfgps.gps_ts.tv_nsec = packet->gps_sync.tv_nsec;
-				    tsfgps.ref_ts.tv_sec = packet->ref_sync.tv_sec;
-				    tsfgps.ref_ts.tv_nsec = packet->ref_sync.tv_nsec;
-				    tsfgps_sync(&stats->tsftv_txpcie, &tsfgps, NULL);
-				    stats->tsftv_txpciert = stats->tsftv_txpcie;
-				    stats->tsftv_txdma = stats->tsftv_txpcie;
-				    stats->tsftv_txstatus = stats->tsftv_txpcie;
-				}
 				// Update the TSF timestamp structures using the raw timestamps
 				tsfraw_update(&stats->tsftv_rxpcie, packet->tsf[ix].tsf_rxpcie);
 				tsfraw_update(&stats->tsftv_rxmac, packet->tsf[ix].tsf_rxmac);
