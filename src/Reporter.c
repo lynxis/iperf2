@@ -314,7 +314,6 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		    data->info.h6_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 
 		    memset(&data->info.tsftv_rxmac,0,sizeof(struct tsftv_t));
-		    data->info.tsftv_rxmac.raw = 0xFFFFFFFF;
 //		    memcpy(&data->info.tsftv_rxpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
 		    memcpy(&data->info.tsftv_txpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
 		    memcpy(&data->info.tsftv_txpciert, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
