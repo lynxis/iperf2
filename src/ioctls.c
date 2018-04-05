@@ -172,8 +172,9 @@ static void timespec_add(const struct timespec *time1, const struct timespec *ti
 
 // Assumes sequential calls which are monotonic in TSF time
 void tsfraw_update(tsftv_t *tsf, u_int32_t rawnow) {
-    // Check for a wrap, TSF is unsigned
-    if (tsf->raw < rawnow) {
+    if (tsf->raw == 0xFFFFFFFF) {
+	tsf->carry = 0;
+    } else if (tsf->raw > rawnow) {
 	tsf->carry++;
     }
     tsf->raw = rawnow;

@@ -314,15 +314,16 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		    data->info.h6_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
 
 		    memset(&data->info.tsftv_rxmac,0,sizeof(struct tsftv_t));
-		    memset(&data->info.tsftv_rxpcie,0,sizeof(struct tsftv_t));
-		    memset(&data->info.tsftv_txpcie,0,sizeof(struct tsftv_t));
-		    memset(&data->info.tsftv_txpciert,0,sizeof(struct tsftv_t));
-		    memset(&data->info.tsftv_txdma,0,sizeof(struct tsftv_t));
-		    memset(&data->info.tsftv_txstatus,0,sizeof(struct tsftv_t));
+		    data->info.tsftv_rxmac.raw = 0xFFFFFFFF;
+//		    memcpy(&data->info.tsftv_rxpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
+		    memcpy(&data->info.tsftv_txpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
+		    memcpy(&data->info.tsftv_txpciert, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
+		    memcpy(&data->info.tsftv_txdma, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
+		    memcpy(&data->info.tsftv_txstatus, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
 
 		    // sync the RX tsf structs with gps
 		    tsfgps_sync(&data->info.tsftv_rxpcie, NULL, agent);
-		    data->info.tsftv_rxmac = data->info.tsftv_rxpcie;
+		    memcpy(&data->info.tsftv_rxpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
@@ -1047,9 +1048,9 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			    tsfgps.ref_ts.tv_sec = packet->ref_sync.tv_sec;
 			    tsfgps.ref_ts.tv_nsec = packet->ref_sync.tv_nsec;
 			    tsfgps_sync(&stats->tsftv_txpcie, &tsfgps, NULL);
-			    stats->tsftv_txpciert = stats->tsftv_txpcie;
-			    stats->tsftv_txdma = stats->tsftv_txpcie;
-			    stats->tsftv_txstatus = stats->tsftv_txpcie;
+			    tsfgps_sync(&stats->tsftv_txpciert, &tsfgps, NULL);
+			    tsfgps_sync(&stats->tsftv_txdma, &tsfgps, NULL);
+			    tsfgps_sync(&stats->tsftv_txstatus, &tsfgps, NULL);
 			}
 			int ix;
 			for (ix = 0; ix < packet->tsfcount; ix ++) {
