@@ -214,6 +214,6 @@ void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent
 
 float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
     struct timespec res;
-    timespec_sub(&tsf_a->refnow_gpsdomain, &tsf_g->refnow_gpsdomain, &res);
+    timespec_sub(&tsf_a->refnow_gpsdomain, &tsf_b->refnow_gpsdomain, &res);
     return (((float) (res.tv_sec * BILLION) + res.tv_nsec) / BILLION);
 }
