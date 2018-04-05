@@ -1144,8 +1144,8 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    if (isUDPTriggers(client)) {
 		testflags |= HEADER_UDPTRIGGERS;
 		Timestamp gpsnow;
-		hdr->udp.gps_sync_tv_sec = gpsnow.getSecs();
-		hdr->udp.gps_sync_tv_nsec = gpsnow.getUsecs();
+		hdr->udp.gps_sync_tv_sec = htonl(gpsnow.getSecs());
+		hdr->udp.gps_sync_tv_nsec = htonl(gpsnow.getUsecs() * 1000);
 		hdr->udp.ref_sync_tv_sec = htonl(0xFFFFFFFF);
 	        hdr->udp.ref_sync_tv_nsec = htonl(0x0);
 #ifdef HAVE_UDPTRIGGERS
