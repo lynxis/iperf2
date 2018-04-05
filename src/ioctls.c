@@ -131,7 +131,7 @@ u_int32_t read_80211_tsf(thread_Settings *inSettings) {
     return(tsfnow);
 }
 
-#define BILLION 10000000000
+#define BILLION 1000000000
 #define MILLION 1000000
 #define TSFCARRYSEC (0XFFFFFFFF / MILLION)
 #define TSFCARRYUSEC (0XFFFFFFFF % MILLION)
