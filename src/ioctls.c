@@ -184,7 +184,7 @@ void tsfraw_update(tsftv_t *tsf, u_int32_t rawnow) {
 	tsf->refnow_gpsdomain.tv_nsec=0;
     } else {
 	struct timespec res;
-	tsf2timespec(tsf, &tsf->refnow_gpsdomain);
+	tsf2timespec(tsf, &tsf->refnow_refdomain);
 	timespec_sub(&tsf->refnow_gpsdomain, &tsf->gpsref_sync.ref_ts, &res);
 	timespec_add(&tsf->gpsref_sync.gps_ts, &res, &tsf->refnow_gpsdomain);
     }
