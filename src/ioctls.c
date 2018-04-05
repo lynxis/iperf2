@@ -131,54 +131,99 @@ u_int32_t read_80211_tsf(thread_Settings *inSettings) {
     return(tsfnow);
 }
 
+#define BILLION 1000000000
 #define MILLION 1000000
 #define TSFCARRYSEC (0XFFFFFFFF / MILLION)
 #define TSFCARRYUSEC (0XFFFFFFFF % MILLION)
-// Assumes sequential calls which are monotonic in TSF time
-void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow) {
-    if (tsf->tsfraw > tsfrawnow) {
-	tsf->tsfcarry++;
+static void tsf2timespec(tsftv_t *tsf, struct timespec *tv) {
+    tv->tv_sec = (tsf->raw / MILLION);
+    tv->tv_nsec = (tsf->raw % MILLION) * 1000;
+    if (tsf->carry) {
+	tv->tv_sec += (TSFCARRYSEC * tsf->carry);
+	tv->tv_nsec += TSFCARRYUSEC * 1000;
+	if (tv->tv_nsec >= BILLION) {
+	    tv->tv_sec++;
+	    tv->tv_nsec -= BILLION;
+	}
     }
-    tsf->tsfraw = tsfrawnow;
-    if (!tsf->synced) {
-	fprintf(stdout,"TSF cannot be synced to GPS time");
-	tsf->tsfgps_now = 0.0;
+}
+
+static void timespec_sub(const struct timespec *start, const struct timespec *stop, struct timespec *result) {
+    if ((start->tv_sec > stop->tv_sec) || ((start->tv_sec == stop->tv_sec) && (start->tv_nsec > stop->tv_nsec))) {
+	result->tv_sec = 0;
+	result->tv_nsec = 0;
+    } else if ((stop->tv_nsec - start->tv_nsec) < 0) {
+	result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+	result->tv_nsec = stop->tv_nsec - start->tv_nsec + BILLION;
     } else {
-	double carry_sec = tsf->tsfcarry * TSFCARRYSEC;
-	double carry_usec = (carry_sec ? TSFCARRYUSEC : 0);
-	double tsf_adj = ((carry_sec * 1e6) + carry_usec) + ((double)tsf->tsfraw - (double)tsf->tsfgpssync.tsf_ts);
-	tsf->tsfgps_now = ((double)(tsf->tsfgps_t0.tv_sec * MILLION) + (double) tsf->tsfgps_t0.tv_usec)  + tsf_adj;
+	result->tv_sec = stop->tv_sec - start->tv_sec;
+	result->tv_nsec = stop->tv_nsec - start->tv_nsec;
     }
     return;
 }
 
-void tsfgps_sync (tsftv_t *tsf,  struct tsfgps_sync_t *t, thread_Settings *agent) {
+static void timespec_add(const struct timespec *time1, const struct timespec *time2, struct timespec *result) {
+    result->tv_sec = time1->tv_sec + time2->tv_sec;
+    result->tv_nsec = time1->tv_nsec + time2->tv_nsec;
+    if (result->tv_nsec >= BILLION) {
+        result->tv_sec +=1;;
+        result->tv_nsec -= BILLION;
+    }
+    return;
+}
+
+
+// Assumes sequential calls which are monotonic in TSF time
+void tsfraw_update(tsftv_t *tsf, u_int32_t rawnow) {
+    if (tsf->raw == 0xFFFFFFFF) {
+	tsf->carry = 0;
+    } else if (tsf->raw > rawnow) {
+	tsf->carry++;
+    }
+    tsf->raw = rawnow;
+    if (!tsf->synced) {
+	fprintf(stdout,"TSF cannot be synced to GPS time");
+        tsf->refnow_gpsdomain.tv_sec=0;
+	tsf->refnow_gpsdomain.tv_nsec=0;
+    } else {
+	struct timespec res;
+	tsf2timespec(tsf, &tsf->refnow_refdomain);
+	timespec_sub(&tsf->gpsref_sync.ref_ts, &tsf->refnow_refdomain, &res);
+	timespec_add(&tsf->gpsref_sync.gps_ts, &res, &tsf->refnow_gpsdomain);
+    }
+    return;
+}
+
+// Apply the syncronization either by a given sync structure
+// or by reading the realtime clock and the reference time together
+void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent) {
     if (!t) {
 	struct timespec t1;
+	tsf->raw = read_80211_tsf(agent);
 	clock_gettime(CLOCK_REALTIME, &t1);
-	tsf->tsfgpssync.tsf_ts = read_80211_tsf(agent);
-	tsf->tsfgpssync.gps_ts.tv_sec  = t1.tv_sec;
-	tsf->tsfgpssync.gps_ts.tv_usec  = t1.tv_nsec / 1000;
+#define SHIFTSECONDS 2
+	// Shift it back by 60 seconds so all timestamps subtracts are positive
+        if (tsf->raw > (SHIFTSECONDS * MILLION)) {
+	    tsf->raw -= (SHIFTSECONDS * MILLION);
+	}
+	tsf2timespec(tsf, &tsf->gpsref_sync.ref_ts);
+	tsf->gpsref_sync.gps_ts.tv_sec  = t1.tv_sec;
+        if (tsf->raw > (SHIFTSECONDS * MILLION)) {
+	    tsf->gpsref_sync.gps_ts.tv_sec  -= SHIFTSECONDS;
+	}
+	tsf->gpsref_sync.gps_ts.tv_nsec  = t1.tv_nsec;
     } else {
-	tsf->tsfgpssync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
-	tsf->tsfgpssync.gps_ts.tv_usec  = t->gps_ts.tv_usec;
-	tsf->tsfgpssync.tsf_ts = t->tsf_ts;
-    }
-    u_int32_t usec = tsf->tsfgpssync.tsf_ts % MILLION;
-    if (usec > tsf->tsfgpssync.gps_ts.tv_usec) {
-	tsf->tsfgps_t0.tv_usec = tsf->tsfgpssync.gps_ts.tv_usec + MILLION - usec;
-	tsf->tsfgps_t0.tv_sec = tsf->tsfgpssync.gps_ts.tv_sec - (tsf->tsfgpssync.tsf_ts / MILLION) - 1;
-    } else {
-	tsf->tsfgps_t0.tv_usec = tsf->tsfgpssync.gps_ts.tv_usec - usec;
-	tsf->tsfgps_t0.tv_sec = tsf->tsfgpssync.gps_ts.tv_sec - (tsf->tsfgpssync.tsf_ts / MILLION);
+	tsf->gpsref_sync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
+	tsf->gpsref_sync.gps_ts.tv_nsec  = t->gps_ts.tv_nsec;
+	tsf->gpsref_sync.ref_ts.tv_sec  = t->ref_ts.tv_sec;
+	tsf->gpsref_sync.ref_ts.tv_nsec  = t->ref_ts.tv_nsec;
+	tsf->raw = 0xFFFFFFFF;
     }
     tsf->synced = 1;
 }
 
-float tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
-    return (float) (tsf_a->tsfgps_now - tsf_b->tsfgps_now);
-}
-
 float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b) {
-    return (float) ((tsf_a->tsfgps_now - tsf_b->tsfgps_now)/1e6);
+    struct timespec res;
+    timespec_sub(&tsf_a->refnow_gpsdomain, &tsf_b->refnow_gpsdomain, &res);
+    return (((float) (res.tv_sec * BILLION) + res.tv_nsec) / BILLION);
 }

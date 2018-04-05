@@ -1143,14 +1143,16 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    }
 	    if (isUDPTriggers(client)) {
 		testflags |= HEADER_UDPTRIGGERS;
-		Timestamp gpsnow;
-		hdr->udp.gps_sync_tv_sec = gpsnow.getSecs();
-		hdr->udp.gps_sync_tv_usec = gpsnow.getUsecs();
-		hdr->udp.tsf_sync = htonl(0xFFFFFFFF);
+		hdr->udp.ref_sync_tv_sec = htonl(0xFFFFFFFF);
+	        hdr->udp.ref_sync_tv_nsec = htonl(0x0);
 #ifdef HAVE_UDPTRIGGERS
 		if (client->mIfrname) {
 		    uint32_t tsfnow = read_80211_tsf(client);
-		    hdr->udp.tsf_sync = htonl(tsfnow);
+		    hdr->udp.ref_sync_tv_sec = htonl(tsfnow/1000000);
+		    hdr->udp.ref_sync_tv_nsec = htonl((tsfnow%1000000) * 1000);
+		    Timestamp gpsnow;
+		    hdr->udp.gps_sync_tv_sec = htonl(gpsnow.getSecs());
+		    hdr->udp.gps_sync_tv_nsec = htonl(gpsnow.getUsecs() * 1000);
 		}
 #endif
 	    }

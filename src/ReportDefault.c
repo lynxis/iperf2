@@ -209,6 +209,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 		    histogram_print(stats->h3_histogram,stats->startTime, stats->endTime,stats->free);
 		    histogram_print(stats->h4_histogram,stats->startTime, stats->endTime,stats->free);
 		    histogram_print(stats->h5_histogram,stats->startTime, stats->endTime,stats->free);
+		    histogram_print(stats->h6_histogram,stats->startTime, stats->endTime,stats->free);
 		}
 #endif
 #ifdef HAVE_ISOCHRONOUS
