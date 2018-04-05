@@ -1090,7 +1090,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				float hs4 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_txstatus);
 				float hs5 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_rxpcie);
 				float hs6 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txdma);
-#if 1
+#if 0
 				{
 				    fprintf(stderr, "TSF Debug: hs1=%f\n", hs1);
 				    fprintf(stderr, "TSF Debug: hs2=%f\n", hs2);
