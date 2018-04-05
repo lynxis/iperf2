@@ -554,29 +554,31 @@ typedef struct client_hdrext {
  *                +--------+--------+--------+--------+
  *            13  |        iperf version minor        |
  *                +--------+--------+--------+--------+
- *            14  |        tsf sync sample            |
+ *            14  |        ref sync sample tv_sec     |
  *                +--------+--------+--------+--------+
- *            15  |        gps sync sample tv_sec     |
+ *            15  |        ref sync sample tv_used    |
  *                +--------+--------+--------+--------+
- *            16  |        gps sync sample tv_usec    |
+ *            16  |        gps sync sample tv_sec     |
  *                +--------+--------+--------+--------+
- *            17  |        isoch burst period (us)    |
+ *            17  |        gps sync sample tv_usec    |
  *                +--------+--------+--------+--------+
- *            18  |        isoch start timestamp (s)  |
+ *            18  |        isoch burst period (us)    |
  *                +--------+--------+--------+--------+
- *            19  |        isoch start timestamp (us) |
+ *            19  |        isoch start timestamp (s)  |
  *                +--------+--------+--------+--------+
- *            20  |        isoch prev frameid         |
+ *            20  |        isoch start timestamp (us) |
  *                +--------+--------+--------+--------+
- *            21  |        isoch frameid              |
+ *            21  |        isoch prev frameid         |
  *                +--------+--------+--------+--------+
- *            22  |        isoch burtsize             |
+ *            22  |        isoch frameid              |
  *                +--------+--------+--------+--------+
- *            23  |        isoch bytes remaining      |
+ *            23  |        isoch burtsize             |
  *                +--------+--------+--------+--------+
- *            24  |        isoch reserved             |
+ *            24  |        isoch bytes remaining      |
  *                +--------+--------+--------+--------+
- *            25  |        hw timestamps ...          |
+ *            25  |        isoch reserved             |
+ *                +--------+--------+--------+--------+
+ *            26  |        hw timestamps ...          |
  *                +--------+--------+--------+--------+
  *            n   |        hw timestamps ...
  *                +--------+--------+--------+--------+
@@ -615,7 +617,8 @@ typedef struct client_hdr_udp_tests {
     u_int16_t tlvoffset;
     u_int32_t version_u;
     u_int32_t version_l;
-    u_int32_t tsf_sync;
+    u_int32_t ref_sync_tv_sec;
+    u_int32_t ref_sync_tv_usec;
     u_int32_t gps_sync_tv_sec;
     u_int32_t gps_sync_tv_usec;
 #else
@@ -623,9 +626,10 @@ typedef struct client_hdr_udp_tests {
     unsigned short tlvoffset   : 16;
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
-    unsigned int tsf_sync : 32;
+    unsigned int ref_sync_tv_sec : 32;
+    unsigned int ref_sync_tv_nsec : 32;
     unsigned int gps_sync_tv_sec : 32;
-    unsigned int gps_sync_tv_usec : 32;
+    unsigned int gps_sync_tv_nsec : 32;
 #endif
 } client_hdr_udp_tests;
 

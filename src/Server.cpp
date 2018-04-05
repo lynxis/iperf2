@@ -491,9 +491,10 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Grab the TX side sync timestamps here with ntohl
-	    reportstruct->txsync.tsf_ts = ntohl(tlvhdr->tsf_sync);
-	    reportstruct->txsync.gps_ts.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
-	    reportstruct->txsync.gps_ts.tv_usec = ntohl(tlvhdr->gps_sync_tv_usec);
+	    reportstruct->ref_sync.tv_sec = ntohl(tlvhdr->ref_sync_tv_sec);
+	    reportstruct->ref_sync.tv_nsec = ntohl(tlvhdr->ref_sync_tv_nsec);
+	    reportstruct->gps_sync.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
+	    reportstruct->gps_sync.tv_nsec = ntohl(tlvhdr->gps_sync_tv_nsec);
 
 	    // Process tx tsf first
 	    if (txtsfcnt <= MAXTSFCHAIN) {

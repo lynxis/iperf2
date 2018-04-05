@@ -48,32 +48,31 @@
 #ifndef IOCTLSC_H
 #define IOCTLSC_H
 
+#include <time.h>
 #include "Settings.hpp"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct tsfgps_sync_t {
-    u_int32_t tsf_ts;
-    struct timeval gps_ts;
-} tsfgps_sync_t;
+typedef struct gpsref_sync_t {
+    struct timespec ref_ts;
+    struct timespec gps_ts;
+} gpsref_sync_t;
 
 typedef struct tsftv_t {
     int synced;
-    u_int32_t tsfcarry;
-    u_int32_t tsfraw;
-    struct tsfgps_sync_t tsfgpssync;
-    struct timeval tsfgps_t0;
-    double tsfgps_now;
+    u_int32_t carry;
+    u_int32_t raw;
+    struct gpsref_sync_t gpsref_sync;
+    struct timespec refnow_gpsdomain;
 } tsftv_t;
 
 extern int open_ioctl_sock(struct thread_Settings *inSettings);
 extern void close_ioctl_sock(struct thread_Settings *inSettings);
 extern u_int32_t read_80211_tsf(struct thread_Settings *inSettings);
 extern void tsfraw_update(tsftv_t *tsf, u_int32_t tsfrawnow);
-extern void tsfgps_sync (tsftv_t *tsf_a,  struct tsfgps_sync_t *t, struct thread_Settings *agent);
-extern float tsf_usec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b);
+extern void tsfgps_sync (tsftv_t *tsf_a,  struct gpsref_sync_t *t, struct thread_Settings *agent);
 extern float tsf_sec_delta(tsftv_t *tsf_a, tsftv_t *tsf_b);
 
 #ifdef __cplusplus

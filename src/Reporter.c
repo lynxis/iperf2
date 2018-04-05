@@ -1066,10 +1066,11 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				(packet->tsf[ix].tsf_txpciert != 0xFFFFFFFF)) {
 				// apply sync to the TX tsf structs if needed
 				if (!stats->tsftv_txpcie.synced) {
-				    struct tsfgps_sync_t tsfgps;
-				    tsfgps.gps_ts.tv_sec = packet->txsync.gps_ts.tv_sec;
-				    tsfgps.gps_ts.tv_usec = packet->txsync.gps_ts.tv_usec;
-				    tsfgps.tsf_ts = packet->txsync.tsf_ts;
+				    struct gpsref_sync_t tsfgps;
+				    tsfgps.gps_ts.tv_sec = packet->gps_sync.tv_sec;
+				    tsfgps.gps_ts.tv_nsec = packet->gps_sync.tv_nsec;
+				    tsfgps.ref_ts.tv_sec = packet->ref_sync.tv_sec;
+				    tsfgps.ref_ts.tv_nsec = packet->ref_sync.tv_nsec;
 				    tsfgps_sync(&stats->tsftv_txpcie, &tsfgps, NULL);
 				    stats->tsftv_txpciert = stats->tsftv_txpcie;
 				    stats->tsftv_txdma = stats->tsftv_txpcie;
