@@ -62,7 +62,7 @@ typedef struct gpsref_sync_t {
 
 typedef struct tsftv_t {
     int synced;
-    u_int32_t carry;
+    int carry;
     u_int32_t raw;
     struct gpsref_sync_t gpsref_sync;
     struct timespec refnow_gpsdomain;

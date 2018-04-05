@@ -132,7 +132,7 @@ u_int32_t read_80211_tsf(thread_Settings *inSettings) {
 }
 
 #define BILLION 10000000000
-#define MILLION 10000000
+#define MILLION 1000000
 #define TSFCARRYSEC (0XFFFFFFFF / MILLION)
 #define TSFCARRYUSEC (0XFFFFFFFF % MILLION)
 static void tsf2timespec(tsftv_t *tsf, struct timespec *tv) {
