@@ -165,6 +165,9 @@ static void timespec_add(const struct timespec *time1, const struct timespec *ti
     if (result->tv_nsec >= BILLION) {
         result->tv_sec +=1;;
         result->tv_nsec -= BILLION;
+    } else if (result->tv_nsec < 0) {
+        result->tv_sec -=1;
+        result->tv_nsec += BILLION;
     }
     return;
 }
