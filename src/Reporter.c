@@ -321,7 +321,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
 		    memcpy(&data->info.tsftv_txstatus, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
 
 		    // sync the RX tsf structs with gps
-		    tsfgps_sync(&data->info.tsftv_rxpcie, NULL, agent);
+		    tsfgps_sync(&data->info.tsftv_rxmac, NULL, agent);
 		    memcpy(&data->info.tsftv_rxpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
 		}
 #endif
