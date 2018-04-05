@@ -1086,18 +1086,18 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				// compute the diffs
 				float hs1 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_txpcie);
 				float hs2 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_txdma);
-				float hs3 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txpciert);
+				float hs3 = tsf_sec_delta(&stats->tsftv_txpciert, &stats->tsftv_txpcie);
 				float hs4 = tsf_sec_delta(&stats->tsftv_txstatus, &stats->tsftv_txdma);
 				float hs5 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_rxmac);
 				float hs6 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_txpcie);
-#if 0
+#if 1
 				{
-				    fprintf(stderr, "TSF Debug: hs1=%d\n", hs1);
-				    fprintf(stderr, "TSF Debug: hs2=%d\n", hs2);
-				    fprintf(stderr, "TSF Debug: hs3=%d\n", hs3);
-				    fprintf(stderr, "TSF Debug: hs4=%d\n", hs4);
-				    fprintf(stderr, "TSF Debug: hs5=%d\n", hs5);
-				    fprintf(stderr, "TSF Debug: hs6=%d\n", hs6);
+				    fprintf(stderr, "TSF Debug: hs1=%f\n", hs1);
+				    fprintf(stderr, "TSF Debug: hs2=%f\n", hs2);
+				    fprintf(stderr, "TSF Debug: hs3=%f\n", hs3);
+				    fprintf(stderr, "TSF Debug: hs4=%f\n", hs4);
+				    fprintf(stderr, "TSF Debug: hs5=%f\n", hs5);
+				    fprintf(stderr, "TSF Debug: hs6=%f\n", hs6);
 				}
 #endif
 				histogram_insert(stats->h1_histogram, hs1);
