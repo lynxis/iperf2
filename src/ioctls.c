@@ -162,7 +162,7 @@ static void timespec_sub(const struct timespec *start, const struct timespec *st
 static void timespec_add(const struct timespec *time1, const struct timespec *time2, struct timespec *result) {
     result->tv_sec = time1->tv_sec + time2->tv_sec;
     result->tv_nsec = time1->tv_sec + time2->tv_nsec;
-    if (result->tv_nsec > BILLION) {
+    if (result->tv_nsec >= BILLION) {
         result->tv_sec +=1;;
         result->tv_nsec -= BILLION;
     }
@@ -203,9 +203,9 @@ void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent
 	tsf->gpsref_sync.gps_ts.tv_nsec  = t1.tv_nsec;
 	tsf->raw = 0xFFFFFFFF;
     } else {
-	tsf->gpsref_sync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
+	tsf->gpsref_sync.gps_ts.tv_sec  = t->gps_ts.tv_sec - 10;
 	tsf->gpsref_sync.gps_ts.tv_nsec  = t->gps_ts.tv_nsec;
-	tsf->gpsref_sync.ref_ts.tv_sec  = t->ref_ts.tv_sec;
+	tsf->gpsref_sync.ref_ts.tv_sec  = t->ref_ts.tv_sec - 10;
 	tsf->gpsref_sync.ref_ts.tv_nsec  = t->ref_ts.tv_nsec;
 	tsf->raw = 0xFFFFFFFF;
     }
