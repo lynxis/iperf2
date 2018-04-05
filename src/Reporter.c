@@ -1084,8 +1084,8 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 				tsfraw_update(&stats->tsftv_txdma, packet->tsf[ix].tsf_txdma);
 				tsfraw_update(&stats->tsftv_txstatus, packet->tsf[ix].tsf_txstatus);
 				// compute the diffs
-				float hs1 = tsf_sec_delta(&stats->tsftv_rxpcie, &stats->tsftv_txpcie);
-				float hs2 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_txdma);
+				float hs1 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_rxpcie);
+				float hs2 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_rxmac);
 				float hs3 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txpciert);
 				float hs4 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_txstatus);
 				float hs5 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_rxpcie);
