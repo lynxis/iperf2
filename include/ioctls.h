@@ -66,6 +66,7 @@ typedef struct tsftv_t {
     u_int32_t raw;
     struct gpsref_sync_t gpsref_sync;
     struct timespec refnow_gpsdomain;
+    struct timespec refnow_refdomain;
 } tsftv_t;
 
 extern int open_ioctl_sock(struct thread_Settings *inSettings);
