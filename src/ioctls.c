@@ -149,19 +149,24 @@ static void tsf2timespec(tsftv_t *tsf, struct timespec *tv) {
 }
 
 static void timespec_sub(const struct timespec *start, const struct timespec *stop, struct timespec *result) {
-    if ((stop->tv_nsec - start->tv_nsec) < 0) {
-        result->tv_sec = stop->tv_sec - start->tv_sec - 1;
-        result->tv_nsec = stop->tv_nsec - start->tv_nsec + BILLION;
+    if ((start->tv_sec > stop->tv_sec) || ((start->tv_sec == stop->tv_sec) && (start->tv_nsec > stop->tv_nsec))) {
+	result->tv_sec = 0;
+	result->tv_nsec = 0;
     } else {
-        result->tv_sec = stop->tv_sec - start->tv_sec;
-        result->tv_nsec = stop->tv_nsec - start->tv_nsec;
+	if ((stop->tv_nsec - start->tv_nsec) < 0) {
+	    result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+	    result->tv_nsec = stop->tv_nsec - start->tv_nsec + BILLION;
+	} else {
+	    result->tv_sec = stop->tv_sec - start->tv_sec;
+	    result->tv_nsec = stop->tv_nsec - start->tv_nsec;
+	}
     }
     return;
 }
 
 static void timespec_add(const struct timespec *time1, const struct timespec *time2, struct timespec *result) {
     result->tv_sec = time1->tv_sec + time2->tv_sec;
-    result->tv_nsec = time1->tv_sec + time2->tv_nsec;
+    result->tv_nsec = time1->tv_nsec + time2->tv_nsec;
     if (result->tv_nsec >= BILLION) {
         result->tv_sec +=1;;
         result->tv_nsec -= BILLION;
