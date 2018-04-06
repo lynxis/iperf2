@@ -58,7 +58,7 @@ if args.isoch :
     flows = [iperf_flow(name="ISOCHUDP", user='root', server=args.server, client=args.client, udptriggers=True, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.4', tos=args.tos, isoch=True, debug=False)]
 else :
     print("No isoch")
-    flows = [iperf_flow(name="UDP", user='root', server=args.server, client=args.client, udptriggers=True, proto='UDP', offered_load='500pps', interval=args.interval, flowtime=args.time, dst=args.dst, tos=args.tos, length=200, isoch=False, debug=False)]
+    flows = [iperf_flow(name="UDP", user='root', server=args.server, client=args.client, udptriggers=True, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst=args.dst, tos=args.tos, length=args.length, isoch=False, debug=False)]
 
 #optional "stressor flow"
 if args.stress_server and args.stress_client and args.stress_dst :
