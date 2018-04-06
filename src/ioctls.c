@@ -213,13 +213,11 @@ void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent
 	}
 	tsf->gpsref_sync.gps_ts.tv_sec  = t1.tv_sec - SHIFTSECONDS;
 	tsf->gpsref_sync.gps_ts.tv_nsec  = t1.tv_nsec;
-	tsf->raw = 0xFFFFFFFF;
     } else {
 	tsf->gpsref_sync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
 	tsf->gpsref_sync.gps_ts.tv_nsec  = t->gps_ts.tv_nsec;
 	tsf->gpsref_sync.ref_ts.tv_sec  = t->ref_ts.tv_sec;
 	tsf->gpsref_sync.ref_ts.tv_nsec  = t->ref_ts.tv_nsec;
-	tsf->raw = 0xFFFFFFFF;
     }
     tsf->synced = 1;
 }
