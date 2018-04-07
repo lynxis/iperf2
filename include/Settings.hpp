@@ -618,9 +618,9 @@ typedef struct client_hdr_udp_tests {
     u_int32_t version_u;
     u_int32_t version_l;
     u_int32_t ref_sync_tv_sec;
-    u_int32_t ref_sync_tv_usec;
+    u_int32_t ref_sync_tv_nsec;
     u_int32_t gps_sync_tv_sec;
-    u_int32_t gps_sync_tv_usec;
+    u_int32_t gps_sync_tv_nsec;
 #else
     unsigned short testflags   : 16;
     unsigned short tlvoffset   : 16;
