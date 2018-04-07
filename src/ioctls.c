@@ -152,14 +152,12 @@ static void timespec_sub(const struct timespec *start, const struct timespec *st
     if ((start->tv_sec > stop->tv_sec) || ((start->tv_sec == stop->tv_sec) && (start->tv_nsec > stop->tv_nsec))) {
 	result->tv_sec = 0;
 	result->tv_nsec = 0;
+    } else if ((stop->tv_nsec - start->tv_nsec) < 0) {
+	result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+	result->tv_nsec = stop->tv_nsec - start->tv_nsec + BILLION;
     } else {
-	if ((stop->tv_nsec - start->tv_nsec) < 0) {
-	    result->tv_sec = stop->tv_sec - start->tv_sec - 1;
-	    result->tv_nsec = stop->tv_nsec - start->tv_nsec + BILLION;
-	} else {
-	    result->tv_sec = stop->tv_sec - start->tv_sec;
-	    result->tv_nsec = stop->tv_nsec - start->tv_nsec;
-	}
+	result->tv_sec = stop->tv_sec - start->tv_sec;
+	result->tv_nsec = stop->tv_nsec - start->tv_nsec;
     }
     return;
 }
@@ -203,7 +201,7 @@ void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent
 	struct timespec t1;
 	tsf->raw = read_80211_tsf(agent);
 	clock_gettime(CLOCK_REALTIME, &t1);
-#define SHIFTSECONDS 60
+#define SHIFTSECONDS 2
 	// Shift it back by 60 seconds so all timestamps subtracts are positive
         if (tsf->raw > (SHIFTSECONDS * MILLION)) {
 	    tsf->raw -= (SHIFTSECONDS * MILLION);
