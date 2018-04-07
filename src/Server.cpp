@@ -497,6 +497,7 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
 	    // Process tx tsf first
+	    reportstruct->tsfcount = 0;
 	    if (txtsfcnt <= MAXTSFCHAIN) {
 		int tsfcount = 0;
 		fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
