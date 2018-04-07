@@ -478,6 +478,12 @@ void Server::UDPTriggers_processing (void) {
 #ifdef HAVE_UDPTRIGGERS
     struct client_hdr_udp_tests *tlvhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     int offset = ntohs(tlvhdr->tlvoffset);
+    // Grab the TX side sync timestamps here with ntohl
+    reportstruct->ref_sync.tv_sec = ntohl(tlvhdr->ref_sync_tv_sec);
+    reportstruct->ref_sync.tv_nsec = ntohl(tlvhdr->ref_sync_tv_nsec);
+    reportstruct->gps_sync.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
+    reportstruct->gps_sync.tv_nsec = ntohl(tlvhdr->gps_sync_tv_nsec);
+
     // protect against offets that go over the packet length
     if ((offset + sizeof(UDP_isoch_payload) + sizeof(client_hdr_v1) + sizeof(UDP_datagram) + sizeof(UDPTriggers)) <= reportstruct->packetLen) {
 	UDPTriggers *trig = (UDPTriggers *) (mBuf + offset);
@@ -490,12 +496,6 @@ void Server::UDPTriggers_processing (void) {
 	    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
 	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
 	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
-	    // Grab the TX side sync timestamps here with ntohl
-	    reportstruct->ref_sync.tv_sec = ntohl(tlvhdr->ref_sync_tv_sec);
-	    reportstruct->ref_sync.tv_nsec = ntohl(tlvhdr->ref_sync_tv_nsec);
-	    reportstruct->gps_sync.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
-	    reportstruct->gps_sync.tv_nsec = ntohl(tlvhdr->gps_sync_tv_nsec);
-
 	    // Process tx tsf first
 	    if (txtsfcnt <= MAXTSFCHAIN) {
 		int tsfcount = 0;

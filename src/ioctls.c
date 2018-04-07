@@ -201,8 +201,8 @@ void tsfraw_update(tsftv_t *tsf, u_int32_t rawnow) {
 void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent) {
     if (!t) {
 	struct timespec t1;
-	clock_gettime(CLOCK_REALTIME, &t1);
 	tsf->raw = read_80211_tsf(agent);
+	clock_gettime(CLOCK_REALTIME, &t1);
 	#define SHIFTSECONDS 60
 	// Shift it back by 60 seconds so all timestamps subtracts are positive
 	tsf->raw -= (SHIFTSECONDS * MILLION);
