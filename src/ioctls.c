@@ -203,21 +203,23 @@ void tsfgps_sync (tsftv_t *tsf,  struct gpsref_sync_t *t, thread_Settings *agent
 	struct timespec t1;
 	tsf->raw = read_80211_tsf(agent);
 	clock_gettime(CLOCK_REALTIME, &t1);
-	#define SHIFTSECONDS 60
+#define SHIFTSECONDS 60
 	// Shift it back by 60 seconds so all timestamps subtracts are positive
-	tsf->raw -= (SHIFTSECONDS * MILLION);
-	tsf2timespec(tsf, &tsf->gpsref_sync.ref_ts);
-	// check for wrap in shift
-	if ((tsf->raw + (SHIFTSECONDS * MILLION)) < tsf->raw) {
-	    tsf->carry = 1;
+        if (tsf->raw > (SHIFTSECONDS * MILLION)) {
+	    tsf->raw -= (SHIFTSECONDS * MILLION);
 	}
-	tsf->gpsref_sync.gps_ts.tv_sec  = t1.tv_sec - SHIFTSECONDS;
+	tsf2timespec(tsf, &tsf->gpsref_sync.ref_ts);
+	tsf->gpsref_sync.gps_ts.tv_sec  = t1.tv_sec;
+        if (tsf->raw > (SHIFTSECONDS * MILLION)) {
+	    tsf->gpsref_sync.gps_ts.tv_sec  -= SHIFTSECONDS;
+	}
 	tsf->gpsref_sync.gps_ts.tv_nsec  = t1.tv_nsec;
     } else {
 	tsf->gpsref_sync.gps_ts.tv_sec  = t->gps_ts.tv_sec;
 	tsf->gpsref_sync.gps_ts.tv_nsec  = t->gps_ts.tv_nsec;
 	tsf->gpsref_sync.ref_ts.tv_sec  = t->ref_ts.tv_sec;
 	tsf->gpsref_sync.ref_ts.tv_nsec  = t->ref_ts.tv_nsec;
+	tsf->raw = 0xFFFFFFFF;
     }
     tsf->synced = 1;
 }
