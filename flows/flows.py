@@ -299,7 +299,7 @@ class iperf_flow(object):
     def stats(self):
         logging.info('stats')
 
-    def compute_ks_table(self, plot=True, directory='.') :
+    def compute_ks_table(self, plot=True, directory='.', title=None) :
         for this_name in self.histogram_names :
             # group by name
             histograms = [h for h in self.histograms if h.name == this_name]
@@ -327,7 +327,7 @@ class iperf_flow(object):
                     else :
                         resultstr += '0'
                     if plot :
-                        tasks.append(asyncio.ensure_future(flow_histogram.plot_two_sample_ks(h1, h2, directory=directory), loop=iperf_flow.loop))
+                        tasks.append(asyncio.ensure_future(flow_histogram.plot_two_sample_ks(h1, h2, title=title, directory=directory), loop=iperf_flow.loop))
                 print('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, rowindex, resultstr, str(minp), str(self.ks_critical_p)))
                 logging.info('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, rowindex, resultstr, str(minp), str(self.ks_critical_p)))
                 if tasks :
@@ -437,7 +437,7 @@ class iperf_server(object):
                             if m :
                                 timestamp = datetime.now(timezone.utc).astimezone()
                                 self.flowstats['histogram_names'].add(m.group('pdfname'))
-                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp))
+                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), upperci=m.group('upperci')))
                                 # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
                                 logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
 
@@ -487,7 +487,7 @@ class iperf_server(object):
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
-        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/[0-9]+,Outliers=[0-9]+,obl/obu=[0-9]+/[0-9]+\)')
+        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/(?P<upperci>[0-9]+),Outliers=(?P<outliers>[0-9]+),obl/obu=[0-9]+/[0-9]+\)')
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -503,9 +503,9 @@ class iperf_server(object):
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
-            self.sshcmd.extend(['-u', '--udp-histogram 10u,50000'])
-        if self.updtriggers :
-            self.sshcmd.extend(['-B 192.168.1.3:6001', '--udp-triggers'])
+            self.sshcmd.extend(['-u'])
+        if self.udptriggers :
+            self.sshcmd.extend(['--udp-histogram 10u,200000'])
 
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
@@ -520,6 +520,7 @@ class iperf_server(object):
                 logging.info('{}({}) {}'.format(self.user, self.host, stdout))
             if not self.closed.is_set() :
                 await self.closed.wait()
+
 
 class iperf_client(object):
 
@@ -662,7 +663,10 @@ class iperf_client(object):
             iperftime = time + 30
         else :
             ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-B 192.168.1.3:' + str(self.port), '--udp-triggers', '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
+        if self.udptriggers :
+            self.sshcmd.extend(['-B 192.168.1.3:6001', '--udp-triggers'])
+
         if self.interval >= 0.05 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
@@ -715,9 +719,9 @@ class iperf_client(object):
 class flow_histogram(object):
 
     @classmethod
-    async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.') :
+    async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.', title=None):
 
-        title = 'Two Sample KS({},{} ({} samples)'.format(h1.ks_index, h2.ks_index, h1.population)
+        mytitle = '{} two sample KS({},{}) ({} samples)\\n{}'.format(h1.name, h1.ks_index, h2.ks_index, h1.population, title)
         if h1.basefilename is None :
             h1.output_dir = directory + '/' + h1.name + '/' + h1.name + '_' + str(h1.ks_index)
             await h1.write(directory=h1.output_dir)
@@ -742,8 +746,8 @@ class flow_histogram(object):
                     fid.write('set terminal png size 1024,768\n')
 
                 fid.write('set key bottom\n')
-                fid.write('set title \"{}\"\n'.format(title))
-                fid.write('set format x \"%.0f"\n')
+                fid.write('set title \"{}\"\n'.format(mytitle))
+                fid.write('set format x \"%.1f"\n')
                 fid.write('set format y \"%.1f"\n')
                 fid.write('set yrange [0:1.01]\n')
                 fid.write('set y2range [0:*]\n')
@@ -751,7 +755,10 @@ class flow_histogram(object):
                 fid.write('set y2tics nomirror\n')
                 fid.write('set grid\n')
                 fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(h1.starttime, h2.endtime))
-                if h1.max < 5.0 and h2.max < 5.0 :
+                if h1.max < 2.0 and h2.max < 2.0 :
+                    fid.write('set xrange [0:1]\n')
+                    fid.write('set xtics auto\n')
+                elif h1.max < 5.0 and h2.max < 5.0 :
                     fid.write('set xrange [0:5]\n')
                     fid.write('set xtics auto\n')
                 elif h1.max < 10.0 and h2.max < 10.0:
@@ -782,7 +789,7 @@ class flow_histogram(object):
                 logging.debug('Exec {} {}'.format(flow_histogram.gnuplot, gpcfilename))
 
     gnuplot = '/usr/bin/gnuplot'
-    def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None) :
+    def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None, outliers=None, upperci = None) :
         self.raw = values
         self._entropy = None
         self.bins = self.raw.split(',')
@@ -795,6 +802,8 @@ class flow_histogram(object):
         self.starttime=starttime
         self.endtime=endtime
         self.title=title
+        self.outliers=outliers
+        self.upperci=upperci
         self.basefilename = None
         ix = 0
         for bin in self.bins :
