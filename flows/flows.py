@@ -437,7 +437,7 @@ class iperf_server(object):
                             if m :
                                 timestamp = datetime.now(timezone.utc).astimezone()
                                 self.flowstats['histogram_names'].add(m.group('pdfname'))
-                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), upperci=m.group('upperci')))
+                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), uci=m.group('uci'), uci_val=m.group('uci_val'), lci=m.group('lci'), lci_val=m.group('lci_val')))
                                 # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
                                 logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
 
@@ -487,7 +487,7 @@ class iperf_server(object):
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
-        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\([0-9]+/[0-9]+%=[0-9]+/(?P<upperci>[0-9]+),Outliers=(?P<outliers>[0-9]+),obl/obu=[0-9]+/[0-9]+\)')
+        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\((?P<lci>[0-9]+)/(?P<uci>[0-9]+)%=(?P<lci_val>[0-9]+)/(?P<uci_val>[0-9]+),Outliers=(?P<outliers>[0-9]+),obl/obu=[0-9]+/[0-9]+\)')
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -721,7 +721,9 @@ class flow_histogram(object):
     @classmethod
     async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.', title=None):
 
-        mytitle = '{} two sample KS({},{}) ({} samples)\\n{}'.format(h1.name, h1.ks_index, h2.ks_index, h1.population, title)
+        lci_val = int(h1.lci_val) * h1.binwidth
+        uci_val = int(h1.uci_val) * h1.binwidth
+        mytitle = '{} two sample KS({},{}) ({} samples) {}/{}%={}/{} us outliers={}\\n{}'.format(h1.name, h1.ks_index, h2.ks_index, h1.population, h1.lci, h1.uci, lci_val, uci_val, h1.outliers, title)
         if h1.basefilename is None :
             h1.output_dir = directory + '/' + h1.name + '/' + h1.name + '_' + str(h1.ks_index)
             await h1.write(directory=h1.output_dir)
@@ -747,7 +749,10 @@ class flow_histogram(object):
 
                 fid.write('set key bottom\n')
                 fid.write('set title \"{}\"\n'.format(mytitle))
-                fid.write('set format x \"%.1f"\n')
+                if float(uci_val) < 400:
+                    fid.write('set format x \"%.2f"\n')
+                else :
+                    fid.write('set format x \"%.1f"\n')
                 fid.write('set format y \"%.1f"\n')
                 fid.write('set yrange [0:1.01]\n')
                 fid.write('set y2range [0:*]\n')
@@ -755,7 +760,10 @@ class flow_histogram(object):
                 fid.write('set y2tics nomirror\n')
                 fid.write('set grid\n')
                 fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(h1.starttime, h2.endtime))
-                if h1.max < 2.0 and h2.max < 2.0 :
+                if float(uci_val) < 0.4:
+                    fid.write('set xrange [0:0.4]\n')
+                    fid.write('set xtics auto\n')
+                elif h1.max < 2.0 and h2.max < 2.0 :
                     fid.write('set xrange [0:1]\n')
                     fid.write('set xtics auto\n')
                 elif h1.max < 5.0 and h2.max < 5.0 :
@@ -789,7 +797,7 @@ class flow_histogram(object):
                 logging.debug('Exec {} {}'.format(flow_histogram.gnuplot, gpcfilename))
 
     gnuplot = '/usr/bin/gnuplot'
-    def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None, outliers=None, upperci = None) :
+    def __init__(self, binwidth=None, name=None, values=None, population=None, starttime=None, endtime=None, title=None, outliers=None, lci = None, uci = None, lci_val = None, uci_val = None) :
         self.raw = values
         self._entropy = None
         self.bins = self.raw.split(',')
@@ -803,7 +811,10 @@ class flow_histogram(object):
         self.endtime=endtime
         self.title=title
         self.outliers=outliers
-        self.upperci=upperci
+        self.uci = uci
+        self.uci_val = uci_val
+        self.lci = lci
+        self.lci_val = lci_val
         self.basefilename = None
         ix = 0
         for bin in self.bins :

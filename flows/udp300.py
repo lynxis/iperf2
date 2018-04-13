@@ -9,9 +9,11 @@ import argparse
 import time, datetime
 import os,sys
 import asyncio, sys
+import host
 
 from datetime import datetime as datetime, timezone
 from flows import *
+from host import *
 
 parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
 parser.add_argument('-s','--server', type=str, default="10.19.87.10", required=False, help='host to run iperf server')
@@ -54,6 +56,9 @@ root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 loop.set_debug(False)
 
+client=host(host=args.client)
+client.rexec(cmd='pwd')
+exit
 plottitle='{} {} {} {} bytes'.format(args.title, args.offered_load, args.tos, args.length)
 
 #main udp isochronous traffic flow
