@@ -123,7 +123,7 @@ class iperf_flow(object):
             logging.error('flow tx stop timeout')
             raise
 
-        # iperf_flow.loop.close()
+       # iperf_flow.loop.close()
         logging.info('flow run finished')
 
     @classmethod
@@ -213,13 +213,14 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', debug = False, udptriggers = False, isoch = False, length = None):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', debug = False, udptriggers = False, isoch = False, length = None, latency=True):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
         self.loop = iperf_flow.loop
         self.name = name
         self.flowname = name
+        self.latency = latency
         self.udptriggers = udptriggers;
         if not self.udptriggers :
             iperf_flow.port += 1
@@ -504,7 +505,7 @@ class iperf_server(object):
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
             self.sshcmd.extend(['-u'])
-        if self.udptriggers :
+        if self.udptriggers or self.latency :
             self.sshcmd.extend(['--udp-histogram 10u,200000'])
 
         logging.info('{}'.format(str(self.sshcmd)))
