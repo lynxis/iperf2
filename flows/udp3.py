@@ -18,10 +18,10 @@ parser.add_argument('-s','--server', type=str, default="10.19.87.10", required=F
 parser.add_argument('-c','--client', type=str, default="10.19.87.7", required=False, help='host to run iperf client')
 parser.add_argument('-d','--dst', type=str, default="192.168.1.4, 192.168.1.2, 192.168.1.1",required=False, help='iperf destination ip address')
 parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
-parser.add_argument('-l','--length', type=int, required=False, default=180, help='udp payload size')
+parser.add_argument('-l','--length', type=int, required=False, default=1470, help='udp payload size')
 parser.add_argument('-n','--runcount', type=int, required=False, default=5, help='number of runs')
 parser.add_argument('-t','--time', type=float, default=10, required=False, help='time or duration to run traffic')
-parser.add_argument('-O','--offered_load', type=str, default="50M", required=False, help='offered load; <fps>:<mean>,<variance>')
+parser.add_argument('-O','--offered_load', type=str, default="500pps", required=False, help='offered load; <fps>:<mean>,<variance>')
 parser.add_argument('-T','--title', type=str, default="3 Stream", required=False, help='title for graphs')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 parser.add_argument('-o','--output_directory', type=str, required=False, default='./data', help='output directory')
@@ -46,11 +46,11 @@ loop.set_debug(False)
 
 plottitle='{} {} {} {} bytes'.format(args.title, args.offered_load, args.tos, args.length)
 
-flows = [iperf_flow(name="UDP", user='root', server='10.19.87.7', client='10.19.87.10', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.4', tos=args.tos, length=args.length)]
-flows.append(iperf_flow(name="UDP", user='root', server='10.19.87.8', client='10.19.87.10', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.1', tos=args.tos, length=args.length))
-flows.append(iperf_flow(name="UDP", user='root', server='10.19.87.9', client='10.19.87.10', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.2', tos=args.tos, length=args.length))
+flows = [iperf_flow(name="UDP1", user='root', server='10.19.87.10', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.4', tos=args.tos, length=args.length)]
+flows.append(iperf_flow(name="UDP2", user='root', server='10.19.87.8', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.1', tos=args.tos, length=args.length))
+flows.append(iperf_flow(name="UDP3", user='root', server='10.19.87.9', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.2', tos=args.tos, length=args.length))
 for i in range(args.runcount) :
-    print("Running ({}) traffic client={} server={} dest={} with load {} for {} seconds".format(str(i), args.client, args.server, args.dst, args.offered_load, args.time))
+    print("Running ({}) traffic with load {} for {} seconds".format(str(i), args.client, args.server, args.dst, args.offered_load, args.time))
     iperf_flow.run(time=args.time, flows='all', preclean=False)
     
 for flow in flows :

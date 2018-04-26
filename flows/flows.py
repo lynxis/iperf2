@@ -219,7 +219,6 @@ class iperf_flow(object):
             iperf_flow.set_loop()
         self.loop = iperf_flow.loop
         self.name = name
-        self.flowname = name
         self.latency = latency
         self.udptriggers = udptriggers;
         if not self.udptriggers :
@@ -306,7 +305,7 @@ class iperf_flow(object):
             histograms = [h for h in self.histograms if h.name == this_name]
             for index, h in enumerate(histograms) :
                 h.ks_index = index
-            print('KS Table has {} entries',len(histograms))
+            print('{} KS Table has {} entries'.format(self.name, len(histograms)))
             self.condensed_distance_matrix = ([])
 
             tasks = []
@@ -328,7 +327,7 @@ class iperf_flow(object):
                     else :
                         resultstr += '0'
                     if plot :
-                        tasks.append(asyncio.ensure_future(flow_histogram.plot_two_sample_ks(h1, h2, title=title, directory=directory), loop=iperf_flow.loop))
+                        tasks.append(asyncio.ensure_future(flow_histogram.plot_two_sample_ks(h1=h1, h2=h2, flowname=self.name, title=title, directory=directory), loop=iperf_flow.loop))
                 print('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, rowindex, resultstr, str(minp), str(self.ks_critical_p)))
                 logging.info('KS: {0}({1:3d}):{2} minp={3} ptest={4}'.format(this_name, rowindex, resultstr, str(minp), str(self.ks_critical_p)))
                 if tasks :
@@ -344,7 +343,7 @@ class iperf_flow(object):
                 plt.figure()
                 dn = hierarchy.dendrogram(self.linkage_matrix)
                 plt.title("{}".format(this_name))
-                plt.savefig('{}/dn_{}.png'.format(directory,this_name))
+                plt.savefig('{}/dn_{}_{}.png'.format(directory,self.name,this_name))
                 logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
                 print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
                 logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
@@ -720,17 +719,17 @@ class iperf_client(object):
 class flow_histogram(object):
 
     @classmethod
-    async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.', title=None):
+    async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.', flowname=None, title=None):
 
         lci_val = int(h1.lci_val) * h1.binwidth
         uci_val = int(h1.uci_val) * h1.binwidth
-        mytitle = '{} two sample KS({},{}) ({} samples) {}/{}%={}/{} us outliers={}\\n{}'.format(h1.name, h1.ks_index, h2.ks_index, h1.population, h1.lci, h1.uci, lci_val, uci_val, h1.outliers, title)
+        mytitle = '{} {} two sample KS({},{}) ({} samples) {}/{}%={}/{} us outliers={}\\n{}'.format(flowname, h1.name, h1.ks_index, h2.ks_index, h1.population, h1.lci, h1.uci, lci_val, uci_val, h1.outliers, title)
         if h1.basefilename is None :
-            h1.output_dir = directory + '/' + h1.name + '/' + h1.name + '_' + str(h1.ks_index)
+            h1.output_dir = directory + '/' + flowname + h1.name + '/' + h1.name + '_' + str(h1.ks_index)
             await h1.write(directory=h1.output_dir)
 
         if h2.basefilename is None :
-            h2.output_dir = directory + '/' + h2.name + '/' + h2.name + '_' + str(h2.ks_index)
+            h2.output_dir = directory + '/' + flowname + h2.name + '/' + h2.name + '_' + str(h2.ks_index)
             await h2.write(directory=h2.output_dir)
 
         if (h1.basefilename is not None) and (h2.basefilename is not None) :
