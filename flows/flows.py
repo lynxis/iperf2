@@ -337,16 +337,16 @@ class iperf_flow(object):
                     except asyncio.TimeoutError:
                         logging.error('plot timed out')
                         raise
-            logging.info('{}(condensed distance matrix)\n{}'.format(this_name,self.condensed_distance_matrix))
+            logging.info('{} {}(condensed distance matrix)\n{}'.format(self.name, this_name,self.condensed_distance_matrix))
             self.linkage_matrix=linkage(self.condensed_distance_matrix, 'ward')
             try :
                 plt.figure()
                 dn = hierarchy.dendrogram(self.linkage_matrix)
-                plt.title("{}".format(this_name))
+                plt.title("{} {}".format(self.name, this_name))
                 plt.savefig('{}/dn_{}_{}.png'.format(directory,self.name,this_name))
-                logging.info('{}(distance matrix)\n{}'.format(this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
-                print('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
-                logging.info('{}(cluster linkage)\n{}'.format(this_name,self.linkage_matrix))
+                logging.info('{} {}(distance matrix)\n{}'.format(self.name, this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
+                print('{} {}(cluster linkage)\n{}'.format(self.name,this_name,self.linkage_matrix))
+                logging.info('{} {}(cluster linkage)\n{}'.format(self.name,this_name,self.linkage_matrix))
                 flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.75*self.condensed_distance_matrix.max(), criterion='distance')
                 print('Clusters:{}'.format(flattened))
                 logging.info('Clusters:{}'.format(flattened))
@@ -721,9 +721,9 @@ class flow_histogram(object):
     @classmethod
     async def plot_two_sample_ks(cls, h1=None, h2=None, outputtype='png', directory='.', flowname=None, title=None):
 
-        lci_val = int(h1.lci_val) * h1.binwidth
-        uci_val = int(h1.uci_val) * h1.binwidth
-        mytitle = '{} {} two sample KS({},{}) ({} samples) {}/{}%={}/{} us outliers={}\\n{}'.format(flowname, h1.name, h1.ks_index, h2.ks_index, h1.population, h1.lci, h1.uci, lci_val, uci_val, h1.outliers, title)
+        lci_val = int(h2.lci_val) * h2.binwidth
+        uci_val = int(h2.uci_val) * h2.binwidth
+        mytitle = '{} {} two sample KS({},{}) ({} samples) {}/{}%={}/{} us outliers={}\\n{}'.format(flowname, h1.name, h1.ks_index, h2.ks_index, h2.population, h2.lci, h2.uci, lci_val, uci_val, h2.outliers, title)
         if h1.basefilename is None :
             h1.output_dir = directory + '/' + flowname + h1.name + '/' + h1.name + '_' + str(h1.ks_index)
             await h1.write(directory=h1.output_dir)

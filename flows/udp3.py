@@ -50,7 +50,7 @@ flows = [iperf_flow(name="UDP1", user='root', server='10.19.87.10', client='10.1
 flows.append(iperf_flow(name="UDP2", user='root', server='10.19.87.8', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.1', tos=args.tos, length=args.length))
 flows.append(iperf_flow(name="UDP3", user='root', server='10.19.87.9', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.2', tos=args.tos, length=args.length))
 for i in range(args.runcount) :
-    print("Running ({}) traffic with load {} for {} seconds".format(str(i), args.client, args.server, args.dst, args.offered_load, args.time))
+    print("Running ({}) traffic with load {} for {} seconds".format(str(i), args.offered_load, args.time))
     iperf_flow.run(time=args.time, flows='all', preclean=False)
     
 for flow in flows :
