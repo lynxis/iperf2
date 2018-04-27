@@ -4,14 +4,8 @@
 #
 # Author Robert J. McMahon
 # Date April 2018
-import re
-import subprocess
 import logging
-import asyncio, sys
-import time
-import locale
-import signal
-import os, fcntl
+import asyncio, subprocess
 import weakref
 
 logger = logging.getLogger(__name__)
