@@ -15,7 +15,6 @@ class ssh_node:
     DEFAULT_CMD_TIMEOUT = 30
     DEFAULT_CONNECT_TIMEOUT = 10.0
     rexec_tasks = []
-    console_tasks = []
     loop = None
     instances = weakref.WeakSet()
 
