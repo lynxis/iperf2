@@ -87,6 +87,9 @@ class ssh_node:
        self.ssh_console_session = None
        ssh_node.instances.add(self)
 
+    def __del__(self):
+       ssh_node.instances.remove(self)
+
     def wl (self, cmd, ASYNC=False) :
         if self.device :
             results=self.rexec(cmd='/usr/bin/wl -i {} {}'.format(self.device, cmd), ASYNC=ASYNC)
@@ -283,6 +286,11 @@ class ssh_session:
             await self.closed.wait()
             return self.results
 
+import argparse
+parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
+parser.add_argument('-n','--count', type=int, required=False, default=5, help='number of runs')
+args = parser.parse_args()
+
 logfilename='node.log'
 print('Writing log to {}'.format(logfilename))
 logging.basicConfig(filename=logfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
@@ -294,8 +302,10 @@ ssh_node.loop.set_debug(False)
 duts = [ssh_node(name='4377A', ipaddr='10.19.87.7', device='ap0', console=True, ssh_speedups=True), ssh_node(name='4377B', ipaddr='10.19.87.10', device='eth0', console=True, ssh_speedups=True), ssh_node(name='4357A', ipaddr='10.19.87.9', device='eth0', console=True, ssh_speedups=True), ssh_node(name='4357B', ipaddr='10.19.87.8', device='eth0', console=True, ssh_speedups=True)]
 ssh_node.open_consoles()
 cids = []
-for dut in duts :
-    cids.append(dut.wl(cmd='status', ASYNC=True))
+
+for i in range(args.count)  :
+    for dut in duts :
+        cids.append(dut.wl(cmd='status', ASYNC=True))
 ssh_node.run_all_commands()
 cids = []
 for dut in duts :
