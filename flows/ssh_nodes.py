@@ -87,9 +87,6 @@ class ssh_node:
        self.ssh_console_session = None
        ssh_node.instances.add(self)
 
-    def __del__(self):
-       ssh_node.instances.remove(self)
-
     def wl (self, cmd, ASYNC=False) :
         if self.device :
             results=self.rexec(cmd='/usr/bin/wl -i {} {}'.format(self.device, cmd), ASYNC=ASYNC)
@@ -131,6 +128,7 @@ class ssh_node:
 # ssh -O check -S ~/.ssh/controlmasters/%r@%h:%p server.example.org
 # ssh -S /home/fred/.ssh/controlmasters/fred@server.example.org:22 server.example.org
 class ssh_session:
+    sessionid = 1;
     class SSHReaderProtocol(asyncio.SubprocessProtocol):
         def __init__(self, session):
             self._exited = False
@@ -163,7 +161,7 @@ class ssh_session:
             self._mypid = transport.get_pid()
             self._transport = transport
             self._session.sshpipe = self._transport.get_extra_info('subprocess')
-            logging.debug('{} ssh node connection made pid=({})'.format(self._session.name, self._mypid))
+            self._session.adapter.debug('{} ssh node connection made pid=({})'.format(self._session.name, self._mypid))
             self._session.connected.set()
             if self._session.IO_TIMEOUT is not None :
                 self.iowatchdog = ssh_node.loop.call_later(self._session.IO_TIMEOUT, self.io_timer)
@@ -171,7 +169,7 @@ class ssh_session:
                 self.watchdog = ssh_node.loop.call_later(self._session.CMD_TIMEOUT, self.wd_timer)
 
         def connection_lost(self, exc):
-            logging.debug('{} node connection lost pid=({})'.format(self._session.name, self._mypid))
+            self._session.adapter.debug('{} node connection lost pid=({})'.format(self._session.name, self._mypid))
             self._session.connected.clear()
 
         def pipe_data_received(self, fd, data):
@@ -185,13 +183,13 @@ class ssh_session:
                 self._stdoutbuffer += data
                 while "\n" in self._stdoutbuffer:
                     line, self._stdoutbuffer = self._stdoutbuffer.split("\n", 1)
-                    logging.info('{} {}'.format(self._session.name, line))
+                    self._session.adapter.info('{}'.format(line))
 
             elif fd == 2:
                 self._stderrbuffer += data
                 while "\n" in self._stderrbuffer:
                     line, self._stderrbuffer = self._stderrbuffer.split("\n", 1)
-                    logging.warning('{} {}'.format(self._session.name, line))
+                    self._session.adapter.warning('{} {}'.format(self._session.name, line))
 
             if self._session.IO_TIMEOUT is not None :
                 self.iowatchdog = ssh_node.loop.call_later(self._session.IO_TIMEOUT, self.io_timer)
@@ -200,10 +198,10 @@ class ssh_session:
             if self._session.IO_TIMEOUT is not None :
                 self.iowatchdog.cancel()
             if fd == 1:
-                logging.debug('{} stdout pipe closed (exception={})'.format(self._session.name, exc))
+                self._session.adapter.debug('{} stdout pipe closed (exception={})'.format(self._session.name, exc))
                 self._closed_stdout = True
             elif fd == 2:
-                logging.debug('{} stderr pipe closed (exception={})'.format(self._session.name, exc))
+                self._session.adapter.debug('{} stderr pipe closed (exception={})'.format(self._session.name, exc))
                 self._closed_stderr = True
             self.signal_exit()
 
@@ -226,6 +224,10 @@ class ssh_session:
             self.timeout_occurred.set()
             self._session.sshpipe.terminate()
 
+    class CustomAdapter(logging.LoggerAdapter):
+        def process(self, msg, kwargs):
+            return '[%s] %s' % (self.extra['connid'], msg), kwargs
+
     def __init__(self, user='root', name=None, hostname='localhost', CONNECT_TIMEOUT=None, control_master=False, node=None):
         self.hostname = hostname
         self.name = name
@@ -244,6 +246,14 @@ class ssh_session:
         self.CMD_TIMEOUT = None
         self.control_master = control_master
         self.ssh = '/usr/bin/ssh'
+        logger = logging.getLogger(__name__)
+        if control_master :
+            conn_id = self.name + '(console)'
+        else  :
+            conn_id = '{}({})'.format(self.name, ssh_session.sessionid)
+            ssh_session.sessionid += 1
+
+        self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
 
     def __getattr__(self, attr) :
         if self.node :
@@ -293,7 +303,8 @@ args = parser.parse_args()
 
 logfilename='node.log'
 print('Writing log to {}'.format(logfilename))
-logging.basicConfig(filename=logfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
+#logging.basicConfig(filename=logfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
+logging.basicConfig(filename=logfilename, level=logging.INFO, format='%(asctime)s %(module)s %(levelname)-8s %(message)s')
 logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
 loop = asyncio.get_event_loop()
