@@ -39,9 +39,9 @@ class ssh_node:
             if text :
                 logging.info('Run all tasks: {})'.format(time, text))
             ssh_node.loop.run_until_complete(asyncio.wait(ssh_node.rexec_tasks, timeout=timeout, loop=ssh_node.loop))
-        if stoptext :
-            logging.info('Commands done ({})'.format(stoptext))
-        ssh_node.rexec_tasks = []
+            if stoptext :
+                logging.info('Commands done ({})'.format(stoptext))
+            ssh_node.rexec_tasks = []
 
     @classmethod
     def open_consoles(cls) :
@@ -94,6 +94,13 @@ class ssh_node:
             results=self.rexec(cmd='/usr/bin/wl {}'.format(cmd), ASYNC=ASYNC)
         return results
 
+    def wl_async (self, cmd) :
+        if self.device :
+            results=self.rexec(cmd='/usr/bin/wl -i {} {}'.format(self.device, cmd), ASYNC=False)
+        else :
+            results=self.rexec(cmd='/usr/bin/wl {}'.format(cmd), ASYNC=False)
+        return results
+
     def rexec(self, cmd='pwd', ASYNC=False, IO_TIMEOUT=DEFAULT_IO_TIMEOUT, CMD_TIMEOUT=DEFAULT_CMD_TIMEOUT, CONNECT_TIMEOUT=DEFAULT_CONNECT_TIMEOUT) :
         io_timer = IO_TIMEOUT
         cmd_timer = CMD_TIMEOUT
@@ -112,6 +119,7 @@ class ssh_node:
             finally:
                 ssh_node.rexec_tasks.remove(this_task)
                 self.my_tasks.remove(this_task)
+                return this_task.result()
 
         return this_task
 
@@ -296,31 +304,3 @@ class ssh_session:
             await self.closed.wait()
             return self.results
 
-import argparse
-parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
-parser.add_argument('-n','--count', type=int, required=False, default=5, help='number of runs')
-args = parser.parse_args()
-
-logfilename='node.log'
-print('Writing log to {}'.format(logfilename))
-#logging.basicConfig(filename=logfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
-logging.basicConfig(filename=logfilename, level=logging.INFO, format='%(asctime)s %(module)s %(levelname)-8s %(message)s')
-logging.getLogger('asyncio').setLevel(logging.DEBUG)
-
-loop = asyncio.get_event_loop()
-ssh_node.set_loop(loop)
-ssh_node.loop.set_debug(False)
-duts = [ssh_node(name='4377A', ipaddr='10.19.87.7', device='ap0', console=True, ssh_speedups=True), ssh_node(name='4377B', ipaddr='10.19.87.10', device='eth0', console=True, ssh_speedups=True), ssh_node(name='4357A', ipaddr='10.19.87.9', device='eth0', console=True, ssh_speedups=True), ssh_node(name='4357B', ipaddr='10.19.87.8', device='eth0', console=True, ssh_speedups=True)]
-ssh_node.open_consoles()
-cids = []
-
-for i in range(args.count)  :
-    for dut in duts :
-        cids.append(dut.wl(cmd='status', ASYNC=True))
-ssh_node.run_all_commands()
-cids = []
-for dut in duts :
-    cids.append(dut.wl(cmd='dump ampdu', ASYNC=True))
-ssh_node.run_all_commands()
-ssh_node.close_consoles()
-loop.close()

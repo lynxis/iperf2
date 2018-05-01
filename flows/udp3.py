@@ -9,15 +9,17 @@ import argparse
 import time, datetime
 import os,sys
 import asyncio, sys
+import ssh_nodes
 
 from datetime import datetime as datetime, timezone
 from flows import *
+from ssh_nodes import *
 
 parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
 parser.add_argument('-s','--server', type=str, default="10.19.87.10", required=False, help='host to run iperf server')
 parser.add_argument('-c','--client', type=str, default="10.19.87.7", required=False, help='host to run iperf client')
 parser.add_argument('-d','--dst', type=str, default="192.168.1.4, 192.168.1.2, 192.168.1.1",required=False, help='iperf destination ip address')
-parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
+parser.add_argument('-i','--interval', type=float, required=False, default=0, help='iperf report interval')
 parser.add_argument('-l','--length', type=int, required=False, default=1470, help='udp payload size')
 parser.add_argument('-n','--runcount', type=int, required=False, default=5, help='number of runs')
 parser.add_argument('-t','--time', type=float, default=10, required=False, help='time or duration to run traffic')
@@ -37,21 +39,47 @@ if not os.path.exists(args.output_directory):
 fqlogfilename = os.path.join(args.output_directory, logfilename)
 print('Writing log to {}'.format(fqlogfilename))
 
-logging.basicConfig(filename=fqlogfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
+logging.basicConfig(filename=fqlogfilename, level=logging.INFO, format='%(asctime)s %(levelname)-8s %(module)-9s  %(message)s')
 
 logging.getLogger('asyncio').setLevel(logging.INFO)
 root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 loop.set_debug(False)
+ssh_node.set_loop(loop)
+ssh_node.loop.set_debug(False)
+loop = asyncio.get_event_loop()
 
 plottitle='{} {} {} {} bytes'.format(args.title, args.offered_load, args.tos, args.length)
+
+duta = ssh_node(name='4377A', ipaddr='10.19.87.7', device='ap0', console=True, ssh_speedups=True)
+dutb = ssh_node(name='4377B', ipaddr='10.19.87.10', device='eth0', console=True, ssh_speedups=True)
+dutc = ssh_node(name='4357A', ipaddr='10.19.87.8', device='eth0', console=True, ssh_speedups=True)
+dutd = ssh_node(name='4357B', ipaddr='10.19.87.9', device='eth0', console=True, ssh_speedups=True)
+duts = [duta, dutb, dutc, dutd]
+
+ssh_node.open_consoles()
+cids = []
+for dut in duts :
+    cids.append(dut.wl(cmd='status', ASYNC=True))
+ssh_node.run_all_commands()
 
 flows = [iperf_flow(name="UDP1", user='root', server='10.19.87.10', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.4', tos=args.tos, length=args.length)]
 flows.append(iperf_flow(name="UDP2", user='root', server='10.19.87.8', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.1', tos=args.tos, length=args.length))
 flows.append(iperf_flow(name="UDP3", user='root', server='10.19.87.9', client='10.19.87.7', proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, dst='192.168.1.2', tos=args.tos, length=args.length))
+
 for i in range(args.runcount) :
+    cids = []
+    for dut in duts :
+        cids.append(dut.wl(cmd='dump_clear ampdu', ASYNC=True))
+    ssh_node.run_all_commands()
     print("Running ({}) traffic with load {} for {} seconds".format(str(i), args.offered_load, args.time))
     iperf_flow.run(time=args.time, flows='all', preclean=False)
+    cids = []
+    for dut in duts :
+        cids.append(dut.wl(cmd='dump ampdu', ASYNC=True))
+    ssh_node.run_all_commands()
+
+ssh_node.close_consoles()
     
 for flow in flows :
     flow.compute_ks_table(directory=args.output_directory, title=plottitle)

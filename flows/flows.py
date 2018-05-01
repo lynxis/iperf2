@@ -401,7 +401,7 @@ class iperf_server(object):
                 self._stdoutbuffer += data
                 while "\n" in self._stdoutbuffer:
                     line, self._stdoutbuffer = self._stdoutbuffer.split("\n", 1)
-                    logging.info('{} {} (stdout,{})'.format(self._server.name, line, self._server.remotepid))
+                    self._server.adapter.info('{} (stdout,{})'.format(line, self._server.remotepid))
                     if not self._server.opened.is_set() :
                         m = self._server.regex_open_pid.match(line)
                         if m :
@@ -465,6 +465,10 @@ class iperf_server(object):
             self._mypid = None
             self.signal_exit()
 
+    class CustomAdapter(logging.LoggerAdapter):
+        def process(self, msg, kwargs):
+            return '[%s] %s' % (self.extra['connid'], msg), kwargs
+
     def __init__(self, name='Server', loop=None, host='localhost', flow=None, debug=False):
         self.__dict__['flow'] = flow
         self.loop = iperf_flow.loop
@@ -481,6 +485,8 @@ class iperf_server(object):
         self._transport = None
         self._protocol = None
         self.time = time
+        conn_id = '{}'.format(self.name)
+        self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
 
         # ex. Server listening on TCP port 61003 with pid 2565
         self.regex_open_pid = re.compile(r'^Server listening on {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.port)))
@@ -500,7 +506,7 @@ class iperf_server(object):
         self.remotepid = None
         iperftime = time + 30
         self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e',  '-t ' + str(iperftime), '-z', '-fb', '-w' , self.window]
-        if self.interval >= 0.05 :
+        if self.interval >= 0.005 :
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
             self.sshcmd.extend(['-u'])
@@ -569,7 +575,7 @@ class iperf_client(object):
                 self._stdoutbuffer += data
                 while "\n" in self._stdoutbuffer:
                     line, self._stdoutbuffer = self._stdoutbuffer.split("\n", 1)
-                    logging.info('{} {} (stdout,{})'.format(self._client.name, line, self._client.remotepid))
+                    self._client.adapter.info('{} (stdout,{})'.format(line, self._client.remotepid))
                     if not self._client.opened.is_set() :
                         m = self._client.regex_open_pid.match(line)
                         if m :
@@ -631,6 +637,10 @@ class iperf_client(object):
             self._mypid = None
             self.signal_exit()
 
+    class CustomAdapter(logging.LoggerAdapter):
+        def process(self, msg, kwargs):
+            return '[%s] %s' % (self.extra['connid'], msg), kwargs
+
     def __init__(self, name='Client', loop=None, host='localhost', flow = None, debug=False):
         self.__dict__['flow'] = flow
         self.loop = loop
@@ -645,6 +655,8 @@ class iperf_client(object):
         self.debug = debug
         self._transport = None
         self._protocol = None
+        conn_id = '{}'.format(self.name)
+        self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
         # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
         self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.port)))
         # traffic ex: [  3] 0.00-0.50 sec  655620 Bytes  10489920 bits/sec  14/211        446      446K/0 us
@@ -667,7 +679,7 @@ class iperf_client(object):
         if self.udptriggers :
             self.sshcmd.extend(['-B 192.168.1.3:6001', '--udp-triggers'])
 
-        if self.interval >= 0.05 :
+        if self.interval >= 0.005 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
         if self.proto == 'UDP' :
