@@ -868,7 +868,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	}
     }
 
-    if (isTxSync(mExtSettings) && !mExtSettings->mBurstIPG) {
+    if (isTxSync(mExtSettings) && (!mExtSettings->mBurstIPG && !isIsochronous(mExtSettings))) {
 	  fprintf(stderr, "option --tx-sync requires setting --ipg option\n");
 	  exit(1);
     }
