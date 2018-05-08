@@ -603,6 +603,8 @@ void Client::RunUDPIsochronous (void) {
     mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getUsecs());
     mBuf_isoch->burstperiod = htonl(fc->period_us());
 
+    if (isTxSync(mSettings))
+	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
     while (InProgress()) {
 	int bytecnt;
 	mBuf_isoch->prevframeid  = htonl(frameid);
