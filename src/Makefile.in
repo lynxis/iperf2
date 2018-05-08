@@ -90,7 +90,7 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iperf$(EXEEXT)
 noinst_PROGRAMS = checkdelay$(EXEEXT) $(am__EXEEXT_1)
-@ISOCHRONOUS_TRUE@am__append_1 = pdfs.c isochronous.cpp
+@ISOCHRONOUS_TRUE@am__append_1 = pdfs.c
 @ISOCHRONOUS_TRUE@am__append_2 = checkpdfs checkisoch
 @AF_PACKET_TRUE@am__append_3 = checksums.c
 @UDPTRIGGERS_TRUE@am__append_4 = ioctls.c
@@ -126,24 +126,24 @@ am__checkpdfs_SOURCES_DIST = pdfs.c checkpdfs.c
 @ISOCHRONOUS_TRUE@	checkpdfs.$(OBJEXT)
 checkpdfs_OBJECTS = $(am_checkpdfs_OBJECTS)
 checkpdfs_DEPENDENCIES =
-am__iperf_SOURCES_DIST = Client.cpp Extractor.c Launch.cpp List.cpp \
-	Listener.cpp Locale.c PerfSocket.cpp ReportCSV.c \
-	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
+am__iperf_SOURCES_DIST = Client.cpp Extractor.c isochronous.cpp \
+	Launch.cpp List.cpp Listener.cpp Locale.c PerfSocket.cpp \
+	ReportCSV.c ReportDefault.c Reporter.c Server.cpp Settings.cpp \
 	SocketAddr.c gnu_getopt.c gnu_getopt_long.c histogram.c \
 	main.cpp service.c sockets.c stdio.c tcp_window_size.c pdfs.c \
-	isochronous.cpp checksums.c ioctls.c
-@ISOCHRONOUS_TRUE@am__objects_1 = pdfs.$(OBJEXT) isochronous.$(OBJEXT)
+	checksums.c ioctls.c
+@ISOCHRONOUS_TRUE@am__objects_1 = pdfs.$(OBJEXT)
 @AF_PACKET_TRUE@am__objects_2 = checksums.$(OBJEXT)
 @UDPTRIGGERS_TRUE@am__objects_3 = ioctls.$(OBJEXT)
 am_iperf_OBJECTS = Client.$(OBJEXT) Extractor.$(OBJEXT) \
-	Launch.$(OBJEXT) List.$(OBJEXT) Listener.$(OBJEXT) \
-	Locale.$(OBJEXT) PerfSocket.$(OBJEXT) ReportCSV.$(OBJEXT) \
-	ReportDefault.$(OBJEXT) Reporter.$(OBJEXT) Server.$(OBJEXT) \
-	Settings.$(OBJEXT) SocketAddr.$(OBJEXT) gnu_getopt.$(OBJEXT) \
-	gnu_getopt_long.$(OBJEXT) histogram.$(OBJEXT) main.$(OBJEXT) \
-	service.$(OBJEXT) sockets.$(OBJEXT) stdio.$(OBJEXT) \
-	tcp_window_size.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3)
+	isochronous.$(OBJEXT) Launch.$(OBJEXT) List.$(OBJEXT) \
+	Listener.$(OBJEXT) Locale.$(OBJEXT) PerfSocket.$(OBJEXT) \
+	ReportCSV.$(OBJEXT) ReportDefault.$(OBJEXT) Reporter.$(OBJEXT) \
+	Server.$(OBJEXT) Settings.$(OBJEXT) SocketAddr.$(OBJEXT) \
+	gnu_getopt.$(OBJEXT) gnu_getopt_long.$(OBJEXT) \
+	histogram.$(OBJEXT) main.$(OBJEXT) service.$(OBJEXT) \
+	sockets.$(OBJEXT) stdio.$(OBJEXT) tcp_window_size.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3)
 iperf_OBJECTS = $(am_iperf_OBJECTS)
 iperf_DEPENDENCIES = $(am__DEPENDENCIES_1)
 iperf_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(iperf_LDFLAGS) \
@@ -342,8 +342,8 @@ AM_CPPFLAGS = @STRIP_BEGIN@ \
 AM_CXXFLAGS = -Wall
 AM_CFLAGS = -Wall
 iperf_LDFLAGS = @CFLAGS@ @PTHREAD_CFLAGS@ @WEB100_CFLAGS@ @DEFS@
-iperf_SOURCES = Client.cpp Extractor.c Launch.cpp List.cpp \
-	Listener.cpp Locale.c PerfSocket.cpp ReportCSV.c \
+iperf_SOURCES = Client.cpp Extractor.c isochronous.cpp Launch.cpp \
+	List.cpp Listener.cpp Locale.c PerfSocket.cpp ReportCSV.c \
 	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
 	SocketAddr.c gnu_getopt.c gnu_getopt_long.c histogram.c \
 	main.cpp service.c sockets.c stdio.c tcp_window_size.c \

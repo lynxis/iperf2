@@ -93,6 +93,8 @@ private:
     void RunRateLimitedTCP( void );
     // UDP traffic with isochronous and vbr support
     void RunUDPIsochronous( void );
+    // UDP traffic with threads synced to transmit at near the same time
+    void RunUDPTxSync( void );
     // UDP plain
     void RunUDP( void );
     // client connect
@@ -105,6 +107,8 @@ private:
     Timestamp lastPacketTime;
     Timestamp now;
     char* readAt;
+    Timestamp syncTime;
+
 }; // end class Client
 
 #endif // CLIENT_H

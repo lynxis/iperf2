@@ -96,3 +96,15 @@ void FrameCounter::reset(void) {
     period = (1000000 / frequency);
     startTime.setnow();
 }
+
+unsigned int FrameCounter::wait_sync(long sec, long usec) {
+    long remaining;
+    unsigned int framecounter;
+    startTime.set(sec, usec);
+    framecounter = get(&remaining);
+    delay_loop(remaining);
+    reset();
+    framecounter = 1;
+    lastcounter = 1;
+    return(framecounter);
+}

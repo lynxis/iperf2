@@ -345,11 +345,12 @@ class iperf_flow(object):
                 plt.title("{} {}".format(self.name, this_name))
                 plt.savefig('{}/dn_{}_{}.png'.format(directory,self.name,this_name))
                 logging.info('{} {}(distance matrix)\n{}'.format(self.name, this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
+                print('{} {}(distance matrix)\n{}'.format(self.name, this_name,scipy.spatial.distance.squareform(self.condensed_distance_matrix)))
                 print('{} {}(cluster linkage)\n{}'.format(self.name,this_name,self.linkage_matrix))
                 logging.info('{} {}(cluster linkage)\n{}'.format(self.name,this_name,self.linkage_matrix))
                 flattened=scipy.cluster.hierarchy.fcluster(self.linkage_matrix, 0.75*self.condensed_distance_matrix.max(), criterion='distance')
-                print('Clusters:{}'.format(flattened))
-                logging.info('Clusters:{}'.format(flattened))
+                print('{} {} Clusters:{}'.format(self.name, this_name, flattened))
+                logging.info('{} {} Clusters:{}'.format(self.name, this_name, flattened))
             except:
                 pass
 

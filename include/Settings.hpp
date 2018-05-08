@@ -198,6 +198,7 @@ typedef struct thread_Settings {
     iperf_sockaddr local;
     Socklen_t size_local;
     nthread_t mTID;
+    int incrdstip;
     char* mCongestion;
     char peerversion[PEERBUFSIZE];
     int mUDPbins;
@@ -213,11 +214,12 @@ typedef struct thread_Settings {
     double mMean; //variable bit rate mean
     double mVariance; //vbr variance
     int mJitterBufSize; //Server jitter buffer size, units is frames
-    double mBurstIPG; //Interpacket gap
 #endif
     int l4offset; // used in l2 mode to offset the raw packet
     int l4payloadoffset;
-    int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L2
+    int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L
+    struct timeval thread_synctime;
+    double mBurstIPG; //Interpacket gap
 } thread_Settings;
 
 /*
@@ -271,6 +273,8 @@ typedef struct thread_Settings {
 #define FLAG_UDPTRIGGERS    0x00000010
 #define FLAG_UDPHISTOGRAM   0x00000020
 #define FLAG_L2LENGTHCHECK  0x00000100
+#define FLAG_TXSYNC         0x00000200
+#define FLAG_INCRDSTIP      0x00000400
 
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
@@ -310,6 +314,8 @@ typedef struct thread_Settings {
 #define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
 #define isUDPHistogram(settings)   ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
 #define isL2LengthCheck(settings)  ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
+#define isIncrDstIP(settings)       ((settings->flags_extend & FLAG_INCRDSTIP) != 0)
+#define isTxSync(settings)         ((settings->flags_extend & FLAG_TXSYNC) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -346,6 +352,8 @@ typedef struct thread_Settings {
 #define setUDPTriggers(settings)   settings->flags_extend |= FLAG_UDPTRIGGERS
 #define setUDPHistogram(settings)  settings->flags_extend |= FLAG_UDPHISTOGRAM
 #define setL2LengthCheck(settings)    settings->flags_extend |= FLAG_L2LENGTHCHECK
+#define setIncrDstIP(settings)     settings->flags_extend |= FLAG_INCRDSTIP
+#define setTxSync(settings)        settings->flags_extend |= FLAG_TXSYNC
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -382,6 +390,8 @@ typedef struct thread_Settings {
 #define unsetUDPTriggers(settings) settings->flags_extend &= ~FLAG_UDPTRIGGERS
 #define unsetUDPHistogram(settings)    settings->flags_extend &= ~FLAG_UDPHISTOGRAM
 #define unsetL2LengthCheck(settings)  settings->flags_extend &= ~FLAG_L2LENGTHCHECK
+#define unsetIncrDstIP(settings)   settings->flags_extend &= ~FLAG_INCRDSTIP
+#define unsetTxSync(settings)      settings->flags_extend &= ~FLAG_TXSYNC
 
 /*
  * Message header flags

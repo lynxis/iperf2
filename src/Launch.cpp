@@ -179,8 +179,11 @@ void client_init( thread_Settings *clients ) {
     // For each of the needed threads create a copy of the
     // provided settings, unsetting the report flag and add
     // to the list of threads to start
+    gettimeofday(&clients->thread_synctime, NULL);
     for (int i = 1; i < clients->mThreads; i++) {
         Settings_Copy( clients, &next );
+	if (isIncrDstIP(clients))
+	    next->incrdstip = i;
         unsetReport( next );
         itr->runNow = next;
         itr = next;

@@ -61,8 +61,8 @@
 #include "delay.h"
 #include "util.h"
 #include "Locale.h"
-#ifdef HAVE_ISOCHRONOUS
 #include "isochronous.hpp"
+#ifdef HAVE_ISOCHRONOUS
 #include "pdfs.h"
 #include "version.h"
 #endif
@@ -133,6 +133,8 @@ Client::Client( thread_Settings *inSettings ) {
     reportstruct->errwrite=0;
     reportstruct->emptyreport=0;
     reportstruct->socket = mSettings->mSock;
+    if (isTxSync(mSettings))
+	syncTime.set(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
 } // end Client
 
@@ -312,6 +314,8 @@ void Client::Run( void ) {
 	// Launch the approprate UDP traffic loop
 	if (isIsochronous(mSettings)) {
 	    RunUDPIsochronous();
+	} else if (isTxSync(mSettings)) {
+	    RunUDPTxSync();
 	} else {
 	    RunUDP();
 	}
@@ -705,6 +709,62 @@ void Client::RunUDPIsochronous (void) {
 #endif
 }
 // end RunUDPIsoch
+
+void Client::RunUDPTxSync (void) {
+    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
+    Timestamp t1;
+    int currLen = 0;
+    Isochronous::FrameCounter *fc = NULL;
+
+    fc = new Isochronous::FrameCounter(1.0 / mSettings->mBurstIPG);
+    fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
+
+    while (InProgress()) {
+	fc->wait_tick();
+	t1.setnow();
+	reportstruct->packetTime.tv_sec = t1.getSecs();
+	reportstruct->packetTime.tv_usec = t1.getUsecs();
+	mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
+	mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
+	WritePacketID();
+
+	if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
+	    // seqno wrapped
+	    fprintf(stderr, "%s", warn_seqno_wrap);
+	    break;
+	}
+	reportstruct->errwrite = 0;
+	reportstruct->emptyreport = 0;
+	// perform write
+	currLen = write(mSettings->mSock, mBuf, mSettings->mBufLen);
+	if ( currLen < 0 ) {
+	    reportstruct->packetID--;
+	    reportstruct->errwrite = 1;
+	    reportstruct->emptyreport = 1;
+	    currLen = 0;
+	    if (
+#ifdef WIN32
+		(errno = WSAGetLastError()) != WSAETIMEDOUT &&
+		errno != WSAECONNREFUSED
+#else
+		errno != EAGAIN && errno != EWOULDBLOCK &&
+		errno != EINTR  && errno != ECONNREFUSED &&
+		errno != ENOBUFS
+#endif
+		) {
+		WARN_errno( 1, "write" );
+		break;
+	    }
+	}
+	reportstruct->packetLen = (unsigned long) currLen;
+	ReportPacket( mSettings->reporthdr, reportstruct );
+    }
+
+    FinishTrafficActions();
+
+    DELETE_PTR(fc);
+}
+// end RunUDPTxSync
 
 
 void Client::WritePacketID (void) {

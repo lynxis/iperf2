@@ -19,6 +19,7 @@ iperf_LDFLAGS = @CFLAGS@ @PTHREAD_CFLAGS@ @WEB100_CFLAGS@ @DEFS@
 iperf_SOURCES = \
 		Client.cpp \
 		Extractor.c \
+	        isochronous.cpp \
 		Launch.cpp \
 		List.cpp \
 		Listener.cpp \
@@ -44,7 +45,7 @@ checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 
 if ISOCHRONOUS
-iperf_SOURCES += pdfs.c isochronous.cpp
+iperf_SOURCES += pdfs.c
 noinst_PROGRAMS += checkpdfs checkisoch
 checkpdfs_SOURCES = pdfs.c checkpdfs.c
 checkpdfs_LDADD = -lm

@@ -30,6 +30,8 @@ parser.add_argument('--stress_proto', type=str, required=False, default='TCP', h
 parser.add_argument('--stress_offered_load', type=str, required=False, default='20M', help='Offered load for stress traffic')
 parser.add_argument('--stress_tos', type=str, default='BE', required=False, help='type of service or access class for stress traffic; BE, VI, VO or BK')
 parser.add_argument('--stress_dst', type=str, required=False, default=None, help='iperf destination ip address for stress traffic')
+parser.add_argument('--isoch', dest='isoch', action='store_true')
+parser.set_defaults(isoch=True)
 
 args = parser.parse_args()
 
@@ -51,7 +53,7 @@ loop.set_debug(False)
 plottitle='('+ args.offered_load + ' ' + args.tos +') ' + args.title + ' ' + str(args.time) + 'sec '
 
 #main udp isochronous traffic flow
-flows = [iperf_flow(name="ISOCH", user='root', server=args.server, client=args.client, dst=args.dst, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, tos=args.tos, debug=False)]
+flows = [iperf_flow(name="ISOCH", user='root', server=args.server, client=args.client, dst=args.dst, proto='UDP', offered_load=args.offered_load, interval=args.interval, flowtime=args.time, tos=args.tos, isoch=args.isoch, debug=False)]
 
 #optional "stressor flow"
 if args.stress_server and args.stress_client and args.stress_dst :

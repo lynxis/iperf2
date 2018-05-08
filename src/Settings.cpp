@@ -81,13 +81,15 @@ static int seqno64b = 0;
 static int reversetest = 0;
 static int udphistogram = 0;
 static int l2checks = 0;
+static int incrdstip = 0;
+static int txsync = 0;
+static int burstipg_set = 0;
+static int burstipg = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
 #ifdef HAVE_ISOCHRONOUS
 static int isochronous = 0;
-static int burstipg_set = 0;
-static int burstipg = 0;
 #endif
 
 void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtSettings );
@@ -154,12 +156,14 @@ const struct option long_options[] =
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
 {"udp-histogram", required_argument, &udphistogram, 1},
 {"l2checks", no_argument, &l2checks, 1},
+{"incr-dstip", no_argument, &incrdstip, 1},
+{"tx-sync", no_argument, &txsync, 1},
+{"ipg", required_argument, &burstipg, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
 #ifdef HAVE_ISOCHRONOUS
 {"isochronous", required_argument, &isochronous, 1},
-{"ipg", required_argument, &burstipg, 1},
 #endif
 #ifdef WIN32
 {"reverse", no_argument, &reversetest, 1},
@@ -729,6 +733,14 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		fprintf( stderr, "WARNING: 64 bit sequence numbers not supported\n");
 #endif
 	    }
+	    if (incrdstip) {
+		incrdstip = 0;
+		setIncrDstIP(mExtSettings);
+	    }
+	    if (txsync) {
+		txsync = 0;
+		setTxSync(mExtSettings);
+	    }
 	    if (udphistogram) {
 		udphistogram = 0;
 		setUDPHistogram( mExtSettings );
@@ -749,6 +761,15 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		exit(1);
 		setReverse(mExtSettings);
 	    }
+	    if (burstipg) {
+		burstipg = 0;
+		burstipg_set = 1;
+		char *end;
+		mExtSettings->mBurstIPG = strtof(optarg,&end);
+		if (*end != '\0') {
+		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
+		}
+	    }
 #ifdef HAVE_ISOCHRONOUS
 	    if (isochronous) {
 		isochronous = 0;
@@ -760,15 +781,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		// may be overwritten during modal parsing
 		mExtSettings->mFPS = 30.0;
 		mExtSettings->mMean = 10000000;
-	    }
-	    if (burstipg) {
-		burstipg = 0;
-		burstipg_set = 1;
-		char *end;
-		mExtSettings->mBurstIPG = strtof(optarg,&end);
-		if (*end != '\0') {
-		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
-		}
 	    }
 #endif
 #ifdef HAVE_UDPTRIGGERS
@@ -856,6 +868,10 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	}
     }
 
+    if (isTxSync(mExtSettings) && !mExtSettings->mBurstIPG) {
+	  fprintf(stderr, "option --tx-sync requires setting --ipg option\n");
+	  exit(1);
+    }
 
 #ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mExtSettings)) {
