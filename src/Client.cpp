@@ -314,7 +314,7 @@ void Client::Run( void ) {
 	// Launch the approprate UDP traffic loop
 	if (isIsochronous(mSettings)) {
 	    RunUDPIsochronous();
-	} else if (isTxSync(mSettings)) {
+	} else if (mSettings->mBurstIPG || isTxSync(mSettings)) {
 	    RunUDPTxSync();
 	} else {
 	    RunUDP();
