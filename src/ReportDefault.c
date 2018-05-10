@@ -73,9 +73,9 @@ void reporter_printstats( Transfer_Info *stats ) {
     byte_snprintf( buffer, sizeof(buffer)/2, (double) stats->TotalLen,
                    toupper( (int)stats->mFormat));
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
-                   (stats->TotalLen > 0) ?
-		   stats->TotalLen / (stats->endTime - stats->startTime) : 0,
-                   stats->mFormat);
+                   (!stats->TotalLen || (stats->endTime < SMALLEST_INTERVAL)) ?
+		   0 : (stats->TotalLen / (stats->endTime - stats->startTime)),
+		   stats->mFormat);
     // TCP reports
     if (!stats->mUDP) {
 	if (!stats->mEnhanced) {

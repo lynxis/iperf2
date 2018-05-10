@@ -1342,6 +1342,12 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         stats->info.TotalLen = stats->TotalLen;
         stats->info.startTime = 0;
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
+	// There is a corner case when the first packet is also the last where the start time (which comes
+	// from app level syscall) is greater than the packetTime (which come for kernel level SO_TIMESTAMP)
+	// For this case set the start and end time to both zero.
+	if (stats->info.endTime < 0) {
+	    stats->info.endTime = 0;
+	}
 	if (stats->info.mUDP == kMode_Server) {
 	    stats->info.l2counts.cnt = stats->info.l2counts.tot_cnt;
 	    stats->info.l2counts.unknown = stats->info.l2counts.tot_unknown;
