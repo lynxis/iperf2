@@ -829,10 +829,10 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
-    // Check IPG against other options
+    // Check options for mutual exclusions
     if (mExtSettings->mBurstIPG > 0.0) {
 	if (mExtSettings->mThreadMode != kMode_Client) {
-	    fprintf(stderr, "option --ipg only supported for clients\n");
+	    fprintf(stderr, "option --ipg only supported on clients\n");
 	    exit(1);
 	}
 	if (isUDP(mExtSettings)) {
@@ -843,6 +843,16 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	} else {
 	    fprintf(stderr, "option --ipg not supported for TCP, only UDP (-u option)\n");
 	    exit(1);
+	}
+    }
+    if (isTxSync(mExtSettings)) {
+	if (mExtSettings->mThreadMode != kMode_Client) {
+	    fprintf(stderr, "option --tx-sync only supported on clients\n");
+	    exit(1);
+	}
+	if (!mExtSettings->mBurstIPG && !isIsochronous(mExtSettings)) {
+	  fprintf(stderr, "option --tx-sync requires setting --ipg option\n");
+	  exit(1);
 	}
     }
 
@@ -885,10 +895,6 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	}
     }
 
-    if (isTxSync(mExtSettings) && (!mExtSettings->mBurstIPG && !isIsochronous(mExtSettings))) {
-	  fprintf(stderr, "option --tx-sync requires setting --ipg option\n");
-	  exit(1);
-    }
 
 #ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mExtSettings)) {
