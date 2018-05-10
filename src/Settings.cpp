@@ -829,6 +829,23 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
+    // Check IPG against other options
+    if (mExtSettings->mBurstIPG > 0.0) {
+	if (mExtSettings->mThreadMode != kMode_Client) {
+	    fprintf(stderr, "option --ipg only supported for clients\n");
+	    exit(1);
+	}
+	if (isUDP(mExtSettings)) {
+	    if (isBWSet(mExtSettings)) {
+		fprintf(stderr, "option --ipg and -b mutually exclusive\n");
+		exit(1);
+	    }
+	} else {
+	    fprintf(stderr, "option --ipg not supported for TCP, only UDP (-u option)\n");
+	    exit(1);
+	}
+    }
+
     // UDP histogram settings
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
 	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {
