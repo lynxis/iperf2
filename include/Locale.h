@@ -96,6 +96,8 @@ extern const char join_multicast_starg_dev[];
 
 extern const char client_datagram_size[];
 
+extern const char client_datagram_size_tx_sync[];
+
 extern const char client_datagram_size_kalman[];
 
 extern const char server_datagram_size[];

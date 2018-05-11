@@ -83,12 +83,12 @@ static int udphistogram = 0;
 static int l2checks = 0;
 static int incrdstip = 0;
 static int txsync = 0;
-static int burstipg_set = 0;
-static int burstipg = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
 #ifdef HAVE_ISOCHRONOUS
+static int burstipg = 0;
+static int burstipg_set = 0;
 static int isochronous = 0;
 #endif
 
@@ -157,12 +157,12 @@ const struct option long_options[] =
 {"udp-histogram", required_argument, &udphistogram, 1},
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
-{"tx-sync", no_argument, &txsync, 1},
-{"ipg", required_argument, &burstipg, 1},
+{"tx-sync", required_argument, &txsync, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
 #ifdef HAVE_ISOCHRONOUS
+{"ipg", required_argument, &burstipg, 1},
 {"isochronous", required_argument, &isochronous, 1},
 #endif
 #ifdef WIN32
@@ -740,7 +740,13 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    if (txsync) {
 		txsync = 0;
 		setTxSync(mExtSettings);
+		char *end;
+		mExtSettings->mTxSyncInterval = strtof(optarg,&end);
+		if (*end != '\0') {
+		    fprintf (stderr, "Invalid value of '%s' for --tx-sync\n", optarg);
+		}
 	    }
+
 	    if (udphistogram) {
 		udphistogram = 0;
 		setUDPHistogram( mExtSettings );
@@ -761,15 +767,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		exit(1);
 		setReverse(mExtSettings);
 	    }
-	    if (burstipg) {
-		burstipg = 0;
-		burstipg_set = 1;
-		char *end;
-		mExtSettings->mBurstIPG = strtof(optarg,&end);
-		if (*end != '\0') {
-		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
-		}
-	    }
 #ifdef HAVE_ISOCHRONOUS
 	    if (isochronous) {
 		isochronous = 0;
@@ -781,6 +778,15 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		// may be overwritten during modal parsing
 		mExtSettings->mFPS = 30.0;
 		mExtSettings->mMean = 10000000;
+	    }
+	    if (burstipg) {
+		burstipg = 0;
+		burstipg_set = 1;
+		char *end;
+		mExtSettings->mBurstIPG = strtof(optarg,&end);
+		if (*end != '\0') {
+		    fprintf (stderr, "Invalid value of '%s' for --ipg\n", optarg);
+		}
 	    }
 #endif
 #ifdef HAVE_UDPTRIGGERS
@@ -831,17 +837,12 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     }
     // Check options for mutual exclusions
     if (mExtSettings->mBurstIPG > 0.0) {
-	if (mExtSettings->mThreadMode != kMode_Client) {
-	    fprintf(stderr, "option --ipg only supported on clients\n");
+	if (!isIsochronous(mExtSettings)) {
+	    fprintf(stderr, "option --ipg requires the --isochronous option\n");
 	    exit(1);
 	}
-	if (isUDP(mExtSettings)) {
-	    if (isBWSet(mExtSettings)) {
-		fprintf(stderr, "option --ipg and -b mutually exclusive\n");
-		exit(1);
-	    }
-	} else {
-	    fprintf(stderr, "option --ipg not supported for TCP, only UDP (-u option)\n");
+	if (mExtSettings->mThreadMode != kMode_Client) {
+	    fprintf(stderr, "option --ipg only supported on clients\n");
 	    exit(1);
 	}
     }
@@ -850,8 +851,17 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	    fprintf(stderr, "option --tx-sync only supported on clients\n");
 	    exit(1);
 	}
-	if (!mExtSettings->mBurstIPG && !isIsochronous(mExtSettings)) {
-	  fprintf(stderr, "option --tx-sync requires setting --ipg option\n");
+	if (isUDP(mExtSettings)) {
+	    if (isBWSet(mExtSettings)) {
+		fprintf(stderr, "option --tx-sync and -b are mutually exclusive\n");
+		exit(1);
+	    }
+	} else {
+	    fprintf(stderr, "option --tx-sync not supported for TCP, only UDP (-u option)\n");
+	    exit(1);
+	}
+	if (isIsochronous(mExtSettings)) {
+	  fprintf(stderr, "option --tx-sync and --isochronous are mutually exclusive\n");
 	  exit(1);
 	}
     }

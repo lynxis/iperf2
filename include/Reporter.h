@@ -372,6 +372,7 @@ typedef struct ReporterData {
 #ifdef HAVE_ISOCHRONOUS
     IsochStats isochstats;
 #endif
+    double TxSyncInterval;
 } ReporterData;
 
 typedef struct MultiHeader {

@@ -40,8 +40,8 @@ print a help synopsis
 .BR -i ", " --interval " \fIn\fR"
 pause \fIn\fR seconds between periodic bandwidth reports
 .TP
-.BR "    --ipg "
-set the the interpacket gap (units of milliseconds) for packets within an isochronous frame
+.BR "    --ipg "\fIn\fR
+set the interpacket gap to \fIn\fR (units of milliseconds) for packets within an isochronous frame (burst)
 .TP
 .BR "    --isochronous "\fIfps\fR:\fImean\fR,\fIvariance\fR
 send or receive isochronous traffic with frequency frames per second and load defined by mean and variance using log normal distribution
@@ -66,6 +66,9 @@ use UDP rather than TCP
 .TP
 .BR "    --udp-counters-64bit "
 use 64 bit UDP sequence numbers
+.TP
+.BR "    --tx-sync "\fIn\fR
+set the tx-sync interval to \fIn\fR (units of seconds) for synchronized packet writes
 .TP
 .BR -w ", " --window " \fIn\fR[kmKM]"
 TCP window size (socket buffer size)

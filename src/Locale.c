@@ -207,6 +207,9 @@ const char join_multicast_sg_dev[] =
 const char client_datagram_size[] =
 "Sending %d byte datagrams, IPG target: %4.2f us\n";
 
+const char client_datagram_size_tx_sync[] =
+"Sending %d byte datagrams, tx-sync periodic: %4.2f ms\n";
+
 const char client_datagram_size_kalman[] =
 "Sending %d byte datagrams, IPG target: %4.2f us (kalman adjust)\n";
 

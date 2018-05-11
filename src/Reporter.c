@@ -262,6 +262,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->flags = agent->flags;
             data->mThreadMode = agent->mThreadMode;
             data->mode = agent->mReportMode;
+	    data->TxSyncInterval = agent->mTxSyncInterval;
             data->info.mFormat = agent->mFormat;
             data->info.mTTL = agent->mTTL;
 	    if (data->mThreadMode == kMode_Server)
@@ -567,6 +568,7 @@ void ReportSettings( thread_Settings *agent ) {
             data->connection.size_local = agent->size_local;
             data->mUDPRate = agent->mUDPRate;
             data->mUDPRateUnits = agent->mUDPRateUnits;
+	    data->TxSyncInterval = agent->mTxSyncInterval;
 #ifdef HAVE_ISOCHRONOUS
 	    if (isIsochronous(data)) {
 		data->isochstats.mFPS = agent->mFPS;

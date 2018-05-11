@@ -314,7 +314,7 @@ void Client::Run( void ) {
 	// Launch the approprate UDP traffic loop
 	if (isIsochronous(mSettings)) {
 	    RunUDPIsochronous();
-	} else if (mSettings->mBurstIPG || isTxSync(mSettings)) {
+	} else if (isTxSync(mSettings)) {
 	    RunUDPTxSync();
 	} else {
 	    RunUDP();
@@ -605,6 +605,7 @@ void Client::RunUDPIsochronous (void) {
 
     if (isTxSync(mSettings))
 	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
+
     while (InProgress()) {
 	int bytecnt;
 	mBuf_isoch->prevframeid  = htonl(frameid);
@@ -718,7 +719,7 @@ void Client::RunUDPTxSync (void) {
     int currLen = 0;
     Isochronous::FrameCounter *fc = NULL;
 
-    fc = new Isochronous::FrameCounter(1.0 / mSettings->mBurstIPG);
+    fc = new Isochronous::FrameCounter(1.0 / mSettings->mTxSyncInterval);
     fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
     while (InProgress()) {

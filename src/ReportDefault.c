@@ -433,11 +433,15 @@ void reporter_reportsettings( ReporterData *data ) {
 		} else {
 		    delay_target = (1e6 / data->mUDPRate);
 		}
+		if (isTxSync(data)) {
+		    printf(client_datagram_size_tx_sync, data->mBufLen, (data->TxSyncInterval * 1000.0));
+		} else {
 #ifdef HAVE_KALMAN
-		printf(client_datagram_size_kalman, data->mBufLen, delay_target);
+		    printf(client_datagram_size_kalman, data->mBufLen, delay_target);
 #else
-		printf(client_datagram_size, data->mBufLen, delay_target);
+		    printf(client_datagram_size, data->mBufLen, delay_target);
 #endif
+		}
 	    } else {
 		printf(server_datagram_size, data->mBufLen);
 	    }

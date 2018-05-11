@@ -214,12 +214,13 @@ typedef struct thread_Settings {
     double mMean; //variable bit rate mean
     double mVariance; //vbr variance
     int mJitterBufSize; //Server jitter buffer size, units is frames
+    double mBurstIPG; //Interpacket gap
 #endif
     int l4offset; // used in l2 mode to offset the raw packet
     int l4payloadoffset;
     int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L
     struct timeval thread_synctime;
-    double mBurstIPG; //Interpacket gap
+    double mTxSyncInterval;
 } thread_Settings;
 
 /*
