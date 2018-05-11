@@ -1253,11 +1253,13 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		    for (ix = 0; ix < 8; ix++) {
 			current->sock_callstats.read.bins[ix] = stats->sock_callstats.read.bins[ix];
 		    }
-		} else if (stats->mTCP == kMode_Client) {
+		} else {
 		    current->sock_callstats.write.WriteErr = stats->sock_callstats.write.WriteErr;
 		    current->sock_callstats.write.WriteCnt = stats->sock_callstats.write.WriteCnt;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-		    current->sock_callstats.write.TCPretry = stats->sock_callstats.write.TCPretry;
+		    if (stats->mTCP == kMode_Client) {
+			current->sock_callstats.write.TCPretry = stats->sock_callstats.write.TCPretry;
+		    }
 #endif
 		}
                 current->free = 1;
@@ -1273,11 +1275,13 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 		    for (ix = 0; ix < 8; ix++) {
 			current->sock_callstats.read.bins[ix] += stats->sock_callstats.read.bins[ix];
 		    }
-		} else if (stats->mTCP == kMode_Client) {
+		} else {
 		    current->sock_callstats.write.WriteErr += stats->sock_callstats.write.WriteErr;
 		    current->sock_callstats.write.WriteCnt += stats->sock_callstats.write.WriteCnt;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-		    current->sock_callstats.write.TCPretry += stats->sock_callstats.write.TCPretry;
+		    if (stats->mTCP == kMode_Client) {
+			current->sock_callstats.write.TCPretry += stats->sock_callstats.write.TCPretry;
+		    }
 #endif
 		}
                 if ( current->endTime < stats->endTime ) {
