@@ -318,8 +318,7 @@ void SockAddr_incrAddress( iperf_sockaddr *inSockAddr, int value ) {
 	((struct sockaddr_in *)inSockAddr)->sin_addr.s_addr += htonl(value);
 #if defined(HAVE_IPV6)
     else
-        memset( &(((struct sockaddr_in6*) inSockAddr)->sin6_addr), 0,
-                sizeof( struct in6_addr ));
+	((struct sockaddr_in6 *)inSockAddr)->sin6_addr.s6_addr32[3] += htonl(value);
 #endif
 }
 // end setAddressAny

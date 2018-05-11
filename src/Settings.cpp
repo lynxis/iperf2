@@ -836,16 +836,6 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
     // Check options for mutual exclusions
-    if (mExtSettings->mBurstIPG > 0.0) {
-	if (!isIsochronous(mExtSettings)) {
-	    fprintf(stderr, "option --ipg requires the --isochronous option\n");
-	    exit(1);
-	}
-	if (mExtSettings->mThreadMode != kMode_Client) {
-	    fprintf(stderr, "option --ipg only supported on clients\n");
-	    exit(1);
-	}
-    }
     if (isTxSync(mExtSettings)) {
 	if (mExtSettings->mThreadMode != kMode_Client) {
 	    fprintf(stderr, "option --tx-sync only supported on clients\n");
@@ -907,6 +897,16 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 
 
 #ifdef HAVE_ISOCHRONOUS
+    if (mExtSettings->mBurstIPG > 0.0) {
+	if (!isIsochronous(mExtSettings)) {
+	    fprintf(stderr, "option --ipg requires the --isochronous option\n");
+	    exit(1);
+	}
+	if (mExtSettings->mThreadMode != kMode_Client) {
+	    fprintf(stderr, "option --ipg only supported on clients\n");
+	    exit(1);
+	}
+    }
     if (isIsochronous(mExtSettings)) {
 	// parse client isochronous field,
 	// format is --isochronous <int>:<float>,<float> and supports
