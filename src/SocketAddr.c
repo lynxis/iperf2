@@ -70,7 +70,8 @@ void SockAddr_remoteAddr( thread_Settings *inSettings ) {
     if ( inSettings->mHost != NULL ) {
         SockAddr_setHostname( inSettings->mHost, &inSettings->peer,
                               isIPV6( inSettings ) );
-	SockAddr_incrAddress(&inSettings->peer, inSettings->incrdstip);
+	if (inSettings->incrdstip)
+	    SockAddr_incrAddress(&inSettings->peer, inSettings->incrdstip);
     } else {
 #ifdef HAVE_IPV6
         if ( isIPV6( inSettings ) ) {
@@ -317,8 +318,10 @@ void SockAddr_incrAddress( iperf_sockaddr *inSockAddr, int value ) {
     if (inSockAddr->ss_family == AF_INET)
 	((struct sockaddr_in *)inSockAddr)->sin_addr.s_addr += htonl(value);
 #if defined(HAVE_IPV6)
-    else
-	((struct sockaddr_in6 *)inSockAddr)->sin6_addr.s6_addr32[3] += htonl(value);
+    else {
+	uint32_t *lower = (uint32_t *)&((struct sockaddr_in6 *)inSockAddr)->sin6_addr.s6_addr[12];
+	*lower += htonl(value);
+    }
 #endif
 }
 // end setAddressAny
