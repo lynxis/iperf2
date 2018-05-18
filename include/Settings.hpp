@@ -276,6 +276,7 @@ typedef struct thread_Settings {
 #define FLAG_L2LENGTHCHECK  0x00000100
 #define FLAG_TXSYNC         0x00000200
 #define FLAG_INCRDSTIP      0x00000400
+#define FLAG_VARYLOAD       0x00000800
 
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
@@ -317,6 +318,7 @@ typedef struct thread_Settings {
 #define isL2LengthCheck(settings)  ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
 #define isIncrDstIP(settings)       ((settings->flags_extend & FLAG_INCRDSTIP) != 0)
 #define isTxSync(settings)         ((settings->flags_extend & FLAG_TXSYNC) != 0)
+#define isVaryLoad(settings)         ((settings->flags_extend & FLAG_VARYLOAD) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -355,6 +357,7 @@ typedef struct thread_Settings {
 #define setL2LengthCheck(settings)    settings->flags_extend |= FLAG_L2LENGTHCHECK
 #define setIncrDstIP(settings)     settings->flags_extend |= FLAG_INCRDSTIP
 #define setTxSync(settings)        settings->flags_extend |= FLAG_TXSYNC
+#define setVaryLoad(settings)      settings->flags_extend |= FLAG_VARYLOAD
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -393,6 +396,7 @@ typedef struct thread_Settings {
 #define unsetL2LengthCheck(settings)  settings->flags_extend &= ~FLAG_L2LENGTHCHECK
 #define unsetIncrDstIP(settings)   settings->flags_extend &= ~FLAG_INCRDSTIP
 #define unsetTxSync(settings)      settings->flags_extend &= ~FLAG_TXSYNC
+#define unsetVaryLoad(settings)      settings->flags_extend &= ~FLAG_VARYLOAD
 
 /*
  * Message header flags

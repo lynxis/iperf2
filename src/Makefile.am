@@ -38,14 +38,14 @@ iperf_SOURCES = \
 		service.c \
 		sockets.c \
 		stdio.c \
-		tcp_window_size.c
+		tcp_window_size.c \
+		pdfs.c
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
 
 checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 
 if ISOCHRONOUS
-iperf_SOURCES += pdfs.c
 noinst_PROGRAMS += checkpdfs checkisoch
 checkpdfs_SOURCES = pdfs.c checkpdfs.c
 checkpdfs_LDADD = -lm

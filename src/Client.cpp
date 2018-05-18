@@ -62,10 +62,8 @@
 #include "util.h"
 #include "Locale.h"
 #include "isochronous.hpp"
-#ifdef HAVE_ISOCHRONOUS
 #include "pdfs.h"
 #include "version.h"
-#endif
 #ifdef HAVE_UDPTRIGGERS
 #include "ioctls.h"
 #endif
@@ -392,12 +390,22 @@ void Client::RunRateLimitedTCP ( void ) {
     double tokens = 0;
     Timestamp time1, time2;
 
+    int var_rate = mSettings->mUDPRate;
     while (InProgress()) {
 	// Add tokens per the loop time
 	// clock_gettime is much cheaper than gettimeofday() so
 	// use it if possible.
 	time2.setnow();
-	tokens += time2.subSec(time1) * (mSettings->mUDPRate / 8.0);
+        if (isVaryLoad(mSettings)) {
+	    static Timestamp time3;
+	    if (time2.subSec(time3) >= 1.0) {
+		var_rate = lognormal(mSettings->mUDPRate,(mSettings->mUDPRate/4));
+//	        var_rate = (rand() % mSettings->mUDPRate);
+//	         printf("New rate = %d\n", var_rate);
+		time3 = time2;
+	    }
+	}
+	tokens += time2.subSec(time1) * (var_rate / 8.0);
 	time1 = time2;
 	if (tokens >= 0.0) {
 	    // perform write
@@ -473,7 +481,6 @@ void Client::RunUDP( void ) {
 
     // Set this to > 0 so first loop iteration will delay the IPG
     currLen = 1;
-
     while (InProgress()) {
         // Test case: drop 17 packets and send 2 out-of-order:
         // sequence 51, 52, 70, 53, 54, 71, 72
@@ -486,6 +493,15 @@ void Client::RunUDP( void ) {
 	now.setnow();
 	reportstruct->packetTime.tv_sec = now.getSecs();
 	reportstruct->packetTime.tv_usec = now.getUsecs();
+        if (isVaryLoad(mSettings) && mSettings->mUDPRateUnits == kRate_BW) {
+	    static Timestamp time3;
+	    if (now.subSec(time3) >= 1.0) {
+		int var_rate = lognormal(mSettings->mUDPRate,(mSettings->mUDPRate/4));
+		delay_target = (double) ( mSettings->mBufLen * ((kSecs_to_nsecs * kBytes_to_Bits)
+								/ var_rate) );
+		time3 = now;
+	    }
+	}
 	// store datagram ID into buffer
 	WritePacketID();
 	mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);

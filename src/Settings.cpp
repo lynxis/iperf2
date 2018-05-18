@@ -83,6 +83,7 @@ static int udphistogram = 0;
 static int l2checks = 0;
 static int incrdstip = 0;
 static int txsync = 0;
+static int varyload = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
@@ -158,6 +159,7 @@ const struct option long_options[] =
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
 {"tx-sync", required_argument, &txsync, 1},
+{"vary-load", no_argument, &varyload, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -746,7 +748,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		    fprintf (stderr, "Invalid value of '%s' for --tx-sync\n", optarg);
 		}
 	    }
-
 	    if (udphistogram) {
 		udphistogram = 0;
 		setUDPHistogram( mExtSettings );
@@ -760,6 +761,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		mExtSettings->mUDPunits = 0;
 		mExtSettings->mUDPci_lower = 5;
 	        mExtSettings->mUDPci_upper = 95;
+	    }
+	    if (varyload) {
+		varyload = 0;
+		setVaryLoad(mExtSettings);
 	    }
 	    if (reversetest) {
 		reversetest = 0;
@@ -835,7 +840,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
-    // Check options for mutual exclusions
+    // Check options for mutualities
     if (isTxSync(mExtSettings)) {
 	if (mExtSettings->mThreadMode != kMode_Client) {
 	    fprintf(stderr, "option --tx-sync only supported on clients\n");
@@ -855,7 +860,10 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	  exit(1);
 	}
     }
-
+    if (!isBWSet(mExtSettings) && !isVaryLoad(mExtSettings)) {
+	fprintf(stderr, "option --vary-load requires -b option\n");
+	exit(1);
+    }
     // UDP histogram settings
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
 	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {
