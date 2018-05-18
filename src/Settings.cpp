@@ -860,7 +860,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	  exit(1);
 	}
     }
-    if ((mExtSettings->mThreadMode == kMode_Client) && !isBWSet(mExtSettings) && !isVaryLoad(mExtSettings)) {
+    if ((mExtSettings->mThreadMode == kMode_Client) && !isBWSet(mExtSettings) && isVaryLoad(mExtSettings)) {
 	fprintf(stderr, "option --vary-load requires -b option\n");
 	exit(1);
     }
