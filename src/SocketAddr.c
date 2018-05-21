@@ -54,7 +54,9 @@
 #include "headers.h"
 
 #include "SocketAddr.h"
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -504,6 +506,7 @@ int SockAddr_Hostare_Equal( struct sockaddr* first, struct sockaddr* second ) {
  * Return 0 if set, -1 if not
  * ------------------------------------------------------------------- */
 int SockAddr_Ifrname(thread_Settings *inSettings) {
+#ifdef HAVE_IFADDRS_H
     if (inSettings->mIfrname == NULL) {
 	struct sockaddr_storage myaddr;
 	struct ifaddrs* ifaddr;
@@ -574,6 +577,7 @@ int SockAddr_Ifrname(thread_Settings *inSettings) {
 	}
 	freeifaddrs(ifaddr);
     }
+#endif
     return ((inSettings->mIfrname == NULL) ? -1 : 0);
 }
 
