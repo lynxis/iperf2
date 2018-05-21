@@ -766,7 +766,11 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		varyload = 0;
 		setVaryLoad(mExtSettings);
 		if (optarg) {
+		    char *end;
 		    mExtSettings->mVaryLoadMultiple = strtof(optarg,&end);
+		    if (*end != '\0') {
+			fprintf (stderr, "Invalid value of '%s' for --vary-load\n", optarg);
+		    }
 		} else {
 		    mExtSettings->mVaryLoadMultiple =0.25;
 		}
