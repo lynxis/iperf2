@@ -159,7 +159,7 @@ const struct option long_options[] =
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
 {"tx-sync", required_argument, &txsync, 1},
-{"vary-load", no_argument, &varyload, 1},
+{"vary-load", optional_argument, &varyload, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -765,6 +765,11 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    if (varyload) {
 		varyload = 0;
 		setVaryLoad(mExtSettings);
+		if (optarg) {
+		    mExtSettings->mVaryLoadMultiple = strtof(optarg,&end);
+		} else {
+		    mExtSettings->mVaryLoadMultiple =0.25;
+		}
 	    }
 	    if (reversetest) {
 		reversetest = 0;

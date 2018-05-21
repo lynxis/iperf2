@@ -389,6 +389,7 @@ void Client::RunRateLimitedTCP ( void ) {
     int currLen = 0;
     double tokens = 0;
     Timestamp time1, time2;
+    double variance = mSettings->mUDPRate * mSettings->mVaryLoadMultiple;
 
     int var_rate = mSettings->mUDPRate;
     while (InProgress()) {
@@ -399,10 +400,10 @@ void Client::RunRateLimitedTCP ( void ) {
         if (isVaryLoad(mSettings)) {
 	    static Timestamp time3;
 	    if (time2.subSec(time3) >= 1.0) {
-		var_rate = lognormal(mSettings->mUDPRate,(mSettings->mUDPRate/4));
-//	        var_rate = (rand() % mSettings->mUDPRate);
-//	         printf("New rate = %d\n", var_rate);
+		var_rate = lognormal(mSettings->mUDPRate,variance);
 		time3 = time2;
+		if (var_rate < 0)
+		    var_rate = 0;
 	    }
 	}
 	tokens += time2.subSec(time1) * (var_rate / 8.0);
@@ -481,6 +482,8 @@ void Client::RunUDP( void ) {
 
     // Set this to > 0 so first loop iteration will delay the IPG
     currLen = 1;
+    double variance = mSettings->mUDPRate * mSettings->mVaryLoadMultiple;
+
     while (InProgress()) {
         // Test case: drop 17 packets and send 2 out-of-order:
         // sequence 51, 52, 70, 53, 54, 71, 72
@@ -496,7 +499,10 @@ void Client::RunUDP( void ) {
         if (isVaryLoad(mSettings) && mSettings->mUDPRateUnits == kRate_BW) {
 	    static Timestamp time3;
 	    if (now.subSec(time3) >= 1.0) {
-		int var_rate = lognormal(mSettings->mUDPRate,(mSettings->mUDPRate/4));
+		int var_rate = lognormal(mSettings->mUDPRate,variance);
+		if (var_rate < 0)
+		    var_rate = 0;
+
 		delay_target = (double) ( mSettings->mBufLen * ((kSecs_to_nsecs * kBytes_to_Bits)
 								/ var_rate) );
 		time3 = now;

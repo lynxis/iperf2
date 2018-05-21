@@ -221,6 +221,7 @@ typedef struct thread_Settings {
     int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L
     struct timeval thread_synctime;
     double mTxSyncInterval;
+    double mVaryLoadMultiple;
 } thread_Settings;
 
 /*
