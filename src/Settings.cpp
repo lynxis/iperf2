@@ -155,7 +155,7 @@ const struct option long_options[] =
 {"peer-detect",      no_argument, NULL, 'X'},
 {"linux-congestion", required_argument, NULL, 'Z'},
 {"udp-counters-64bit", no_argument, &seqno64b, 1},
-{"udp-histogram", required_argument, &udphistogram, 1},
+{"udp-histogram", optional_argument, &udphistogram, 1},
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
 {"tx-sync", required_argument, &txsync, 1},
@@ -752,15 +752,16 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		udphistogram = 0;
 		setUDPHistogram( mExtSettings );
 		setEnhanced( mExtSettings );
-		mExtSettings->mUDPHistogramStr = new char[ strlen( optarg ) + 1 ];
-		strcpy(mExtSettings->mUDPHistogramStr, optarg);
 		// The following are default values which
-		// may be overwritten during modal parsing
 		mExtSettings->mUDPbins = 1000;
 		mExtSettings->mUDPbinsize = 1;
 		mExtSettings->mUDPunits = 0;
 		mExtSettings->mUDPci_lower = 5;
-	        mExtSettings->mUDPci_upper = 95;
+		mExtSettings->mUDPci_upper = 95;
+		if (optarg) {
+		    mExtSettings->mUDPHistogramStr = new char[ strlen( optarg ) + 1 ];
+		    strcpy(mExtSettings->mUDPHistogramStr, optarg);
+		}
 	    }
 	    if (varyload) {
 		varyload = 0;
