@@ -108,9 +108,10 @@ Client::Client( thread_Settings *inSettings ) {
             unsetFileInput( mSettings );
         }
     }
-
+#ifdef HAVE_ISOCHRONOUS
     if (isIsochronous(mSettings) && isUDP(mSettings))
 	FAIL_errno( !(mSettings->mFPS > 0.0), "Invalid value for frames per second in the isochronous settings\n", mSettings );
+#endif
 
     Connect( );
 
