@@ -17,7 +17,7 @@ parser.add_argument('-s','--server', type=str, required=True, help='host to run 
 parser.add_argument('-c','--client', type=str, default='localhost', required=False, help='host to run iperf client')
 parser.add_argument('-d','--dst', type=str, required=True, help='iperf destination ip address')
 parser.add_argument('-i','--interval', type=int, required=False, default=0, help='iperf report interval')
-parser.add_argument('-n','--runcount', type=int, required=False, default=1, help='number of runs')
+parser.add_argument('-n','--runcount', type=int, required=False, default=5, help='number of runs')
 parser.add_argument('-t','--time', type=float, default=10, required=False, help='time or duration to run traffic')
 parser.add_argument('-O','--offered_load', type=str, default="60:18M,0", required=False, help='offered load; <fps>:<mean>,<variance>')
 parser.add_argument('-T','--title', type=str, default="", required=False, help='title for graphs')

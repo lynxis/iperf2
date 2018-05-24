@@ -512,7 +512,7 @@ class iperf_server(object):
         if self.proto == 'UDP' :
             self.sshcmd.extend(['-u'])
         if self.udptriggers or self.latency :
-            self.sshcmd.extend(['--udp-histogram 10u,200000'])
+            self.sshcmd.extend(['--udp-histogram=10u,200000'])
 
         logging.info('{}'.format(str(self.sshcmd)))
         self._transport, self._protocol = await self.loop.subprocess_exec(lambda: self.IperfServerProtocol(self, self.flow), *self.sshcmd)
@@ -685,7 +685,7 @@ class iperf_client(object):
 
         if self.proto == 'UDP' :
              if self.isoch :
-                 self.sshcmd.extend(['-u', '--isochronous', self.offered_load])
+                 self.sshcmd.extend(['-u', '--isochronous=' + self.offered_load])
              else :
                  self.sshcmd.extend(['-u', '-b', self.offered_load])
         elif self.proto == 'TCP' and self.offered_load :
