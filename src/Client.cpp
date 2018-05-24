@@ -109,6 +109,9 @@ Client::Client( thread_Settings *inSettings ) {
         }
     }
 
+    if (isIsochronous(mSettings) && isUDP(mSettings))
+	FAIL_errno( !(mSettings->mFPS > 0.0), "Invalid value for frames per second in the isochronous settings\n", mSettings );
+
     Connect( );
 
     if ( isReport( inSettings ) ) {
@@ -609,7 +612,8 @@ void Client::RunUDPIsochronous (void) {
     struct client_hdr_udp_isoch_tests *testhdr = (client_hdr_udp_isoch_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     struct UDP_isoch_payload* mBuf_isoch = &(testhdr->isoch);
 
-    Isochronous::FrameCounter *fc = NULL;
+    Isochronous::FrameCounter *fc = new Isochronous::FrameCounter(mSettings->mFPS);
+
     double delay_target = mSettings->mBurstIPG * 1000000;  // convert from milliseconds to nanoseconds
     double delay = 0;
     double adjust = 0;
@@ -617,8 +621,6 @@ void Client::RunUDPIsochronous (void) {
     int frameid=0;
     Timestamp t1;
     int bytecntmin = sizeof(UDP_datagram) + sizeof(client_hdr_udp_tests);
-
-    fc = new Isochronous::FrameCounter(mSettings->mFPS);
 
     lastPacketTime.setnow();
     mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getSecs());

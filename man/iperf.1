@@ -40,15 +40,6 @@ print a help synopsis
 .BR -i ", " --interval " \fIn\fR"
 pause \fIn\fR seconds between periodic bandwidth reports
 .TP
-.BR "    --incr-dstip"
-increment the destination ip address when using the parallel (-P) option
-.TP
-.BR "    --ipg "\fIn\fR
-set the interpacket gap to \fIn\fR (units of milliseconds) for packets within an isochronous frame (burst)
-.TP
-.BR "    --isochronous "\fIfps\fR:\fImean\fR,\fIvariance\fR
-send or receive isochronous traffic with frequency frames per second and load defined by mean and variance using log normal distribution
-.TP
 .BR -l ", " --len " \fIn\fR[kmKM]"
 set read/write buffer size (TCP) or length (UDP) to \fIn\fR (TCP default 128K, UDP default 1470)
 .TP
@@ -70,9 +61,6 @@ use UDP rather than TCP
 .BR "    --udp-counters-64bit "
 use 64 bit UDP sequence numbers
 .TP
-.BR "    --tx-sync "\fIn\fR
-set the tx-sync interval to \fIn\fR (units of seconds) for synchronized packet writes
-.TP
 .BR -w ", " --window " \fIn\fR[kmKM]"
 TCP window size (socket buffer size)
 .TP
@@ -90,9 +78,6 @@ set TCP maximum segment size (MTU - 40 bytes)
 .TP
 .BR -N ", " --nodelay " "
 set TCP no delay, disabling Nagle's Algorithm
-.TP
-.BR -S ", " --tos " "
-set the socket's IP_TOS (byte) field
 .TP
 .BR -v ", " --version " "
 print version information and quit
@@ -139,6 +124,15 @@ run in client mode, connecting to \fIhost\fR
 .BR -d ", " --dualtest " "
 Do a bidirectional test simultaneously
 .TP
+.BR "    --incr-dstip"
+increment the destination ip address when using the parallel (-P) option
+.TP
+.BR "    --ipg "\fIn\fR
+set the interpacket gap to \fIn\fR (units of milliseconds) for packets within an isochronous frame (burst), requires --isochronous
+.TP
+.BR "    --isochronous[=" \fIfps\fR:\fImean\fR,\fIvariance\fR "]"
+send isochronous traffic with frequency frames per second and load defined by mean and variance using a log normal distribution, defaults to 60:20m,0
+.TP
 .BR -n ", " --num " \fIn\fR[kmKM]"
 number of bytes to transmit (instead of -t)
 .TP
@@ -147,6 +141,9 @@ Do a bidirectional test individually
 .TP
 .BR -t ", " --time " \fIn\fR"
 time in seconds to listen for new traffic connections, receive traffic or transmit traffic (Defaults: transmit is 10 secs while listen and receive are indefinite)
+.TP
+.BR "    --tx-sync "\fIn\fR
+set the tx-sync interval to \fIn\fR (units of seconds) for synchronized packet writes
 .TP
 .BR -B ", " --bind " \fIip\fR | \fIip\fR:\fIport\fR | \fIipv6 -V\fR | \fI[ipv6]\fR:\fIport -V\fR"
 bind src ip addr and optional port as the source of traffic (see notes)
@@ -165,6 +162,9 @@ number of parallel client threads to run
 .TP
 .BR -R ", " --reverse " "
 reverse the traffic flow after header exchange, useful for testing through firewalls
+.TP
+.BR -S ", " --tos " "
+set the socket's IP_TOS (byte) field
 .TP
 .BR -T ", " --ttl " \fIn\fR"
 time-to-live, for multicast (default 1)

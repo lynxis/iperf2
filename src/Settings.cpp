@@ -165,7 +165,7 @@ const struct option long_options[] =
 #endif
 #ifdef HAVE_ISOCHRONOUS
 {"ipg", required_argument, &burstipg, 1},
-{"isochronous", required_argument, &isochronous, 1},
+{"isochronous", optional_argument, &isochronous, 1},
 #endif
 #ifdef WIN32
 {"reverse", no_argument, &reversetest, 1},
@@ -787,12 +787,16 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		isochronous = 0;
 		setEnhanced( mExtSettings );
 		setIsochronous(mExtSettings);
-		mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
-		strcpy( mExtSettings->mIsochronousStr, optarg );
 		// The following are default values which
 		// may be overwritten during modal parsing
-		mExtSettings->mFPS = 30.0;
-		mExtSettings->mMean = 10000000;
+		mExtSettings->mFPS = 60.0;
+		mExtSettings->mMean = 20000000.0;
+		mExtSettings->mVariance = 0.0;
+		mExtSettings->mBurstIPG = 0.005;
+		if (optarg) {
+		    mExtSettings->mIsochronousStr = new char[ strlen( optarg ) + 1 ];
+		    strcpy( mExtSettings->mIsochronousStr, optarg );
+		}
 	    }
 	    if (burstipg) {
 		burstipg = 0;
@@ -925,7 +929,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	    exit(1);
 	}
     }
-    if (isIsochronous(mExtSettings)) {
+    if (isIsochronous(mExtSettings) && mExtSettings->mIsochronousStr) {
 	// parse client isochronous field,
 	// format is --isochronous <int>:<float>,<float> and supports
 	// human suffixes, e.g. --isochronous 60:100m,5m
@@ -939,31 +943,11 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 			mExtSettings->mVariance = bitorbyte_atof(results);
 		    }
 		} else {
-		    mExtSettings->mMean = 1000000.0;
+		    mExtSettings->mMean = 20000000.0;
 		    mExtSettings->mVariance = 0.0;
 		}
 	    } else {
 		fprintf(stderr, "Invalid --isochronous value, format is <fps>:<mean>,<variance> (e.g. 60:18M,1m)\n");
-		mExtSettings->mFPS = 60.0;
-	    }
-	    // default the burst IPG to 5 microseconds
-	    if (!burstipg_set)
-		mExtSettings->mBurstIPG=0.005;
-	} else {
-	    // parse server isochronous field,
-	    // format is --isochronous <int>:<jitter buffer> e.g. --isochronous 60:20
-	    // which is frames per second and jitter buffer size
-	    // Jitter buffer size is units frames
-	    if (((results = strtok(mExtSettings->mIsochronousStr, ":")) != NULL) && strcmp(results,mExtSettings->mIsochronousStr)) {
-		mExtSettings->mFPS = atoi(mExtSettings->mIsochronousStr);
-	    } else {
-		mExtSettings->mFPS = atoi(results);
-		if ((results = strtok(NULL, ",")) != NULL) {
-		    mExtSettings->mJitterBufSize = byte_atoi(results);
-		}
-	    }
-	    if (!mExtSettings->mJitterBufSize) {
-		mExtSettings->mJitterBufSize = 10;
 	    }
 	}
     }
