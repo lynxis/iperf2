@@ -527,7 +527,7 @@ int SockAddr_Ifrname(thread_Settings *inSettings) {
 		    if ((inaddr->sin_addr.s_addr == addr->sin_addr.s_addr) && (ifa->ifa_name)) {
 			// Found v4 address in v4 addr family, copy it to thread settings structure
 			inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
-			strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
+			strcpy(inSettings->mIfrname, ifa->ifa_name);
 			break;
 		    }
 		}
@@ -543,7 +543,7 @@ int SockAddr_Ifrname(thread_Settings *inSettings) {
 		strcpy(copy,(const char *)inSettings->mHost);
 		if (((results = strtok(copy, "%")) != NULL) && ((results = strtok(NULL, "%")) != NULL)) {
 		    inSettings->mIfrname = calloc (strlen(results) + 1, sizeof(char));
-		    strncpy(inSettings->mIfrname, results, strlen(results) + 1);
+		    strcpy(inSettings->mIfrname, results);
 		}
 		free(copy);
 	    } else if ((inSettings->mThreadMode == kMode_Server) && (IN6_IS_ADDR_V4MAPPED (&addr->sin6_addr))) {
@@ -555,7 +555,7 @@ int SockAddr_Ifrname(thread_Settings *inSettings) {
 			if ((ifa->ifa_name) && (inaddr->sin_addr.s_addr == v4)) {
 			    // Found v4 address in v4 addr family, copy it to thread settings structure
 			    inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
-			    strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
+			    strcpy(inSettings->mIfrname, ifa->ifa_name);
 			    break;
 			}
 		    }
@@ -568,7 +568,7 @@ int SockAddr_Ifrname(thread_Settings *inSettings) {
 			if ((ifa->ifa_name) && (IN6_ARE_ADDR_EQUAL(&addr->sin6_addr, &inaddr->sin6_addr))) {
 			    // Found v6 address in v6 addr family, copy it to thread settings structure
 			    inSettings->mIfrname = calloc (strlen(ifa->ifa_name) + 1, sizeof(char));
-			    strncpy(inSettings->mIfrname, ifa->ifa_name, strlen(ifa->ifa_name));
+			    strcpy(inSettings->mIfrname, ifa->ifa_name);
 			    break;
 			}
 		    }
