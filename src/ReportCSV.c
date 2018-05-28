@@ -60,7 +60,7 @@
 void CSV_stats( Transfer_Info *stats ) {
     // $TIMESTAMP,$ID,$INTERVAL,$BYTE,$SPEED,$JITTER,$LOSS,$PACKET,$%LOSS
     max_size_t speed = (max_size_t) ((stats->TotalLen > 0) ? (((double)stats->TotalLen * 8.0) / (stats->endTime -  stats->startTime)) : 0);
-    char timestamp[80];
+    char timestamp[160];
     int milliseconds;
 #ifdef HAVE_CLOCK_GETTIME
     struct timespec t1;
@@ -78,7 +78,7 @@ void CSV_stats( Transfer_Info *stats ) {
     } else {
 	char  buffer[80];
 	strftime(buffer, 80, "%Y%m%d%H%M%S", localtime(&t1.tv_sec));
-	snprintf(timestamp, 80, "%s.%.3d", buffer, milliseconds);
+	snprintf(timestamp, 160, "%s.%.3d", buffer, milliseconds);
     }
     if ( stats->mUDP != (char)kMode_Server ) {
         // TCP Reporting
