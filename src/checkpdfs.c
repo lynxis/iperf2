@@ -90,10 +90,11 @@ int main (int argc, char **argv) {
     int printout = FALSE;
     int speedonly = FALSE;
     int exectime;
+    int random = FALSE;
     double total;
     double binwidth=1.0;
 
-    while ((c=getopt(argc, argv, "b:c:lm:psv:w:")) != -1)
+    while ((c=getopt(argc, argv, "b:c:lm:prsv:w:")) != -1)
 	switch (c) {
 	case 'b':
 	    bincount = atoi(optarg);
@@ -109,6 +110,9 @@ int main (int argc, char **argv) {
 	    break;
 	case 'p':
 	    printout = TRUE;
+	    break;
+	case 'r':
+	    random = TRUE;
 	    break;
 	case 's':
 	    speedonly = TRUE;
@@ -130,7 +134,10 @@ int main (int argc, char **argv) {
 	abort();
     }
     /* Intializes random number generator */
-    srand((unsigned) time(&t));
+    if (random) {
+	srand((unsigned) time(&t));
+	printf("seed = %ld\n", t);
+    }
     memset(histogram, 0, sizeof(histogram));
 #ifdef HAVE_CLOCK_GETTIME
     struct timespec t1;
