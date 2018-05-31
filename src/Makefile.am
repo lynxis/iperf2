@@ -47,7 +47,7 @@ checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
 
 if ISOCHRONOUS
 noinst_PROGRAMS += checkpdfs checkisoch
-checkpdfs_SOURCES = pdfs.c checkpdfs.c
+checkpdfs_SOURCES = pdfs.c checkpdfs.c stdio.c
 checkpdfs_LDADD = -lm
 checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c stdio.c
 checkisoch_LDADD = $(LIBCOMPAT_LDADDS)

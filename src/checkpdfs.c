@@ -61,6 +61,7 @@
 #include <math.h>
 #include <unistd.h>
 #include "headers.h"
+#include "util.h"
 #include "pdfs.h"
 
 #define MAXBINS 1024
@@ -90,8 +91,9 @@ int main (int argc, char **argv) {
     int speedonly = FALSE;
     int exectime;
     double total;
+    double binwidth=1.0;
 
-    while ((c=getopt(argc, argv, "b:c:lm:psv:")) != -1)
+    while ((c=getopt(argc, argv, "b:c:lm:psv:w:")) != -1)
 	switch (c) {
 	case 'b':
 	    bincount = atoi(optarg);
@@ -103,7 +105,7 @@ int main (int argc, char **argv) {
 	    gaussian = FALSE;
 	    break;
 	case 'm':
-	    mean = atof(optarg);
+	    mean = bitorbyte_atof(optarg);
 	    break;
 	case 'p':
 	    printout = TRUE;
@@ -112,7 +114,10 @@ int main (int argc, char **argv) {
 	    speedonly = TRUE;
 	    break;
 	case 'v':
-	    variance = atof(optarg);
+	    variance = bitorbyte_atof(optarg);
+	    break;
+	case 'w':
+	    binwidth = bitorbyte_atof(optarg);
 	    break;
 	case '?':
 	default:
@@ -136,7 +141,7 @@ int main (int argc, char **argv) {
 #endif
     if (gaussian) {
 	for( i = 0 ; i < count ; i++ )  {
-	    int result = round(normal(mean,variance));
+	    int result = round(normal(mean,variance)/binwidth);
 	    if (!speedonly) {
 		if (result >= 0 && result < (MAXBINS - 1)) {
 		    histogram[result]++;
@@ -149,7 +154,7 @@ int main (int argc, char **argv) {
 	}
     } else {
 	for( i = 0 ; i < count ; i++ )  {
-	    int result = round(lognormal(mean,variance));
+	    int result = round(lognormal(mean,variance)/binwidth);
 	    if (!speedonly) {
 		if (result >= 0 && result < (MAXBINS - 1)) {
 		    histogram[result]++;
@@ -172,7 +177,7 @@ int main (int argc, char **argv) {
 #endif
     if (printout) {
 	for( i = minbin ; i <= maxbin ; i++ )
-	    printf("%d %d\n", i, histogram[i]);
+	    printf("%.0f %d\n", i * binwidth, histogram[i]);
     }
     exectime = round(1e9 * total / count);
     if (!printout) {

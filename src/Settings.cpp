@@ -83,7 +83,6 @@ static int udphistogram = 0;
 static int l2checks = 0;
 static int incrdstip = 0;
 static int txsync = 0;
-static int varyload = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
@@ -159,7 +158,6 @@ const struct option long_options[] =
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
 {"tx-sync", required_argument, &txsync, 1},
-{"vary-load", optional_argument, &varyload, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -412,6 +410,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		} else {
 		    mExtSettings->mUDPRateUnits = kRate_BW;
 		    mExtSettings->mUDPRate = byte_atoi(optarg);
+		    if (((results = strtok(tmp, ",")) != NULL) && strcmp(results,optarg)) {
+			setVaryLoad(mExtSettings);
+			mExtSettings->mVariance = byte_atoi(optarg);
+		    }
 		}
 		delete [] tmp;
 	    }
@@ -763,19 +765,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		    strcpy(mExtSettings->mUDPHistogramStr, optarg);
 		}
 	    }
-	    if (varyload) {
-		varyload = 0;
-		setVaryLoad(mExtSettings);
-		if (optarg) {
-		    char *end;
-		    mExtSettings->mVaryLoadMultiple = strtof(optarg,&end);
-		    if (*end != '\0') {
-			fprintf (stderr, "Invalid value of '%s' for --vary-load\n", optarg);
-		    }
-		} else {
-		    mExtSettings->mVaryLoadMultiple =0.25;
-		}
-	    }
 	    if (reversetest) {
 		reversetest = 0;
 		fprintf( stderr, "WARNING: The --reverse option is currently not supported\n");
@@ -874,10 +863,10 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	  exit(1);
 	}
     }
-    if ((mExtSettings->mThreadMode == kMode_Client) && !isBWSet(mExtSettings) && isVaryLoad(mExtSettings)) {
-	fprintf(stderr, "option --vary-load requires -b option\n");
-	exit(1);
+    if ((mExtSettings->mThreadMode != kMode_Client) && isVaryLoad(mExtSettings)) {
+	fprintf(stderr, "option of variance ignored as not supported on the server\n");
     }
+
     // UDP histogram settings
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {
 	if (((results = strtok(mExtSettings->mUDPHistogramStr, ",")) != NULL) && !strcmp(results,mExtSettings->mUDPHistogramStr)) {

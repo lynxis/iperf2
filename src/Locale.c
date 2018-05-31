@@ -120,7 +120,7 @@ Client specific:\n\
   -d, --dualtest           Do a bidirectional test simultaneously\n"
 #ifdef HAVE_ISOCHRONOUS
 "      --ipg                set the the interpacket gap (milliseconds) for packets within an isochronous frame\n\
-      --isochronous <frames-per-second>:<mean>,<variance> send traffic in bursts (frames - emulate video traffic)\n"
+      --isochronous <frames-per-second>:<mean>,<stddev> send traffic in bursts (frames - emulate video traffic)\n"
 #endif
 "  -n, --num       #[kmgKMG]    number of bytes to transmit (instead of -t)\n\
   -r, --tradeoff           Do a bidirectional test individually\n\
@@ -229,7 +229,7 @@ const char wait_server_threads[] =
 "Waiting for server threads to complete. Interrupt again to force quit.\n";
 
 const char client_udp_isochronous[] =
-"UDP isochronous: %d frames/sec mean=%s/s, variance=%s/s, Period/IPG=%0.2f/%0.3f ms\n";
+"UDP isochronous: %d frames/sec mean=%s/s, stddev=%s/s, Period/IPG=%0.2f/%0.3f ms\n";
 
 /* -------------------------------------------------------------------
  * Legacy reports

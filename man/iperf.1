@@ -28,6 +28,9 @@ establish both a server (to discard traffic) and a client (to generate
 traffic).
 .SH "GENERAL OPTIONS"
 .TP
+.BR -b ", " --bandwidth " "
+set the target bandwidth (and optional standard devation where supported)
+.TP
 .BR -e ", " --enhanced " "
 Display enhanced output in reports otherwise use legacy report (ver 2.0.5) formatting (see notes)
 .TP
@@ -89,6 +92,9 @@ exclude C(connection) D(data) M(multicast) S(settings) V(server) reports
 if set to C or c report results as CSV (comma separated values)
 .SH "SERVER SPECIFIC OPTIONS"
 .TP
+.BR -b ", " --bandwidth " \fIn\fR[kmgKMG]"
+set target read rate to \fIn\fR bits/sec. TCP only for the server.
+.TP
 .BR -s ", " --server " "
 run in server mode
 .TP
@@ -116,7 +122,7 @@ Enable IPv6 reception by setting the domain and socket to AF_INET6 (Can receive 
 .TP
 .BR -b ", " --bandwidth " \fIn\fR[kmgKMG] | \fIn\fRpps"
 set target bandwidth to \fIn\fR bits/sec (default 1 Mbit/sec) or
-\fIn\fR packets per sec.  This may be used with TCP or UDP.
+\fIn\fR packets per sec.  This may be used with TCP or UDP.  For variable loads use format mean,standard deviation
 .TP
 .BR -c ", " --client " \fIhost\fR"
 run in client mode, connecting to \fIhost\fR
@@ -130,8 +136,8 @@ increment the destination ip address when using the parallel (-P) option
 .BR "    --ipg "\fIn\fR
 set the interpacket gap to \fIn\fR (units of milliseconds) for packets within an isochronous frame (burst), requires --isochronous
 .TP
-.BR "    --isochronous[=" \fIfps\fR:\fImean\fR,\fIvariance\fR "]"
-send isochronous traffic with frequency frames per second and load defined by mean and variance using a log normal distribution, defaults to 60:20m,0
+.BR "    --isochronous[=" \fIfps\fR:\fImean\fR,\fIstdev\fR "]"
+send isochronous traffic with frequency frames per second and load defined by mean and standard deviation using a log normal distribution, defaults to 60:20m,0
 .TP
 .BR -n ", " --num " \fIn\fR[kmKM]"
 number of bytes to transmit (instead of -t)
@@ -168,10 +174,6 @@ set the socket's IP_TOS (byte) field
 .TP
 .BR -T ", " --ttl " \fIn\fR"
 time-to-live, for multicast (default 1)
-.TP
-.BR "    --vary-load[=" \fIn\fR "]"
-vary the offered load (using a lognormal distribution w/mean per the -b value), using weight \fIn\fR to set variance (defaults to 0.25)
-.TP
 .BR -V ", " --ipv6_domain " "
 Set the domain to IPv6 (send packets over IPv6)
 .TP
@@ -186,6 +188,8 @@ set TCP congestion control algorithm (Linux only)
 Controls the size of TCP buffers.
 .SH NOTES
 Some numeric options support format characters per '<value>\fIc\fR' (e.g. 10M) where the \fIc\fR format characters are k,m,g,K,M,G.  Lowercase format characters are 10^3 based and uppercase are 2^n based, e.g. 1k = 1000, 1K = 1024, 1m = 1,000,000 and 1M = 1,048,576
+.TP
+The -b option supports variable offered loads through the <mean>,<standard deviation> format, e.g. -b 100m,10m on the client.  The distribution used is log normal.  Similar for the isochronous option.
 .TP
 The -e or --enhanced latency output on the UDP servers assumes the clients' and servers' system clocks are synchronized.  Network Time Protocol (NTP) or Precision Time Protocol (PTP) are commonly used for this.  The reference clock(s) or oscillator's error will also affect the accuracy of UDP latency measurements.
 .TP

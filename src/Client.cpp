@@ -393,7 +393,6 @@ void Client::RunRateLimitedTCP ( void ) {
     int currLen = 0;
     double tokens = 0;
     Timestamp time1, time2;
-    double variance = mSettings->mUDPRate * mSettings->mVaryLoadMultiple;
 
     int var_rate = mSettings->mUDPRate;
     while (InProgress()) {
@@ -403,8 +402,8 @@ void Client::RunRateLimitedTCP ( void ) {
 	time2.setnow();
         if (isVaryLoad(mSettings)) {
 	    static Timestamp time3;
-	    if (time2.subSec(time3) >= 1.0) {
-		var_rate = lognormal(mSettings->mUDPRate,variance);
+	    if (time2.subSec(time3) >= 0.1) {
+		var_rate = lognormal(mSettings->mUDPRate,mSettings->mVariance);
 		time3 = time2;
 		if (var_rate < 0)
 		    var_rate = 0;
@@ -486,7 +485,7 @@ void Client::RunUDP( void ) {
 
     // Set this to > 0 so first loop iteration will delay the IPG
     currLen = 1;
-    double variance = mSettings->mUDPRate * mSettings->mVaryLoadMultiple;
+    double variance = mSettings->mVariance;
 
     while (InProgress()) {
         // Test case: drop 17 packets and send 2 out-of-order:
@@ -638,6 +637,7 @@ void Client::RunUDPIsochronous (void) {
 	lastPacketTime.setnow();
 	delay = 0;
 	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
+	// printf("bits=%d\n", (int) (mSettings->mFPS * bytecnt * 8)); 
 	// adjust bytecnt so last packet of burst is greater or equal to min packet
 	int remainder = bytecnt % mSettings->mBufLen;
 	if (remainder < bytecntmin) {

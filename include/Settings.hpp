@@ -212,7 +212,6 @@ typedef struct thread_Settings {
 #ifdef HAVE_ISOCHRONOUS
     double mFPS; //frames per second
     double mMean; //variable bit rate mean
-    double mVariance; //vbr variance
     int mJitterBufSize; //Server jitter buffer size, units is frames
     double mBurstIPG; //Interpacket gap
 #endif
@@ -221,7 +220,7 @@ typedef struct thread_Settings {
     int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L
     struct timeval thread_synctime;
     double mTxSyncInterval;
-    double mVaryLoadMultiple;
+    double mVariance; //vbr variance
 } thread_Settings;
 
 /*
