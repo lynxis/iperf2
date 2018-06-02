@@ -164,25 +164,31 @@ enum {
     kConv_Unit,
     kConv_Kilo,
     kConv_Mega,
-    kConv_Giga
+    kConv_Giga,
+    kConv_Tera,
+    kConv_Peta
 };
 
 /* factor to multiply the number by */
 const double kConversion[] =
 {
-    1.0,                       /* unit */
-    1.0 / 1024,                /* kilo */
-    1.0 / 1024 / 1024,         /* mega */
-    1.0 / 1024 / 1024 / 1024   /* giga */
+    1.0,                                    /* unit */
+    1.0 / 1024,                             /* kilo */
+    1.0 / 1024 / 1024,                      /* mega */
+    1.0 / 1024 / 1024 / 1024,               /* giga */
+    1.0 / 1024 / 1024 / 1024 / 1024,        /* tera */
+    1.0 / 1024 / 1024 / 1024 / 1024 / 1024  /* peta */
 };
 
 /* factor to multiply the number by for bits*/
 const double kConversionForBits[] =
 {
-    1.0,                       /* unit */
-    1.0 / 1000,                /* kilo */
-    1.0 / 1000 / 1000,         /* mega */
-    1.0 / 1000 / 1000 / 1000   /* giga */
+    1.0,                                    /* unit */
+    1.0 / 1000,                             /* kilo */
+    1.0 / 1000 / 1000,                      /* mega */
+    1.0 / 1000 / 1000 / 1000,               /* giga */
+    1.0 / 1000 / 1000 / 1000 / 1000,        /* tera */
+    1.0 / 1000 / 1000 / 1000 / 1000/ 1000   /* peta */
 };
 
 
@@ -192,7 +198,9 @@ const char* kLabel_Byte[] =
     "Byte",
     "KByte",
     "MByte",
-    "GByte"
+    "GByte",
+    "TByte",
+    "PByte"
 };
 
 /* labels for bit formats [kmg] */
@@ -201,7 +209,9 @@ const char* kLabel_bit[]  =
     "bit",
     "Kbit",
     "Mbit",
-    "Gbit"
+    "Gbit",
+    "Tbit",
+    "Pbit"
 };
 
 /* -------------------------------------------------------------------
@@ -209,8 +219,8 @@ const char* kLabel_bit[]  =
  *
  * Given a number in bytes and a format, converts the number and
  * prints it out with a bits or bytes label.
- *   B, K, M, G, A for Byte, Kbyte, Mbyte, Gbyte, adaptive byte
- *   b, k, m, g, a for bit,  Kbit,  Mbit,  Gbit,  adaptive bit
+ *   B, K, M, G, A, P, T for Byte, Kbyte, Mbyte, Gbyte, Tbyte, Pbyte adaptive byte
+ *   b, k, m, g, a, p, t for bit,  Kbit,  Mbit,  Gbit, Tbit, Pbit, adaptive bit
  * adaptive picks the "best" one based on the number.
  * outString should be at least 11 chars long
  * (4 digits + space + 5 chars max + null)
@@ -218,7 +228,7 @@ const char* kLabel_bit[]  =
 
 void byte_snprintf( char* outString, int inLen,
                     double inNum, char inFormat ) {
-    int conv;
+    int conv = 0;
     const char* suffix;
     const char* format;
 
@@ -232,25 +242,27 @@ void byte_snprintf( char* outString, int inLen,
         case 'K': conv = kConv_Kilo; break;
         case 'M': conv = kConv_Mega; break;
         case 'G': conv = kConv_Giga; break;
+        case 'T': conv = kConv_Tera; break;
+        case 'P': conv = kConv_Peta; break;
 
         default:
         case 'A': {
-                double tmpNum = inNum;
-                conv = kConv_Unit;
+	    double tmpNum = inNum;
+	    conv = kConv_Unit;
 
-                if ( isupper((int)inFormat) ) {
-                    while ( tmpNum >= 1024.0  &&  conv <= kConv_Giga ) {
-                        tmpNum /= 1024.0;
-                        conv++;
-                    }
-                } else {
-                    while ( tmpNum >= 1000.0  &&  conv <= kConv_Giga ) {
-                        tmpNum /= 1000.0;
-                        conv++;
-                    }
-                }
-                break;
-            }
+	    if ( isupper((int)inFormat) ) {
+		while ( tmpNum >= 1024.0  &&  conv < kConv_Peta ) {
+		    tmpNum /= 1024.0;
+		    conv++;
+		}
+	    } else {
+		while ( tmpNum >= 1000.0  &&  conv < kConv_Peta ) {
+		    tmpNum /= 1000.0;
+		    conv++;
+		}
+	    }
+	    break;
+	}
     }
 
     if ( ! isupper ((int)inFormat) ) {
@@ -308,4 +320,3 @@ void redirect(const char *inOutputFileName) {
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif
-

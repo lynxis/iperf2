@@ -421,7 +421,8 @@ extern report_serverstatistics serverstatistics_reports[];
 
 extern report_statistics multiple_reports[];
 
-extern char buffer[64]; // Buffer for printing
+#define SNBUFFERSIZE 120
+extern char buffer[SNBUFFERSIZE]; // Buffer for printing
 
 #define rMillion 1000000
 

@@ -110,7 +110,7 @@ report_statistics multiple_reports[kReport_MAXIMUM] = {
     CSV_stats
 };
 
-char buffer[64]; // Buffer for printing
+char buffer[SNBUFFERSIZE]; // Buffer for printing
 ReportHeader *ReportRoot = NULL;
 static int num_multi_slots = 0;
 extern Condition ReportCond;
