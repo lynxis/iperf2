@@ -41,8 +41,8 @@ AC_ARG_ENABLE(kalman, AC_HELP_STRING([--disable-kalman],
 AC_ARG_ENABLE(seqno64b, AC_HELP_STRING([--disable-seqno64b],
 	    [disable 64 bit sequence numer support (default is enable)]))
 
-AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--enable-isochronous],
-	    [enable isochronous support (default is disable)]))
+AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--disable-isochronous],
+	    [disable isochronous support (default is enable)]))
 AM_CONDITIONAL([ISOCHRONOUS], [test "x${enable_isochronous}" = "xyes"])
 
 AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
@@ -318,7 +318,7 @@ if test "$enable_seqno64b" != no; then
 AC_DEFINE([HAVE_SEQNO64b], 1, [Define if 64 bit sequence numbers are desired and available])
 fi
 
-if test "$enable_isochronous" = yes; then
+if test "$enable_isochronous" != no; then
 AC_DEFINE([HAVE_ISOCHRONOUS], 1, [Define if isochronous traffic option is desired and available])
 fi
 
