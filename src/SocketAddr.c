@@ -317,7 +317,7 @@ void SockAddr_setAddressAny( iperf_sockaddr *inSockAddr ) {
  * ------------------------------------------------------------------- */
 
 void SockAddr_incrAddress( iperf_sockaddr *inSockAddr, int value ) {
-    if (inSockAddr->ss_family == AF_INET)
+    if ( ((struct sockaddr*)inSockAddr)->sa_family == AF_INET )
 	((struct sockaddr_in *)inSockAddr)->sin_addr.s_addr += htonl(value);
 #if defined(HAVE_IPV6)
     else {
