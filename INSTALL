@@ -13,6 +13,15 @@ FreeBSD
 
 ---
 
+Windows (cross compile from Linux)
+
+# dnf install mingw32-gcc mingw32-gcc-c++ mingw32-winpthreads-static
+
+$ ../iperf2-code/configure --host=i686-w64-mingw32
+$ make
+
+---
+
 Windows (Cygwin)
 
   configure / make as normal:
