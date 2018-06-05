@@ -55,7 +55,6 @@
 
 #include "headers.h"
 #include "Settings.hpp"
-#include <netinet/in.h>
 
 #ifdef __cplusplus
 extern "C" {
