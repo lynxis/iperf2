@@ -669,6 +669,8 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
+CHECKPROGRAMS_FALSE
+CHECKPROGRAMS_TRUE
 UDPTRIGGERS_FALSE
 UDPTRIGGERS_TRUE
 ISOCHRONOUS_FALSE
@@ -755,6 +757,7 @@ enable_kalman
 enable_seqno64b
 enable_isochronous
 enable_udptriggers
+enable_checkprograms
 enable_af_packet
 enable_dependency_tracking
 '
@@ -1404,6 +1407,8 @@ Optional Features:
   --disable-isochronous   disable isochronous support (default is enable)
   --enable-udptriggers    enable support for udp triggers in udp payloads
                           (default is disable)
+  --enable-checkprograms  enable support for building support programs such as
+                          checkdelay, checkpdfs, etc. (default is disable)
   --enable-af-packet      Enable AF_PACKET support [default=yes]
   --enable-dependency-tracking
                           do not reject slow dependency extractors
@@ -3317,6 +3322,20 @@ fi
 else
   UDPTRIGGERS_TRUE='#'
   UDPTRIGGERS_FALSE=
+fi
+
+
+# Check whether --enable-checkprograms was given.
+if test "${enable_checkprograms+set}" = set; then :
+  enableval=$enable_checkprograms;
+fi
+
+ if test "x$enable_checkprograms" = "xyes"; then
+  CHECKPROGRAMS_TRUE=
+  CHECKPROGRAMS_FALSE='#'
+else
+  CHECKPROGRAMS_TRUE='#'
+  CHECKPROGRAMS_FALSE=
 fi
 
 
@@ -8904,7 +8923,9 @@ fi
 
 case "$ac_cv_host" in
 *-mingw32)
-    LIBS="$LIBS -static-libstdc++ -static";;
+        LIBS="$LIBS -static-libstdc++ -static";;
+*-android)
+        CFLAGS="$CFLAGS -fPIE"; LDFLAGS="$LDFLAGS -pie";;
 esac
 
 
@@ -9064,6 +9085,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${UDPTRIGGERS_TRUE}" && test -z "${UDPTRIGGERS_FALSE}"; then
   as_fn_error $? "conditional \"UDPTRIGGERS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${CHECKPROGRAMS_TRUE}" && test -z "${CHECKPROGRAMS_FALSE}"; then
+  as_fn_error $? "conditional \"CHECKPROGRAMS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then

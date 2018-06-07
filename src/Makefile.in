@@ -89,10 +89,10 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iperf$(EXEEXT)
-noinst_PROGRAMS = checkdelay$(EXEEXT) $(am__EXEEXT_1)
-@ISOCHRONOUS_TRUE@am__append_1 = checkpdfs checkisoch
-@AF_PACKET_TRUE@am__append_2 = checksums.c
-@UDPTRIGGERS_TRUE@am__append_3 = ioctls.c
+@CHECKPROGRAMS_TRUE@noinst_PROGRAMS = checkdelay$(EXEEXT) \
+@CHECKPROGRAMS_TRUE@	checkpdfs$(EXEEXT) checkisoch$(EXEEXT)
+@AF_PACKET_TRUE@am__append_1 = checksums.c
+@UDPTRIGGERS_TRUE@am__append_2 = ioctls.c
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_create_stdint_h.m4 \
@@ -106,23 +106,22 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
-@ISOCHRONOUS_TRUE@am__EXEEXT_1 = checkpdfs$(EXEEXT) \
-@ISOCHRONOUS_TRUE@	checkisoch$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
-am_checkdelay_OBJECTS = checkdelay.$(OBJEXT)
+am__checkdelay_SOURCES_DIST = checkdelay.c
+@CHECKPROGRAMS_TRUE@am_checkdelay_OBJECTS = checkdelay.$(OBJEXT)
 checkdelay_OBJECTS = $(am_checkdelay_OBJECTS)
 am__DEPENDENCIES_1 = $(top_builddir)/compat/libcompat.a
-checkdelay_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@CHECKPROGRAMS_TRUE@checkdelay_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__checkisoch_SOURCES_DIST = checkisoch.cpp isochronous.cpp pdfs.c \
 	stdio.c
-@ISOCHRONOUS_TRUE@am_checkisoch_OBJECTS = checkisoch.$(OBJEXT) \
-@ISOCHRONOUS_TRUE@	isochronous.$(OBJEXT) pdfs.$(OBJEXT) \
-@ISOCHRONOUS_TRUE@	stdio.$(OBJEXT)
+@CHECKPROGRAMS_TRUE@am_checkisoch_OBJECTS = checkisoch.$(OBJEXT) \
+@CHECKPROGRAMS_TRUE@	isochronous.$(OBJEXT) pdfs.$(OBJEXT) \
+@CHECKPROGRAMS_TRUE@	stdio.$(OBJEXT)
 checkisoch_OBJECTS = $(am_checkisoch_OBJECTS)
-@ISOCHRONOUS_TRUE@checkisoch_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@CHECKPROGRAMS_TRUE@checkisoch_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__checkpdfs_SOURCES_DIST = pdfs.c checkpdfs.c stdio.c
-@ISOCHRONOUS_TRUE@am_checkpdfs_OBJECTS = pdfs.$(OBJEXT) \
-@ISOCHRONOUS_TRUE@	checkpdfs.$(OBJEXT) stdio.$(OBJEXT)
+@CHECKPROGRAMS_TRUE@am_checkpdfs_OBJECTS = pdfs.$(OBJEXT) \
+@CHECKPROGRAMS_TRUE@	checkpdfs.$(OBJEXT) stdio.$(OBJEXT)
 checkpdfs_OBJECTS = $(am_checkpdfs_OBJECTS)
 checkpdfs_DEPENDENCIES =
 am__iperf_SOURCES_DIST = Client.cpp Extractor.c isochronous.cpp \
@@ -189,8 +188,9 @@ am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(checkdelay_SOURCES) $(checkisoch_SOURCES) \
 	$(checkpdfs_SOURCES) $(iperf_SOURCES)
-DIST_SOURCES = $(checkdelay_SOURCES) $(am__checkisoch_SOURCES_DIST) \
-	$(am__checkpdfs_SOURCES_DIST) $(am__iperf_SOURCES_DIST)
+DIST_SOURCES = $(am__checkdelay_SOURCES_DIST) \
+	$(am__checkisoch_SOURCES_DIST) $(am__checkpdfs_SOURCES_DIST) \
+	$(am__iperf_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -345,14 +345,14 @@ iperf_SOURCES = Client.cpp Extractor.c isochronous.cpp Launch.cpp \
 	ReportDefault.c Reporter.c Server.cpp Settings.cpp \
 	SocketAddr.c gnu_getopt.c gnu_getopt_long.c histogram.c \
 	main.cpp service.c sockets.c stdio.c tcp_window_size.c pdfs.c \
-	$(am__append_2) $(am__append_3)
+	$(am__append_1) $(am__append_2)
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
-checkdelay_SOURCES = checkdelay.c
-checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
-@ISOCHRONOUS_TRUE@checkpdfs_SOURCES = pdfs.c checkpdfs.c stdio.c
-@ISOCHRONOUS_TRUE@checkpdfs_LDADD = -lm
-@ISOCHRONOUS_TRUE@checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c stdio.c
-@ISOCHRONOUS_TRUE@checkisoch_LDADD = $(LIBCOMPAT_LDADDS)
+@CHECKPROGRAMS_TRUE@checkdelay_SOURCES = checkdelay.c
+@CHECKPROGRAMS_TRUE@checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
+@CHECKPROGRAMS_TRUE@checkpdfs_SOURCES = pdfs.c checkpdfs.c stdio.c
+@CHECKPROGRAMS_TRUE@checkpdfs_LDADD = -lm
+@CHECKPROGRAMS_TRUE@checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c stdio.c
+@CHECKPROGRAMS_TRUE@checkisoch_LDADD = $(LIBCOMPAT_LDADDS)
 all: all-am
 
 .SUFFIXES:

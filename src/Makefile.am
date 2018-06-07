@@ -1,7 +1,5 @@
 bin_PROGRAMS = iperf
 
-noinst_PROGRAMS = checkdelay
-
 LIBCOMPAT_LDADDS = @STRIP_BEGIN@ \
 		   $(top_builddir)/compat/libcompat.a \
 		   @STRIP_END@
@@ -42,11 +40,11 @@ iperf_SOURCES = \
 		pdfs.c
 iperf_LDADD = $(LIBCOMPAT_LDADDS)
 
+
+if CHECKPROGRAMS
+noinst_PROGRAMS = checkdelay checkpdfs checkisoch
 checkdelay_SOURCES = checkdelay.c
 checkdelay_LDADD = $(LIBCOMPAT_LDADDS)
-
-if ISOCHRONOUS
-noinst_PROGRAMS += checkpdfs checkisoch
 checkpdfs_SOURCES = pdfs.c checkpdfs.c stdio.c
 checkpdfs_LDADD = -lm
 checkisoch_SOURCES = checkisoch.cpp isochronous.cpp pdfs.c stdio.c

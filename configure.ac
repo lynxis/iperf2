@@ -49,6 +49,10 @@ AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
 	    [enable support for udp triggers in udp payloads (default is disable)]))
 AM_CONDITIONAL([UDPTRIGGERS], [test "x$enable_udptriggers" = "xyes"])
 
+AC_ARG_ENABLE(checkprograms, AC_HELP_STRING([--enable-checkprograms],
+	    [enable support for building support programs such as checkdelay, checkpdfs, etc. (default is disable)]))
+AM_CONDITIONAL([CHECKPROGRAMS], [test "x$enable_checkprograms" = "xyes"])
+
 dnl AF_PACKET support
 AC_ARG_ENABLE(af-packet,
     AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),,[enable_af_packet=yes])
@@ -326,10 +330,13 @@ if test "$enable_udptriggers" = yes; then
 AC_DEFINE([HAVE_UDPTRIGGERS], 1, [Define if udp triggers option is desired and available])
 fi
 
-dnl Static link on MINGW for standalone DOS executable
 case "$ac_cv_host" in
 *-mingw32)
+    dnl Static link on MINGW for standalone DOS executable
     LIBS="$LIBS -static-libstdc++ -static";;
+*-android)
+    dnl Android requires PIE
+    CFLAGS="$CFLAGS -fPIE"; LDFLAGS="$LDFLAGS -pie";;
 esac
 
 
