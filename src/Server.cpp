@@ -325,13 +325,16 @@ bool Server::ReadPacketID (void) {
 
     // terminate when datagram begins with negative index
     // the datagram ID should be correct, just negated
+#if (HAVE_QUAD_SUPPORT || HAVE_INT64_T)
     if (isSeqNo64b(mSettings)) {
 	reportstruct->packetID = (((max_size_t) (ntohl(mBuf_UDP->id2)) << 32) | ntohl(mBuf_UDP->id));
 	if (reportstruct->packetID & 0x8000000000000000LL) {
 	    reportstruct->packetID = (reportstruct->packetID & 0x7FFFFFFFFFFFFFFFLL);
 	    terminate = true;
 	}
-    } else {
+    } else
+#endif
+      {
 	reportstruct->packetID = ntohl(mBuf_UDP->id);
 	if (reportstruct->packetID & 0x80000000L) {
 	    reportstruct->packetID = (reportstruct->packetID & 0x7FFFFFFFL);

@@ -731,7 +731,7 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
         case 0:
 	    if (seqno64b) {
 		seqno64b = 0;
-#ifdef HAVE_SEQNO64b
+#if (HAVE_SEQNO64b && (HAVE_QUAD_SUPPORT || HAVE_INT64_T))
 		setSeqNo64b(mExtSettings);
 #else
 		fprintf( stderr, "WARNING: 64 bit sequence numbers not supported\n");
