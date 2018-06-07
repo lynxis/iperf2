@@ -72,6 +72,8 @@
 const double kSecs_to_nsecs = 1e9;
 const int    kBytes_to_Bits = 8;
 
+#define VARYLOAD_PERIOD 0.1 // recompute the variable load every n seconds
+
 Client::Client( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
@@ -402,7 +404,7 @@ void Client::RunRateLimitedTCP ( void ) {
 	time2.setnow();
         if (isVaryLoad(mSettings)) {
 	    static Timestamp time3;
-	    if (time2.subSec(time3) >= 0.1) {
+	    if (time2.subSec(time3) >= VARYLOAD_PERIOD) {
 		var_rate = lognormal(mSettings->mUDPRate,mSettings->mVariance);
 		time3 = time2;
 		if (var_rate < 0)
@@ -501,7 +503,7 @@ void Client::RunUDP( void ) {
 	reportstruct->packetTime.tv_usec = now.getUsecs();
         if (isVaryLoad(mSettings) && mSettings->mUDPRateUnits == kRate_BW) {
 	    static Timestamp time3;
-	    if (now.subSec(time3) >= 1.0) {
+	    if (now.subSec(time3) >= VARYLOAD_PERIOD) {
 		int var_rate = lognormal(mSettings->mUDPRate,variance);
 		if (var_rate < 0)
 		    var_rate = 0;
