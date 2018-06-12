@@ -624,29 +624,29 @@ void Client::RunUDPIsochronous (void) {
     Timestamp t1;
     int bytecntmin = sizeof(UDP_datagram) + sizeof(client_hdr_udp_tests);
 
-    lastPacketTime.setnow();
-    mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getSecs());
-    mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getUsecs());
     mBuf_isoch->burstperiod = htonl(fc->period_us());
-
     if (isTxSync(mSettings))
 	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
+    lastPacketTime.setnow();
+    mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getSecs());
+    mBuf_isoch->start_tv_usec = htonl(lastPacketTime.getUsecs());
+
     while (InProgress()) {
-	int bytecnt;
-	mBuf_isoch->prevframeid  = htonl(frameid);
-	frameid =  fc->wait_tick();
-	lastPacketTime.setnow();
+	int bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
 	delay = 0;
-	bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
-	// printf("bits=%d\n", (int) (mSettings->mFPS * bytecnt * 8)); 
+
+	// printf("bits=%d\n", (int) (mSettings->mFPS * bytecnt * 8));
 	// adjust bytecnt so last packet of burst is greater or equal to min packet
 	int remainder = bytecnt % mSettings->mBufLen;
 	if (remainder < bytecntmin) {
 	    bytecnt += (bytecntmin - remainder);
 	}
-	mBuf_isoch->frameid  = htonl(frameid);
 	mBuf_isoch->burstsize  = htonl(bytecnt);
+	mBuf_isoch->prevframeid  = htonl(frameid);
+	frameid =  fc->wait_tick();
+	mBuf_isoch->frameid  = htonl(frameid);
+	lastPacketTime.setnow();
 
 	while ((bytecnt > 0) && InProgress()) {				\
 	    t1.setnow();

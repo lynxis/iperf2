@@ -87,9 +87,6 @@ typedef struct TransitStats {
     double minTransit;
     double sumTransit;
     double lastTransit;
-#ifdef HAVE_ISOCHRONOUS
-    struct timeval lastFrameTransit;
-#endif
     double meanTransit;
     double m2Transit;
     double vdTransit;
@@ -218,9 +215,11 @@ typedef struct ReportStruct {
     int l2len;
     int expected_l2len;
 #ifdef HAVE_ISOCHRONOUS
+    struct timeval isochStartTime;
     max_size_t prevframeID;
     max_size_t frameID;
     max_size_t burstsize;
+    max_size_t burstperiod;
     max_size_t remaining;
 #endif
 #ifdef HAVE_UDPTRIGGERS

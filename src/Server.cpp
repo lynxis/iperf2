@@ -470,9 +470,12 @@ void Server::Isoch_processing (void) {
 #ifdef HAVE_ISOCHRONOUS
     struct client_hdr_udp_isoch_tests *testhdr = (client_hdr_udp_isoch_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
     struct UDP_isoch_payload* mBuf_isoch = &(testhdr->isoch);
+    reportstruct->isochStartTime.tv_sec = ntohl(mBuf_isoch->start_tv_sec);
+    reportstruct->isochStartTime.tv_usec = ntohl(mBuf_isoch->start_tv_usec);
     reportstruct->frameID = ntohl(mBuf_isoch->frameid);
     reportstruct->prevframeID = ntohl(mBuf_isoch->prevframeid);
     reportstruct->burstsize = ntohl(mBuf_isoch->burstsize);
+    reportstruct->burstperiod = ntohl(mBuf_isoch->burstperiod);
     reportstruct->remaining = ntohl(mBuf_isoch->remaining);
 #endif
 }

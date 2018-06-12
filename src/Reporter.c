@@ -984,8 +984,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			data->isochstats.framecnt=packet->frameID;
 			data->isochstats.framecnt=1;
 			stats->isochstats.framecnt=1;
-			stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
-			stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 		    } else {
 			static int matchframeid=0;
 			// perform client and server frame based accounting
@@ -1010,14 +1008,13 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			if (stats->framelatency_histogram) {
 			    // first packet of a burst and not a duplicate
 			    if ((packet->burstsize == packet->remaining) && (matchframeid!=packet->frameID)) {
-				stats->frame.lastFrameTransit.tv_sec = packet->sentTime.tv_sec;
-				stats->frame.lastFrameTransit.tv_usec = packet->sentTime.tv_usec;
 				matchframeid=packet->frameID;
 			    }
 			    if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
 				// last packet of a burst (or first-last in case of a duplicate) and frame id match
-				double frametransit = TimeDifference(packet->packetTime, stats->frame.lastFrameTransit);
-				histogram_insert(stats->framelatency_histogram, frametransit);
+				double frametransit = TimeDifference(packet->packetTime, packet->isochStartTime) - ((double) (packet->burstperiod * (packet->frameID - 1)));
+				if (frametransit > 0)
+				    histogram_insert(stats->framelatency_histogram, frametransit);
 				matchframeid = 0;  // reset the matchid so any potential duplicate is ignored
 			    }
 			}
