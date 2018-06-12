@@ -1012,7 +1012,7 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 			    }
 			    if ((packet->packetLen == packet->remaining) && (packet->frameID == matchframeid)) {
 				// last packet of a burst (or first-last in case of a duplicate) and frame id match
-				double frametransit = TimeDifference(packet->packetTime, packet->isochStartTime) - (1000000.0 * (packet->burstperiod * (packet->frameID - 1)));
+				double frametransit = TimeDifference(packet->packetTime, packet->isochStartTime) - ((packet->burstperiod * (packet->frameID - 1)) / 1000000.0);
 				if (frametransit > 0)
 				    histogram_insert(stats->framelatency_histogram, frametransit);
 				matchframeid = 0;  // reset the matchid so any potential duplicate is ignored
