@@ -628,9 +628,7 @@ void Client::RunUDPIsochronous (void) {
     if (isTxSync(mSettings))
 	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
-    lastPacketTime.setnow();
-    mBuf_isoch->start_tv_sec = htonl(lastPacketTime.getSecs());
-    mBuf_isoch->start_tv_usec = htonl(lastPacketTime.getUsecs());
+    int initdone = 0;
 
     while (InProgress()) {
 	int bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
@@ -647,6 +645,11 @@ void Client::RunUDPIsochronous (void) {
 	frameid =  fc->wait_tick();
 	mBuf_isoch->frameid  = htonl(frameid);
 	lastPacketTime.setnow();
+	if (!initdone) {
+	    initdone = 1;
+	    mBuf_isoch->start_tv_sec = htonl(fc->getSecs());
+	    mBuf_isoch->start_tv_usec = htonl(fc->getUsecs());
+	}
 
 	while ((bytecnt > 0) && InProgress()) {				\
 	    t1.setnow();

@@ -60,6 +60,8 @@ namespace Isochronous {
 	unsigned int period_us(void);
 	unsigned int wait_tick(void);
 	unsigned int wait_sync(long sec, long usec);
+	long getSecs(void);
+	long getUsecs(void);
 	void reset(void);
 	unsigned int slip;
 

@@ -83,6 +83,7 @@ unsigned int FrameCounter::wait_tick(void) {
 	if ((framecounter - lastcounter) > 1)
 	    slip++;
     	delay_loop(remaining);
+	framecounter ++;
     }
     lastcounter = framecounter;
     return(framecounter);
@@ -107,4 +108,12 @@ unsigned int FrameCounter::wait_sync(long sec, long usec) {
     framecounter = 1;
     lastcounter = 1;
     return(framecounter);
+}
+
+long FrameCounter::getSecs( void ) {
+    return startTime.getSecs();
+}
+
+long FrameCounter::getUsecs( void ) {
+    return startTime.getUsecs();
 }
