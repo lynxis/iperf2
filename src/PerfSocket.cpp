@@ -111,7 +111,12 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 	if (!isUDP(inSettings)) {
 	    FAIL(1, "Multicast requires -u option ", inSettings);
 	    exit(1);
-	}  else if (inSettings->mTTL > 0) {
+	}
+	// check for default TTL, multicast is 1 and unicast is the system default
+	if (inSettings->mTTL == -1) {
+	    inSettings->mTTL = 1;
+	}
+	if (inSettings->mTTL > 0) {
 	    // set TTL
 	    int val = inSettings->mTTL;
 	    if ( !isIPV6(inSettings) ) {
