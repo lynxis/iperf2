@@ -73,6 +73,7 @@
 
 #define HEADERS()
 
+#include <limits.h>
 #include "headers.h"
 #include "Listener.hpp"
 #include "SocketAddr.h"
@@ -388,9 +389,9 @@ void Listener::Listen( ) {
 	    FAIL_errno( rc == SOCKET_ERROR, "bind", mSettings );
 	}
     // listen for connections (TCP only).
-    // default backlog traditionally 5
+    // use large (INT_MAX) backlog allowing multiple simultaneous connections
     if ( !isUDP( mSettings ) ) {
-	rc = listen( mSettings->mSock, 5 );
+	rc = listen( mSettings->mSock, INT_MAX );
 	WARN_errno( rc == SOCKET_ERROR, "listen" );
     }
 
