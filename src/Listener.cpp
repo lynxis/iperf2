@@ -235,8 +235,7 @@ sInterupted == SIGALRM
             }
             // Check for exchange of test information and also determine v2.0.5 vs 2.0.10+
             if ( !isCompat( mSettings )) {
-		int flags;
-                if ((flags = ReadClientHeader(hdr)) < 0) {
+                if (ReadClientHeader(hdr) < 0) {
 		    close( server->mSock );
 		    continue;
 		}
@@ -1049,7 +1048,7 @@ void Listener::UDPSingleServer( ) {
 }
 
 int Listener::ReadClientHeader(client_hdr *hdr ) {
-    int flags = 0;
+    uint flags = 0;
     int testflags = 0;
     if (isUDP(mSettings)) {
 	flags = ntohl(hdr->base.flags);
@@ -1116,7 +1115,6 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 		len = sizeof(client_hdr_v1);
 	    }
 	    if (len && ((n = recvn(server->mSock, p, len, MSG_PEEK)) != len)) {
-		flags = 0;
 		return -1;
 	    }
 	}
@@ -1129,7 +1127,7 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    ClientHeaderAck();
 	}
     }
-    return(flags);
+    return 0;
 }
 
 int Listener::ClientHeaderAck(void) {
