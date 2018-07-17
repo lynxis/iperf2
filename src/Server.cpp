@@ -125,13 +125,11 @@ Server::~Server() {
 
 bool Server::InProgress (void) {
 #ifdef HAVE_SETITIMER
-    if (sInterupted ||
-	(!isModeTime(mSettings) && (mSettings->mAmount <= 0)))
+    if (sInterupted)
 	return false;
 #else
     if (sInterupted ||
-	(isModeTime(mSettings) &&  mEndTime.before(reportstruct->packetTime))  ||
-	(!isModeTime(mSettings) && (mSettings->mAmount <= 0)))
+	(isModeTime(mSettings) &&  mEndTime.before(reportstruct->packetTime)))
 	return false;
 #endif
     return true;
