@@ -129,7 +129,7 @@ bool Server::InProgress (void) {
 	return false;
 #else
     if (sInterupted ||
-	(isModeTime(mSettings) &&  mEndTime.before(reportstruct->packetTime)))
+	(isServerModeTime(mSettings) &&  mEndTime.before(reportstruct->packetTime)))
 	return false;
 #endif
     return true;
@@ -258,7 +258,7 @@ void Server::InitTrafficLoop (void) {
     // divide by two so timeout is 1/2 the interval
     if (mSettings->mInterval) {
 	sorcvtimer = (int) (mSettings->mInterval * 1e6) / 2;
-    } else if (isModeTime(mSettings)) {
+    } else if (isServerModeTime(mSettings)) {
 	sorcvtimer = (mSettings->mAmount * 1000) / 2;
     }
     if (sorcvtimer > 0) {
@@ -274,7 +274,7 @@ void Server::InitTrafficLoop (void) {
 	    WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
 	}
     }
-    if (isModeTime(mSettings)) {
+    if (isServerModeTime(mSettings)) {
 #ifdef HAVE_SETITIMER
         int err;
         struct itimerval it;
