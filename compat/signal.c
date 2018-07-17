@@ -171,7 +171,7 @@ void sig_exit( int inSigno ) {
     static int num = 0;
     if ( num++ == 0 ) {
         fflush( 0 );
-        exit( 0 );
+	_exit(0);
     }
 } /* end sig_exit */
 

@@ -268,7 +268,7 @@ void Sig_Interupt( int inSigno ) {
     // We try to not allow a single interrupt handled by multiple threads
     // to completely kill the app so we save off the first thread ID
     // then that is the only thread that can supply the next interrupt
-    if ( thread_equalid( sThread, thread_zeroid() ) ) {
+    if ( (inSigno == SIGINT) && thread_equalid( sThread, thread_zeroid() ) ) {
         sThread = thread_getid();
     } else if ( thread_equalid( sThread, thread_getid() ) ) {
         sig_exit( inSigno );
@@ -420,9 +420,3 @@ VOID ServiceStop() {
 }
 
 #endif
-
-
-
-
-
-
