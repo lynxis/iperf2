@@ -135,7 +135,7 @@ Listener::Listener( thread_Settings *inSettings ) {
 Listener::~Listener() {
     if ( mSettings->mSock != INVALID_SOCKET ) {
         int rc = close( mSettings->mSock );
-        WARN_errno( rc == SOCKET_ERROR, "close" );
+        WARN_errno( rc == SOCKET_ERROR, "listener close" );
         mSettings->mSock = INVALID_SOCKET;
     }
     DELETE_ARRAY( mBuf );
@@ -767,30 +767,33 @@ void Listener::Accept( thread_Settings *server ) {
 	    rc = recvfrom( mSettings->mSock, mBuf, mSettings->mBufLen, 0,
 			       (struct sockaddr*) &server->peer, &server->size_peer );
 	    FAIL_errno( rc == SOCKET_ERROR, "recvfrom", mSettings );
-	    Mutex_Lock( &clients_mutex );
-
-	    // Handle connection for UDP sockets.
-	    exist = Iperf_present( &server->peer, clients);
-	    if ( exist == NULL ) {
-		// We have a new UDP flow so let's start the
-		// process to handle it and in a new server thread (yet to be created)
-		server->mSock = mSettings->mSock;
-		// This connect() will allow the OS to only
-		// send packets with the ip quintuple up to the server
-		// socket and, hence, to the server thread (yet to be created)
-		// This connect() routing is only supported with AF_INET or AF_INET6 sockets,
-		// e.g. AF_PACKET sockets can't do this.  We'll handle packet sockets later
-		// All UDP accepts here will use AF_INET.  This is intentional and needed
-		int rc = connect( server->mSock, (struct sockaddr*) &server->peer,
-				  server->size_peer );
-		FAIL_errno( rc == SOCKET_ERROR, "connect UDP", mSettings );
-	    } else {
-		// This isn't a new flow so just ignore the packet
-		// and continue with the while loop
-		// printf("Debug: drop packet on sock %d\n",mSettings->mSock);
+	    if (sInterupted != 0) {
 		server->mSock = INVALID_SOCKET;
+	    } else {
+		Mutex_Lock( &clients_mutex );
+		// Handle connection for UDP sockets.
+		exist = Iperf_present( &server->peer, clients);
+		if ( exist == NULL ) {
+		    // We have a new UDP flow so let's start the
+		    // process to handle it and in a new server thread (yet to be created)
+		    server->mSock = mSettings->mSock;
+		    // This connect() will allow the OS to only
+		    // send packets with the ip quintuple up to the server
+		    // socket and, hence, to the server thread (yet to be created)
+		    // This connect() routing is only supported with AF_INET or AF_INET6 sockets,
+		    // e.g. AF_PACKET sockets can't do this.  We'll handle packet sockets later
+		    // All UDP accepts here will use AF_INET.  This is intentional and needed
+		    int rc = connect( server->mSock, (struct sockaddr*) &server->peer,
+				      server->size_peer );
+		    FAIL_errno( rc == SOCKET_ERROR, "connect UDP", mSettings );
+		} else {
+		    // This isn't a new flow so just ignore the packet
+		    // and continue with the while loop
+		    // printf("Debug: drop packet on sock %d\n",mSettings->mSock);
+		    server->mSock = INVALID_SOCKET;
+		}
+		Mutex_Unlock( &clients_mutex );
 	    }
-	    Mutex_Unlock( &clients_mutex );
 	} else {
 	    // accept a TCP  connection
 	    server->mSock = accept( mSettings->mSock,  (sockaddr*) &server->peer, &server->size_peer );

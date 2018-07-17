@@ -62,6 +62,7 @@
 #include "Reporter.h"
 #include "Locale.h"
 #include "delay.h"
+#include "PerfSocket.hpp"
 #include "SocketAddr.h"
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 #include "checksums.h"
@@ -105,14 +106,14 @@ Server::Server( thread_Settings *inSettings ) {
 Server::~Server() {
     if ( mSettings->mSock != INVALID_SOCKET ) {
         int rc = close( mSettings->mSock );
-        WARN_errno( rc == SOCKET_ERROR, "close" );
+        WARN_errno( rc == SOCKET_ERROR, "server close" );
         mSettings->mSock = INVALID_SOCKET;
     }
 
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     if ( mSettings->mSockDrop != INVALID_SOCKET ) {
 	int rc = close( mSettings->mSockDrop );
-        WARN_errno( rc == SOCKET_ERROR, "close" );
+        WARN_errno( rc == SOCKET_ERROR, "server close drop" );
         mSettings->mSockDrop = INVALID_SOCKET;
     }
 #endif
@@ -122,9 +123,20 @@ Server::~Server() {
     DELETE_ARRAY( mBuf );
 }
 
-
-void Server::Sig_Int( int inSigno ) {
+bool Server::InProgress (void) {
+#ifdef HAVE_SETITIMER
+    if (sInterupted ||
+	(!isModeTime(mSettings) && (mSettings->mAmount <= 0)))
+	return false;
+#else
+    if (sInterupted ||
+	(isModeTime(mSettings) &&  mEndTime.before(reportstruct->packetTime))  ||
+	(!isModeTime(mSettings) && (mSettings->mAmount <= 0)))
+	return false;
+#endif
+    return true;
 }
+
 /* -------------------------------------------------------------------
  * Receive TCP data from the (connected) socket.
  * Sends termination flag several times at the end.
@@ -134,22 +146,18 @@ void Server::RunTCP( void ) {
     long currLen;
     max_size_t totLen = 0;
     ReportStruct *reportstruct = NULL;
-    int running;
-    bool mMode_Time = isServerModeTime( mSettings );
+    bool err  = 0;
+
     Timestamp time1, time2;
     double tokens=0.000004;
+
+    InitTrafficLoop();
 
     reportstruct = new ReportStruct;
     if ( reportstruct != NULL ) {
         reportstruct->packetID = 0;
-        mSettings->reporthdr = InitReport( mSettings );
-	running=1;
-	// setup termination variables
-	if ( mMode_Time ) {
-	    mEndTime.setnow();
-	    mEndTime.add( mSettings->mAmount / 100.0 );
-	}
-        do {
+
+	while (InProgress() && !err) {
 	    reportstruct->emptyreport=0;
 	    // perform read
 	    if (isBWSet(mSettings)) {
@@ -173,7 +181,7 @@ void Server::RunTCP( void ) {
 			(errno != EAGAIN && errno != EWOULDBLOCK)
 #endif // WIN32
 			) {
-			running = 0;
+			err = 1;
 		    }
 		    currLen = 0;
 		}
@@ -181,16 +189,12 @@ void Server::RunTCP( void ) {
 		if (isBWSet(mSettings))
 		    tokens -= currLen;
 		reportstruct->packetLen = currLen;
-		if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
-		    running = 0;
-		}
 		ReportPacket( mSettings->reporthdr, reportstruct );
 	    } else {
 		// Use a 4 usec delay to fill tokens
 		delay_loop(4);
 	    }
-
-        } while (running);
+        }
 
         // stop timing
 	now.setnow();
@@ -272,6 +276,22 @@ void Server::InitTrafficLoop (void) {
 	    WARN_errno( mSettings->mSock == SO_RCVTIMEO, "socket" );
 	}
     }
+    if (isModeTime(mSettings)) {
+#ifdef HAVE_SETITIMER
+        int err;
+        struct itimerval it;
+	memset (&it, 0, sizeof (it));
+	it.it_value.tv_sec = (int) (mSettings->mAmount / 100.0);
+	it.it_value.tv_usec = (int) (10000 * (mSettings->mAmount -
+					      it.it_value.tv_sec * 100.0));
+	err = setitimer( ITIMER_REAL, &it, NULL );
+	FAIL_errno( err != 0, "setitimer", mSettings );
+#else
+        mEndTime.setnow();
+        mEndTime.add( mSettings->mAmount / 100.0 );
+#endif
+    }
+
 }
 
 int Server::ReadWithRxTimestamp (int *readerr) {
@@ -546,25 +566,17 @@ void Server::UDPTriggers_processing (void) {
  * Does not close the socket.
  * ------------------------------------------------------------------- */
 void Server::RunUDP( void ) {
-    int done;
-    bool mMode_Time = isServerModeTime( mSettings );
     int rxlen;
     int readerr = 0;
+    bool lastpacket = 0;
 
     InitTrafficLoop();
-
-    // setup termination variables
-    if ( mMode_Time ) {
-	mEndTime.setnow();
-	mEndTime.add( mSettings->mAmount / 100.0 );
-    }
-    done=0;
 
     // Exit loop on three conditions
     // 1) Fatal read error
     // 2) Last packet of traffic flow sent by client
     // 3) -t timer expires
-    do {
+    while (InProgress() && !readerr && !lastpacket) {
 	// The emptyreport flag can be set
 	// by any of the packet processing routines
 	// If it's set the iperf reporter won't do
@@ -575,9 +587,7 @@ void Server::RunUDP( void ) {
 	// read the next packet with timestamp
 	// will also set empty report or not
 	rxlen=ReadWithRxTimestamp(&readerr);
-	if (readerr) {
-	    done = 1;
-	} else if (rxlen > 0) {
+	if (!readerr && (rxlen > 0)) {
 	    if (isL2LengthCheck(mSettings)) {
 		reportstruct->l2len = rxlen;
 		// L2 processing will set the reportstruct packet length with the length found in the udp header
@@ -592,7 +602,7 @@ void Server::RunUDP( void ) {
 	    if (!(reportstruct->l2errors & L2UNKNOWN)) {
 		// ReadPacketID returns true if this is the last UDP packet sent by the client
 		// aslo sets the packet rx time in the reportstruct
-		done = ReadPacketID();
+		lastpacket = ReadPacketID();
 		if (isIsochronous(mSettings)) {
 		    Isoch_processing();
 		}
@@ -602,13 +612,9 @@ void Server::RunUDP( void ) {
 	    }
 	}
 
-	if (mMode_Time && mEndTime.before( reportstruct->packetTime)) {
-	    done = 1;
-	}
-
 	ReportPacket(mSettings->reporthdr, reportstruct);
 
-    } while (!done);
+    }
 
     CloseReport( mSettings->reporthdr, reportstruct );
 
