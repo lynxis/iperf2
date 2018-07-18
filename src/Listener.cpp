@@ -1051,7 +1051,7 @@ void Listener::UDPSingleServer( ) {
 }
 
 int Listener::ReadClientHeader(client_hdr *hdr ) {
-    uint flags = 0;
+    uint32_t flags = 0;
     int testflags = 0;
     if (isUDP(mSettings)) {
 	flags = ntohl(hdr->base.flags);
