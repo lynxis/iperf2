@@ -213,7 +213,7 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dst = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', debug = False, udptriggers = False, isoch = False, length = None, latency=True):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dstip = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', src=None, srcip = None, srcport = None, dstport = None,  debug = False, udptriggers = False, length = None, latency=False, ipg=0.005):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -221,11 +221,14 @@ class iperf_flow(object):
         self.name = name
         self.latency = latency
         self.udptriggers = udptriggers;
-        if not self.udptriggers :
+        if not dstport :
             iperf_flow.port += 1
-            self.port = iperf_flow.port
+            self.dstport = iperf_flow.port
         else:
-            self.port = 6001
+            self.dstport = dstport
+        self.dstip = dstip
+        self.srcip = srcip
+        self.srcport = srcport
 
         self.server = server
         self.client = client
@@ -234,15 +237,19 @@ class iperf_flow(object):
         else :
             self.user = user
         self.proto = proto
-        self.dst = dst
         self.tos = tos
         if not length :
             self.length = 1470
         else :
             self.length = length;
-        self.isoch = isoch;
         self.interval = round(interval,3)
         self.offered_load = offered_load
+        if len(self.offered_load.split(':')) == 2 :
+            self.isoch = True
+            self.name += '-isoch'
+        else :
+            self.isoch = False
+        self.ipg = ipg
         self.debug = debug
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
         self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None}
@@ -490,7 +497,7 @@ class iperf_server(object):
         self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
 
         # ex. Server listening on TCP port 61003 with pid 2565
-        self.regex_open_pid = re.compile(r'^Server listening on {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.port)))
+        self.regex_open_pid = re.compile(r'^Server listening on {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
@@ -506,7 +513,7 @@ class iperf_server(object):
         self.opened.clear()
         self.remotepid = None
         iperftime = time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.port), '-e',  '-t ' + str(iperftime), '-z', '-fb', '-w' , self.window]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.dstport), '-e',  '-t ' + str(iperftime), '-z', '-fb', '-w' , self.window]
         if self.interval >= 0.005 :
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
@@ -659,7 +666,7 @@ class iperf_client(object):
         conn_id = '{}'.format(self.name)
         self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
         # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
-        self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.port)))
+        self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
         # traffic ex: [  3] 0.00-0.50 sec  655620 Bytes  10489920 bits/sec  14/211        446      446K/0 us
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>\d+) Bytes\s+(?P<throughput>\d+) bits/sec\s+(?P<writes>\d+)/(?P<errwrites>\d+)\s+(?P<retry>\d+)\s+(?P<cwnd>\d+)K/(?P<rtt>\d+) us')
 
@@ -676,16 +683,21 @@ class iperf_client(object):
             iperftime = time + 30
         else :
             ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dst, '-p ' + str(self.port), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
+        if self.srcip :
+            if self.srcport :
+                self.sshcmd.extend(['-B {}:{}'.format(self.srcip, self.srcport)])
+            else :
+                self.sshcmd.extend(['-B {}'.format(self.srcip)])
         if self.udptriggers :
-            self.sshcmd.extend(['-B 192.168.1.3:6001', '--udp-triggers'])
+            self.sshcmd.extend(['--udp-triggers'])
 
         if self.interval >= 0.005 :
             self.sshcmd.extend(['-i ', str(self.interval)])
 
         if self.proto == 'UDP' :
              if self.isoch :
-                 self.sshcmd.extend(['-u', '--isochronous=' + self.offered_load])
+                 self.sshcmd.extend(['-u', '--isochronous=' + self.offered_load + ' --ipg ' + str(self.ipg)])
              else :
                  self.sshcmd.extend(['-u', '-b', self.offered_load])
         elif self.proto == 'TCP' and self.offered_load :
@@ -777,7 +789,7 @@ class flow_histogram(object):
                     fid.write('set xrange [0:0.4]\n')
                     fid.write('set xtics auto\n')
                 elif h1.max < 2.0 and h2.max < 2.0 :
-                    fid.write('set xrange [0:1]\n')
+                    fid.write('set xrange [0:2]\n')
                     fid.write('set xtics auto\n')
                 elif h1.max < 5.0 and h2.max < 5.0 :
                     fid.write('set xrange [0:5]\n')
@@ -788,18 +800,23 @@ class flow_histogram(object):
                 elif h1.max < 20.0 and h2.max < 20.0 :
                     fid.write('set xrange [0:20]\n')
                     fid.write('set xtics add 1\n')
+                    fid.write('set format x \"%.0f"\n')
                 elif h1.max < 40.0 and h2.max < 40.0:
                     fid.write('set xrange [0:40]\n')
                     fid.write('set xtics add 5\n')
+                    fid.write('set format x \"%.0f"\n')
                 elif h1.max < 50.0 and h2.max < 50.0:
                     fid.write('set xrange [0:50]\n')
                     fid.write('set xtics add 5\n')
+                    fid.write('set format x \"%.0f"\n')
                 elif h1.max < 75.0 and h2.max < 75.0:
                     fid.write('set xrange [0:75]\n')
                     fid.write('set xtics add 5\n')
+                    fid.write('set format x \"%.0f"\n')
                 else :
                     fid.write('set xrange [0:100]\n')
                     fid.write('set xtics add 10\n')
+                    fid.write('set format x \"%.0f"\n')
                 fid.write('plot \"{0}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle,  \"{1}\" using 1:2 index 0 axes x1y2 with impulses linetype 2 notitle, \"{1}\" using 1:3 index 0 axes x1y1 with lines linetype 1 linewidth 2 notitle, \"{0}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(h1.datafilename, h2.datafilename))
 
             childprocess = await asyncio.create_subprocess_exec(flow_histogram.gnuplot,gpcfilename, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=iperf_flow.loop)
@@ -845,6 +862,14 @@ class flow_histogram(object):
                 y1 = float(y) / float(self.population)
                 self._entropy -= y1 * math.log2(y1)
         return self._entropy
+
+    @property
+    def ampdu_dump(self) :
+        return self._ampdu_rawdump
+
+    @ampdu_dump.setter
+    def ampdu_dump(self, value):
+        self._ampdu_rawdump = value
 
     async def __exec_gnuplot(self) :
         logging.info('Plotting {} {}'.format(self.name, self.gpcfilename))

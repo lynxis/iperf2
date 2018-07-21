@@ -7,6 +7,7 @@
 import logging
 import asyncio, subprocess
 import weakref
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +46,18 @@ class ssh_node:
 
     @classmethod
     def open_consoles(cls) :
-       nodes = ssh_node.get_instances()
-       node_names = []
-       tasks = []
-       for node in nodes :
-           if not node.ssh_console_session :
-               node.ssh_console_session = ssh_session(name=node.name, hostname=node.ipaddr, node=node, control_master=True)
-               node.console_task = asyncio.ensure_future(node.ssh_console_session.post_cmd(cmd='dmesg -w', IO_TIMEOUT=None, CMD_TIMEOUT=None))
-               tasks.append(node.console_task)
-               node_names.append(node.name)
+        ssh_node.set_loop()
+        nodes = ssh_node.get_instances()
+        node_names = []
+        tasks = []
+        for node in nodes :
+            if not node.ssh_console_session :
+                node.ssh_console_session = ssh_session(name=node.name, hostname=node.ipaddr, node=node, control_master=True)
+                node.console_task = asyncio.ensure_future(node.ssh_console_session.post_cmd(cmd='dmesg -w', IO_TIMEOUT=None, CMD_TIMEOUT=None))
+                tasks.append(node.console_task)
+                node_names.append(node.name)
 
-       if tasks :
+        if tasks is not None:
             s = " "
             logging.info('Opening consoles: {}'.format(s.join(node_names)))
             ssh_node.loop.run_until_complete(asyncio.wait(tasks, timeout=60, loop=ssh_node.loop))
@@ -63,29 +65,40 @@ class ssh_node:
 
     @classmethod
     def close_consoles(cls) :
-       nodes = ssh_node.get_instances()
-       node_names = []
-       tasks = []
-       for node in nodes :
-           if node.ssh_console_session :
-               node.console_task = asyncio.ensure_future(node.ssh_console_session.close())
-               tasks.append(node.console_task)
-               node_names.append(node.name)
+        nodes = ssh_node.get_instances()
+        node_names = []
+        tasks = []
+        for node in nodes :
+            if node.ssh_console_session :
+                node.console_task = asyncio.ensure_future(node.ssh_console_session.post_cmd(cmd='dmesg --clear', IO_TIMEOUT=None, CMD_TIMEOUT=None))
+                tasks.append(node.console_task)
+                node_names.append(node.name)
 
-       if tasks :
+        if tasks :
+            s = " "
+            logging.info('Clearing consoles: {}'.format(s.join(node_names)))
+            ssh_node.loop.run_until_complete(asyncio.wait(tasks, timeout=60, loop=ssh_node.loop))
+
+        for node in nodes :
+            if node.ssh_console_session :
+                node.console_task = asyncio.ensure_future(node.ssh_console_session.close())
+                tasks.append(node.console_task)
+                node_names.append(node.name)
+
+        if tasks :
             s = " "
             logging.info('Closing consoles: {}'.format(s.join(node_names)))
             ssh_node.loop.run_until_complete(asyncio.wait(tasks, timeout=60, loop=ssh_node.loop))
 
     def __init__(self, name=None, ipaddr=None, console=False, device=None, ssh_speedups=True):
-       self.ipaddr = ipaddr
-       self.name = name
-       self.my_tasks = []
-       self.device=device
-       self.controlmasters = '/tmp/controlmasters_{}'.format(self.ipaddr)
-       self.ssh_speedups = ssh_speedups
-       self.ssh_console_session = None
-       ssh_node.instances.add(self)
+        self.ipaddr = ipaddr
+        self.name = name
+        self.my_tasks = []
+        self.device=device
+        self.controlmasters = '/tmp/controlmasters_{}'.format(self.ipaddr)
+        self.ssh_speedups = ssh_speedups
+        self.ssh_console_session = None
+        ssh_node.instances.add(self)
 
     def wl (self, cmd, ASYNC=False) :
         if self.device :
@@ -94,11 +107,11 @@ class ssh_node:
             results=self.rexec(cmd='/usr/bin/wl {}'.format(cmd), ASYNC=ASYNC)
         return results
 
-    def wl_async (self, cmd) :
+    def dhd (self, cmd, ASYNC=False) :
         if self.device :
-            results=self.rexec(cmd='/usr/bin/wl -i {} {}'.format(self.device, cmd), ASYNC=False)
+            results=self.rexec(cmd='/usr/bin/dhd -i {} {}'.format(self.device, cmd), ASYNC=ASYNC)
         else :
-            results=self.rexec(cmd='/usr/bin/wl {}'.format(cmd), ASYNC=False)
+            results=self.rexec(cmd='/usr/bin/dhd {}'.format(cmd), ASYNC=ASYNC)
         return results
 
     def rexec(self, cmd='pwd', ASYNC=False, IO_TIMEOUT=DEFAULT_IO_TIMEOUT, CMD_TIMEOUT=DEFAULT_CMD_TIMEOUT, CONNECT_TIMEOUT=DEFAULT_CONNECT_TIMEOUT) :
@@ -112,7 +125,7 @@ class ssh_node:
         self.my_tasks.append(this_task)
         if not ASYNC:
             try :
-                ssh_node.loop.run_until_complete(asyncio.wait([this_task], timeout=10, loop=ssh_node.loop))
+                ssh_node.loop.run_until_complete(asyncio.wait([this_task], timeout=30, loop=ssh_node.loop))
             except asyncio.TimeoutError:
                 logging.error('command schedule timed out')
                 raise
@@ -303,4 +316,3 @@ class ssh_session:
         if not self.control_master :
             await self.closed.wait()
             return self.results
-
