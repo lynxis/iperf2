@@ -655,7 +655,6 @@ void Server::write_UDP_AckFIN( ) {
         server_hdr *hdr;
 
         UDP_Hdr = (UDP_datagram*) mBuf;
-
         if (mSettings->mBufLen > (int) (sizeof(UDP_datagram) + sizeof(server_hdr))) {
 	    int flags = (!isEnhanced(mSettings) ? HEADER_VERSION1 : (HEADER_VERSION1 | HEADER_EXTEND));
             Transfer_Info *stats = GetReport( mSettings->reporthdr );

@@ -73,6 +73,7 @@ const double kSecs_to_nsecs = 1e9;
 const int    kBytes_to_Bits = 8;
 
 #define VARYLOAD_PERIOD 0.1 // recompute the variable load every n seconds
+#define MAXUDPBUF 1470
 
 Client::Client( thread_Settings *inSettings ) {
     mSettings = inSettings;
@@ -97,9 +98,9 @@ Client::Client( thread_Settings *inSettings ) {
 	}
     }
     // initialize buffer
-    mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
+    mBuf = new char[((mSettings->mBufLen > MAXUDPBUF) ? mSettings->mBufLen : MAXUDPBUF)];
     FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
-    pattern( mBuf, ((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG));
+    pattern( mBuf, ((mSettings->mBufLen > MAXUDPBUF) ? mSettings->mBufLen : MAXUDPBUF));
     if ( isFileInput( mSettings ) ) {
         if ( !isSTDIN( mSettings ) )
             Extractor_Initialize( mSettings->mFileName, mSettings->mBufLen, mSettings );
@@ -931,8 +932,10 @@ void Client::write_UDP_FIN (void) {
             // select timed out
             continue;
         } else {
-            // socket ready to read
-            rc = read( mSettings->mSock, mBuf, mSettings->mBufLen );
+            // socket ready to read, this packet size
+	    // is set by the server.  Assume it's large enough
+	    // to contain the final server packet
+            rc = read( mSettings->mSock, mBuf, (int) (sizeof(UDP_datagram) + sizeof(server_hdr)));
 	    WARN_errno( rc < 0, "read" );
 	    if ( rc < 0 ) {
                 break;
