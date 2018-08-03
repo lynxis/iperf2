@@ -941,8 +941,10 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 	// First, are client socket write counters
 	if (reporthdr->report.mThreadMode == kMode_Client) {
 	    if (packet->errwrite) {
-		stats->sock_callstats.write.WriteErr++;
-		stats->sock_callstats.write.totWriteErr++;
+	        if (packet->errwrite != WriteErrNoAccount) {
+		    stats->sock_callstats.write.WriteErr++;
+		    stats->sock_callstats.write.totWriteErr++;
+	        }
 	    } else {
 		stats->sock_callstats.write.WriteCnt++;
 		stats->sock_callstats.write.totWriteCnt++;

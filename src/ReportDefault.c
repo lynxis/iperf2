@@ -69,13 +69,19 @@ extern "C" {
  */
 void reporter_printstats( Transfer_Info *stats ) {
     static char header_printed = 0;
+    int bytesxfered;
 
     byte_snprintf( buffer, sizeof(buffer)/2, (double) stats->TotalLen,
                    toupper( (int)stats->mFormat));
+    if (!stats->TotalLen || (stats->endTime < SMALLEST_INTERVAL)) {
+        bytesxfered = 0;
+    } else {
+        bytesxfered = stats->TotalLen;
+    }
     byte_snprintf( &buffer[sizeof(buffer)/2], sizeof(buffer)/2,
-                   (!stats->TotalLen || (stats->endTime < SMALLEST_INTERVAL)) ?
-		   0 : (stats->TotalLen / (stats->endTime - stats->startTime)),
+                   (bytesxfered / (stats->endTime - stats->startTime)),
 		   stats->mFormat);
+
     // TCP reports
     if (!stats->mUDP) {
 	if (!stats->mEnhanced) {
@@ -105,14 +111,21 @@ void reporter_printstats( Transfer_Info *stats ) {
 		       stats->sock_callstats.read.bins[6],
 		       stats->sock_callstats.read.bins[7]);
 	    } else {
-		printf(report_bw_write_enhanced_format,
+	        double netpower = 0;
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
+		if (stats->sock_callstats.write.rtt > 0) {
+		    netpower = (double) ((bytesxfered / (stats->endTime - stats->startTime)) / stats->sock_callstats.write.rtt);
+	        }
+#endif
+	        printf(report_bw_write_enhanced_format,
 		       stats->transferID, stats->startTime, stats->endTime,
 		       buffer, &buffer[sizeof(buffer)/2],
 		       stats->sock_callstats.write.WriteCnt,
 		       stats->sock_callstats.write.WriteErr,
 		       stats->sock_callstats.write.TCPretry,
 		       stats->sock_callstats.write.cwnd,
-		       stats->sock_callstats.write.rtt);
+		       stats->sock_callstats.write.rtt,
+		       netpower);
 	    }
 	}
     } else if ( stats->mUDP == (char)kMode_Client ) {

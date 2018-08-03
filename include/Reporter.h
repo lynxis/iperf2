@@ -143,6 +143,13 @@ typedef struct IsochStats {
 #define L2LENERR   0x02
 #define L2CSUMERR  0x04
 
+typedef enum WriteErrType {
+    WriteNoErr  = 0,
+    WriteErrAccount,
+    WriteErrFatal,
+    WriteErrNoAccount,
+} WriteErrType;
+
 typedef struct L2Stats {
     max_size_t cnt;
     max_size_t unknown;

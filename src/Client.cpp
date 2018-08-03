@@ -135,7 +135,7 @@ Client::Client( thread_Settings *inSettings ) {
     reportstruct = new ReportStruct;
     FAIL_errno( reportstruct == NULL, "No memory for report structure\n", mSettings );
     reportstruct->packetID = (isPeerVerDetect(mSettings)) ? 1 : 0;
-    reportstruct->errwrite=0;
+    reportstruct->errwrite=WriteNoErr;
     reportstruct->emptyreport=0;
     reportstruct->socket = mSettings->mSock;
     if (isTxSync(mSettings))
@@ -336,30 +336,28 @@ void Client::Run( void ) {
 /*
  * TCP send loop
  */
+
+
 void Client::RunTCP( void ) {
     int currLen = 0;
 
     while (InProgress()) {
         // perform write
-	reportstruct->errwrite=0;
         currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
         if ( currLen < 0 ) {
-	    reportstruct->errwrite=1;
-	    currLen = 0;
-	    if (
-#ifdef WIN32
-		(errno = WSAGetLastError()) != WSAETIMEDOUT
-#else
-		errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
-#endif
-		) {
+	    if (NONFATALTCPWRITERR(errno)) {
+	        reportstruct->errwrite=WriteErrAccount;
+	    } else if (FATALTCPWRITERR(errno)) {
+	        reportstruct->errwrite=WriteErrFatal;
 	        WARN_errno( 1, "write" );
-	        break;
+	    } else {
+	        reportstruct->errwrite=WriteErrNoAccount;
 	    }
-        }
-
-	totLen += currLen;
-
+	    currLen = 0;
+	} else {
+	    totLen += currLen;
+	    reportstruct->errwrite=WriteNoErr;
+	}
 // skip the packet time setting syscall() for the case of no interval reporting
 // or packet reporting needed and an itimer is available to stop the traffic/while loop
 #ifdef HAVE_SETITIMER
@@ -416,25 +414,23 @@ void Client::RunRateLimitedTCP ( void ) {
 	time1 = time2;
 	if (tokens >= 0.0) {
 	    // perform write
-	    reportstruct->errwrite=0;
 	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	    if ( currLen < 0 ) {
-		reportstruct->errwrite=1;
-		currLen = 0;
-		if (
-#ifdef WIN32
-		    (errno = WSAGetLastError()) != WSAETIMEDOUT
-#else
-		    errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR
-#endif
-		    ) {
-		    WARN_errno( 1 , "write");
-		    break;
-		}
+	        if (NONFATALTCPWRITERR(errno)) {
+		    reportstruct->errwrite=WriteErrAccount;
+		} else if (FATALTCPWRITERR(errno)) {
+		    reportstruct->errwrite=WriteErrFatal;
+		    WARN_errno( 1, "write" );
+		} else {
+		    reportstruct->errwrite=WriteErrNoAccount;
+	        }
+	        currLen = 0;
+	    } else {
+	      // Consume tokens per the transmit
+	        tokens -= currLen;
+	        totLen += currLen;
+		reportstruct->errwrite=WriteNoErr;
 	    }
-	    // Consume tokens per the transmit
-	    tokens -= currLen;
-	    totLen += currLen;
 	    time2.setnow();
 	    reportstruct->packetTime.tv_sec = time2.getSecs();
 	    reportstruct->packetTime.tv_usec = time2.getUsecs();
@@ -553,29 +549,21 @@ void Client::RunUDP( void ) {
 	    delay = delay_target;
 	}
 
-	reportstruct->errwrite = 0;
+	reportstruct->errwrite = WriteNoErr;
 	reportstruct->emptyreport = 0;
 
 	// perform write
 	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
 	if ( currLen < 0 ) {
 	    reportstruct->packetID--;
-	    reportstruct->errwrite = 1;
-	    reportstruct->emptyreport = 1;
-	    currLen = 0;
-	    if (
-#ifdef WIN32
-		(errno = WSAGetLastError()) != WSAETIMEDOUT &&
-		errno != WSAECONNREFUSED
-#else
-		errno != EAGAIN && errno != EWOULDBLOCK &&
-		errno != EINTR  && errno != ECONNREFUSED &&
-		errno != ENOBUFS
-#endif
-		) {
-		WARN_errno( 1, "write" );
-		break;
+	    if (FATALUDPWRITERR(errno)) {
+	        reportstruct->errwrite = WriteErrFatal;
+	        WARN_errno( 1, "write" );
+	    } else {
+	        reportstruct->errwrite = WriteErrAccount;
+	        currLen = 0;
 	    }
+	  reportstruct->emptyreport = 1;
 	}
 
 	// report packets
@@ -694,28 +682,20 @@ void Client::RunUDPIsochronous (void) {
 	    //	  delay = delay_target;
 	    // }
 
-	    reportstruct->errwrite = 0;
+	    reportstruct->errwrite = WriteNoErr;
 	    reportstruct->emptyreport = 0;
 	    mBuf_isoch->remaining = htonl(bytecnt);
 	    // perform write
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
-		reportstruct->packetID--;
-		reportstruct->errwrite = 1;
-		reportstruct->emptyreport = 1;
-		currLen = 0;
-		if (
-#ifdef WIN32
-		    (errno = WSAGetLastError()) != WSAETIMEDOUT &&
-		    errno != WSAECONNREFUSED
-#else
-		    errno != EAGAIN && errno != EWOULDBLOCK &&
-		    errno != EINTR  && errno != ECONNREFUSED &&
-		    errno != ENOBUFS
-#endif
-		    ) {
-		    WARN_errno( 1, "write" );
-		    break;
+	        reportstruct->packetID--;
+		if (FATALUDPWRITERR(errno)) {
+	            reportstruct->errwrite = WriteErrFatal;
+	            WARN_errno( 1, "write" );
+	        } else {
+		    reportstruct->errwrite = WriteErrAccount;
+		    reportstruct->emptyreport = 1;
+		    currLen = 0;
 		}
 	    } else {
 		bytecnt -= currLen;

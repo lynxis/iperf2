@@ -57,6 +57,18 @@
 #include "Settings.hpp"
 #include "Timestamp.hpp"
 
+
+// Define fatal and nonfatal write errors
+#ifdef WIN32
+#define FATALTCPWRITERR(errno)  ((errno = WSAGetLastError()) != WSAETIMEDOUT)
+#define NONFATALWRITERR(errno) ((errno = WSAGetLastError()) == WSAETIMEDOUT)
+#define FATALUDPWRITERR(errno)  (((errno = WSAGetLastError()) != WSAETIMEDOUT) && (errno != WSAECONNREFUSED))
+#else
+#define FATALTCPWRITERR(errno)  (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
+#define NONFATALTCPWRITERR(errno)  (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+#define FATALUDPWRITERR(errno) 	((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR) && (errno != ECONNREFUSED) && (errno != ENOBUFS))
+#endif
+
 /* ------------------------------------------------------------------- */
 class Client {
 public:
