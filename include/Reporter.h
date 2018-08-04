@@ -118,6 +118,7 @@ typedef struct WriteStats {
     int lastTCPretry;
     int cwnd;
     int rtt;
+    double meanrtt;
 } WriteStats;
 
 #ifdef HAVE_ISOCHRONOUS

@@ -122,7 +122,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 int reporter_print( ReporterData *stats, int type, int end );
 void PrintMSS( ReporterData *stats );
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-static void gettcpistats(ReporterData *stats);
+static void gettcpistats(ReporterData *stats, int final);
 #endif
 
 MultiHeader* InitMulti( thread_Settings *agent, int inID) {
@@ -1304,8 +1304,9 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 }
 
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-static void gettcpistats (ReporterData *stats) {
+static void gettcpistats (ReporterData *stats, int final) {
     if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
+        static int cnt = 0;
 	struct tcp_info tcp_internal;
 	socklen_t tcp_info_length = sizeof(struct tcp_info);
 	int retry;
@@ -1323,6 +1324,14 @@ static void gettcpistats (ReporterData *stats) {
 	stats->info.sock_callstats.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
 	stats->info.sock_callstats.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
 	stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
+	// New average = old average * (n-1)/n + new value/n
+	cnt++;
+	stats->info.sock_callstats.write.meanrtt = (stats->info.sock_callstats.write.meanrtt * ((double) (cnt - 1) / (double) cnt)) + ((double) (tcp_internal.tcpi_rtt) / (double) cnt);
+	if (final) {
+	    stats->info.sock_callstats.write.rtt = stats->info.sock_callstats.write.meanrtt;
+	} else {
+	    stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
+	}
     }
 }
 #endif
@@ -1333,7 +1342,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 
     if ( force ) {
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-	gettcpistats(stats);
+        gettcpistats(stats, 1);
 #endif
         stats->info.cntOutofOrder = stats->cntOutofOrder;
         // assume most of the time out-of-order packets are not
@@ -1403,7 +1412,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                   TimeDifference( stats->nextTime,
                                   stats->packetTime ) < 0 ) {
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-	    gettcpistats(stats);
+	    gettcpistats(stats, 0);
 #endif
 	    stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;
 	    stats->lastOutofOrder = stats->cntOutofOrder;
