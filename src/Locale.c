@@ -1,3 +1,4 @@
+
 /*---------------------------------------------------------------
  * Copyright (c) 1999,2000,2001,2002,2003
  * The Board of Trustees of the University of Illinois
@@ -314,10 +315,10 @@ const char report_sum_bw_pps_enhanced_format[] =
 
 const char report_bw_jitter_loss_enhanced_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
- Latency avg/min/max/stdev PPS\n";
+ Latency avg/min/max/stdev PPS  NetPwr\n";
 
 const char report_bw_jitter_loss_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps\n";
+"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps  %4.2f\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_header[] =
 "[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \

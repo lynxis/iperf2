@@ -197,17 +197,20 @@ void reporter_printstats( Transfer_Info *stats ) {
 				(stats->IPGcnt / stats->IPGsum), stats->isochstats.framecnt, stats->isochstats.framelostcnt);
 		    } else
 #endif
-
+			{
+			    double meantransit = (stats->transit.sumTransit / stats->transit.cntTransit);
 		    printf( report_bw_jitter_loss_enhanced_format, stats->transferID,
 			    stats->startTime, stats->endTime,
 			    buffer, &buffer[sizeof(buffer)/2],
 			    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
 			    (100.0 * stats->cntError) / stats->cntDatagrams,
-			    (stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
+			    (meantransit * 1000),
 			    stats->transit.minTransit*1000.0,
 			    stats->transit.maxTransit*1000.0,
 			    (stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
-			    (stats->IPGcnt / stats->IPGsum));
+			    (stats->IPGcnt / stats->IPGsum),
+			    (meantransit > 0.0) ? (1e-6 * (double)((bytesxfered / (stats->endTime - stats->startTime))) / meantransit) : 0);
+			}
 		}
 		if (stats->latency_histogram) {
 		    histogram_print(stats->latency_histogram, stats->startTime, stats->endTime,stats->free);
