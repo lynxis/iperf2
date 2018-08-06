@@ -61,7 +61,7 @@
 // Define fatal and nonfatal write errors
 #ifdef WIN32
 #define FATALTCPWRITERR(errno)  ((errno = WSAGetLastError()) != WSAETIMEDOUT)
-#define NONFATALWRITERR(errno) ((errno = WSAGetLastError()) == WSAETIMEDOUT)
+#define NONFATALTCPWRITERR(errno) ((errno = WSAGetLastError()) == WSAETIMEDOUT)
 #define FATALUDPWRITERR(errno)  (((errno = WSAGetLastError()) != WSAETIMEDOUT) && (errno != WSAECONNREFUSED))
 #else
 #define FATALTCPWRITERR(errno)  (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
