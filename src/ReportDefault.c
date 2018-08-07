@@ -64,6 +64,7 @@
 extern "C" {
 #endif
 
+#define NETPOWERCONSTANT 1e-6
 /*
  * Prints transfer reports in default style
  */
@@ -114,7 +115,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	        double netpower = 0;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 		if (stats->sock_callstats.write.rtt > 0) {
-		    netpower = (double) ((bytesxfered / (stats->endTime - stats->startTime)) / stats->sock_callstats.write.rtt);
+		    netpower = NETPOWERCONSTANT * (double) ((bytesxfered / (stats->endTime - stats->startTime)) / 1e-6 * stats->sock_callstats.write.rtt);
 	        }
 #endif
 	        printf(report_bw_write_enhanced_format,
@@ -185,31 +186,34 @@ void reporter_printstats( Transfer_Info *stats ) {
 		} else {
 #ifdef HAVE_ISOCHRONOUS
 		    if (stats->mIsochronous) {
+			double meantransit = stats->transit.sumTransit / stats->transit.cntTransit;
 			printf( report_bw_jitter_loss_enhanced_isoch_format, stats->transferID,
 				stats->startTime, stats->endTime,
 				buffer, &buffer[sizeof(buffer)/2],
-				stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
+				stats->jitter*1e3, stats->cntError, stats->cntDatagrams,
 				(100.0 * stats->cntError) / stats->cntDatagrams,
-				(stats->transit.sumTransit / stats->transit.cntTransit)*1000.0,
-				stats->transit.minTransit*1000.0,
-				stats->transit.maxTransit*1000.0,
-				(stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
-				(stats->IPGcnt / stats->IPGsum), stats->isochstats.framecnt, stats->isochstats.framelostcnt);
+				(meantransit * 1e3),
+				stats->transit.minTransit*1e3,
+				stats->transit.maxTransit*1e3,
+				(stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1e3,
+				(stats->IPGcnt / stats->IPGsum),
+				((meantransit > 0.0) ? (NETPOWERCONSTANT * ((double) bytesxfered) / (double) (stats->endTime - stats->startTime) / meantransit) : 0),
+				stats->isochstats.framecnt, stats->isochstats.framelostcnt);
 		    } else
 #endif
 			{
 			    double meantransit = (stats->transit.sumTransit / stats->transit.cntTransit);
-		    printf( report_bw_jitter_loss_enhanced_format, stats->transferID,
+			    printf( report_bw_jitter_loss_enhanced_format, stats->transferID,
 			    stats->startTime, stats->endTime,
 			    buffer, &buffer[sizeof(buffer)/2],
 			    stats->jitter*1000.0, stats->cntError, stats->cntDatagrams,
 			    (100.0 * stats->cntError) / stats->cntDatagrams,
-			    (meantransit * 1000),
-			    stats->transit.minTransit*1000.0,
-			    stats->transit.maxTransit*1000.0,
-			    (stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1000,
+			    (meantransit * 1e3),
+			    stats->transit.minTransit*1e3,
+			    stats->transit.maxTransit*1e3,
+			    (stats->transit.cntTransit < 2) ? 0 : sqrt(stats->transit.m2Transit / (stats->transit.cntTransit - 1)) / 1e3,
 			    (stats->IPGcnt / stats->IPGsum),
-			    (meantransit > 0.0) ? (1e-6 * (double)((bytesxfered / (stats->endTime - stats->startTime))) / meantransit) : 0);
+			    (meantransit > 0.0) ? (NETPOWERCONSTANT * ((double) bytesxfered) / (double) (stats->endTime - stats->startTime) / meantransit) : 0);
 			}
 		}
 		if (stats->latency_histogram) {
