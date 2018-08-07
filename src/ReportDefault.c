@@ -115,7 +115,7 @@ void reporter_printstats( Transfer_Info *stats ) {
 	        double netpower = 0;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 		if (stats->sock_callstats.write.rtt > 0) {
-		    netpower = NETPOWERCONSTANT * (double) ((bytesxfered / (stats->endTime - stats->startTime)) / 1e-6 * stats->sock_callstats.write.rtt);
+		  netpower = NETPOWERCONSTANT * (((double) bytesxfered / (double) (stats->endTime - stats->startTime)) / (1e-6 * stats->sock_callstats.write.rtt));
 	        }
 #endif
 	        printf(report_bw_write_enhanced_format,
