@@ -78,6 +78,7 @@ const int    kBytes_to_Bits = 8;
 Client::Client( thread_Settings *inSettings ) {
     mSettings = inSettings;
     mBuf = NULL;
+    double ct = -1.0;
 
     if (isCompat(inSettings) && isPeerVerDetect(inSettings)) {
 	fprintf(stderr, "%s", warn_compat_and_peer_exchange);
@@ -116,7 +117,7 @@ Client::Client( thread_Settings *inSettings ) {
 	FAIL_errno( !(mSettings->mFPS > 0.0), "Invalid value for frames per second in the isochronous settings\n", mSettings );
 #endif
 
-    Connect( );
+    ct = Connect( );
 
     if ( isReport( inSettings ) ) {
         ReportSettings( inSettings );
@@ -131,6 +132,9 @@ Client::Client( thread_Settings *inSettings ) {
 
     // InitReport handles Barrier for multiple Streams
     mSettings->reporthdr = InitReport( mSettings );
+    if (mSettings->reporthdr) {
+	mSettings->reporthdr->report.connection.connecttime = ct;
+    }
 
     reportstruct = new ReportStruct;
     FAIL_errno( reportstruct == NULL, "No memory for report structure\n", mSettings );
@@ -165,8 +169,10 @@ Client::~Client() {
  * If inLocalhost is not null, bind to that address, specifying
  * which outgoing interface to use.
  * ------------------------------------------------------------------- */
-void Client::Connect( ) {
+double Client::Connect( ) {
     int rc;
+    double connecttime = -1.0;
+
     SockAddr_remoteAddr( mSettings );
 
     assert( mSettings->inHostname != NULL );
@@ -202,8 +208,21 @@ void Client::Connect( ) {
     }
 
     // connect socket
+#ifdef HAVE_CLOCK_GETTIME
+    {
+	Timestamp time1, time2;
+	rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
+                  SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
+	time2.setnow();
+	if (isEnhanced(mSettings)) {
+	    connecttime = 1e3 * time2.subSec(time1);
+	}
+    }
+#else
     rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
                   SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
+#endif
+
     FAIL_errno( rc == SOCKET_ERROR, "connect", mSettings );
 
     getsockname( mSettings->mSock, (sockaddr*) &mSettings->local,
@@ -211,6 +230,7 @@ void Client::Connect( ) {
     getpeername( mSettings->mSock, (sockaddr*) &mSettings->peer,
                  &mSettings->size_peer );
     SockAddr_Ifrname(mSettings);
+    return connecttime;
 
 } // end Connect
 
@@ -350,6 +370,7 @@ void Client::RunTCP( void ) {
 	    } else if (FATALTCPWRITERR(errno)) {
 	        reportstruct->errwrite=WriteErrFatal;
 	        WARN_errno( 1, "write" );
+		break;
 	    } else {
 	        reportstruct->errwrite=WriteErrNoAccount;
 	    }
@@ -396,7 +417,8 @@ void Client::RunRateLimitedTCP ( void ) {
     Timestamp time1, time2;
 
     int var_rate = mSettings->mUDPRate;
-    while (InProgress()) {
+    int breaknow = 0;
+    while (InProgress() && !breaknow) {
 	// Add tokens per the loop time
 	// clock_gettime is much cheaper than gettimeofday() so
 	// use it if possible.
@@ -421,6 +443,8 @@ void Client::RunRateLimitedTCP ( void ) {
 		} else if (FATALTCPWRITERR(errno)) {
 		    reportstruct->errwrite=WriteErrFatal;
 		    WARN_errno( 1, "write" );
+		    breaknow = 1;
+		    break;
 		} else {
 		    reportstruct->errwrite=WriteErrNoAccount;
 	        }
@@ -559,6 +583,7 @@ void Client::RunUDP( void ) {
 	    if (FATALUDPWRITERR(errno)) {
 	        reportstruct->errwrite = WriteErrFatal;
 	        WARN_errno( 1, "write" );
+		break;
 	    } else {
 	        reportstruct->errwrite = WriteErrAccount;
 	        currLen = 0;
@@ -618,8 +643,8 @@ void Client::RunUDPIsochronous (void) {
 	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
     int initdone = 0;
-
-    while (InProgress()) {
+    int breaknow = 0;
+    while (InProgress() && !breaknow) {
 	int bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
 	delay = 0;
 
@@ -689,12 +714,13 @@ void Client::RunUDPIsochronous (void) {
 	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
 	    if ( currLen < 0 ) {
 	        reportstruct->packetID--;
+		reportstruct->emptyreport = 1;
 		if (FATALUDPWRITERR(errno)) {
 	            reportstruct->errwrite = WriteErrFatal;
 	            WARN_errno( 1, "write" );
+		    breaknow = 1;
 	        } else {
 		    reportstruct->errwrite = WriteErrAccount;
-		    reportstruct->emptyreport = 1;
 		    currLen = 0;
 		}
 	    } else {
@@ -756,19 +782,15 @@ void Client::RunUDPTxSync (void) {
 	    reportstruct->errwrite = 1;
 	    reportstruct->emptyreport = 1;
 	    currLen = 0;
-	    if (
-#ifdef WIN32
-		(errno = WSAGetLastError()) != WSAETIMEDOUT &&
-		errno != WSAECONNREFUSED
-#else
-		errno != EAGAIN && errno != EWOULDBLOCK &&
-		errno != EINTR  && errno != ECONNREFUSED &&
-		errno != ENOBUFS
-#endif
-		) {
-		WARN_errno( 1, "write" );
+	    if (FATALUDPWRITERR(errno)) {
+	        reportstruct->errwrite = WriteErrFatal;
+	        WARN_errno( 1, "write" );
 		break;
+	    } else {
+	        reportstruct->errwrite = WriteErrAccount;
+	        currLen = 0;
 	    }
+	  reportstruct->emptyreport = 1;
 	}
 	reportstruct->packetLen = (unsigned long) currLen;
 	ReportPacket( mSettings->reporthdr, reportstruct );

@@ -321,6 +321,7 @@ typedef struct Connection_Info {
     Socklen_t size_local;
     char *peerversion;
     int l2mode;
+    double connecttime;
 } Connection_Info;
 
 typedef struct ReporterData {

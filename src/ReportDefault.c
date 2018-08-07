@@ -502,6 +502,7 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
         struct sockaddr *peer = ((struct sockaddr*)&stats->peer);
 
 	char extbuf[2*PEERBUFSIZE];
+	extbuf[(2*PEERBUFSIZE)-1] = '\0';
 	char *b = &extbuf[0];
 	extbuf[0]= '\0';
 	if (stats->l2mode) {
@@ -509,9 +510,12 @@ void *reporter_reportpeer( Connection_Info *stats, int ID ) {
 	    b += strlen(b);
 	}
 	if (stats->peerversion) {
-	    snprintf(b, PEERBUFSIZE, "%s", stats->peerversion);
+	    snprintf(b, PEERBUFSIZE-strlen(b), "%s", stats->peerversion);
+	    b += strlen(b);
 	}
-
+	if (stats->connecttime > 0) {
+	    snprintf(b, PEERBUFSIZE-strlen(b), " (ct=%4.2f ms)", stats->connecttime);;
+	}
         if ( local->sa_family == AF_INET ) {
             inet_ntop( AF_INET, &((struct sockaddr_in*)local)->sin_addr,
                        local_addr, REPORT_ADDRLEN);

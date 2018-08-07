@@ -110,7 +110,7 @@ private:
     // UDP plain
     void RunUDP( void );
     // client connect
-    void Connect( );
+    double Connect( );
     void HdrXchange(int flags);
 
     thread_Settings *mSettings;
