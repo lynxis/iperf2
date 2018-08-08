@@ -214,7 +214,7 @@ double Client::Connect( ) {
 	rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
                   SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
 	time2.setnow();
-	if (isEnhanced(mSettings)) {
+	if (!isUDP(mSettings) && isEnhanced(mSettings)) {
 	    connecttime = 1e3 * time2.subSec(time1);
 	}
     }
@@ -417,8 +417,8 @@ void Client::RunRateLimitedTCP ( void ) {
     Timestamp time1, time2;
 
     int var_rate = mSettings->mUDPRate;
-    int breaknow = 0;
-    while (InProgress() && !breaknow) {
+    int fatalwrite_err = 0;
+    while (InProgress() && !fatalwrite_err) {
 	// Add tokens per the loop time
 	// clock_gettime is much cheaper than gettimeofday() so
 	// use it if possible.
@@ -443,7 +443,7 @@ void Client::RunRateLimitedTCP ( void ) {
 		} else if (FATALTCPWRITERR(errno)) {
 		    reportstruct->errwrite=WriteErrFatal;
 		    WARN_errno( 1, "write" );
-		    breaknow = 1;
+		    fatalwrite_err = 1;
 		    break;
 		} else {
 		    reportstruct->errwrite=WriteErrNoAccount;
@@ -643,8 +643,8 @@ void Client::RunUDPIsochronous (void) {
 	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
     int initdone = 0;
-    int breaknow = 0;
-    while (InProgress() && !breaknow) {
+    int fatalwrite_err = 0;
+    while (InProgress() && !fatalwrite_err) {
 	int bytecnt = (int) (lognormal(mSettings->mMean,mSettings->mVariance)) / (mSettings->mFPS * 8);
 	delay = 0;
 
@@ -718,7 +718,7 @@ void Client::RunUDPIsochronous (void) {
 		if (FATALUDPWRITERR(errno)) {
 	            reportstruct->errwrite = WriteErrFatal;
 	            WARN_errno( 1, "write" );
-		    breaknow = 1;
+		    fatalwrite_err = 1;
 	        } else {
 		    reportstruct->errwrite = WriteErrAccount;
 		    currLen = 0;
