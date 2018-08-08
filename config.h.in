@@ -42,6 +42,10 @@
    if you don't. */
 #undef HAVE_DECL_IPV6_MULTICAST_HOPS
 
+/* Define to 1 if you have the declaration of `IPV6_TCLASS', and to 0 if you
+   don't. */
+#undef HAVE_DECL_IPV6_TCLASS
+
 /* Define to 1 if you have the declaration of `IP_ADD_MEMBERSHIP', and to 0 if
    you don't. */
 #undef HAVE_DECL_IP_ADD_MEMBERSHIP

@@ -144,7 +144,13 @@ void SetSocketOptions( thread_Settings *inSettings ) {
     }
 
 #ifdef IP_TOS
-
+#ifdef HAVE_DECL_IPV6_TCLASS
+    if (isIPV6(inSettings)) {
+	const int dscp = inSettings->mTOS;
+	int rc = setsockopt(inSettings->mSock, IPPROTO_IPV6, IPV6_TCLASS, &dscp, sizeof(dscp));
+        WARN_errno( rc == SOCKET_ERROR, "setsockopt IPV6_TCLASS" );
+    } else
+#endif
     // set IP TOS (type-of-service) field
     if ( inSettings->mTOS > 0 ) {
         int  tos = inSettings->mTOS;

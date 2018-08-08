@@ -161,6 +161,7 @@ AC_CHECK_FUNCS([atexit memset pthread_cancel select strchr strerror strtol strto
 AC_REPLACE_FUNCS(snprintf inet_pton inet_ntop gettimeofday)
 AC_CHECK_DECLS([ENOBUFS, EWOULDBLOCK],[],[],[#include <errno.h>])
 AC_CHECK_DECLS([SO_TIMESTAMP, SO_SNDTIMEO],[],[],[#include <sys/socket.h>])
+AC_CHECK_DECLS([IPV6_TCLASS],[],[],[#include <netinet/in.h>])
 AC_CHECK_DECLS([CPU_SET],[],[],[
 	#define _GNU_SOURCE
 	#include <sched.h>

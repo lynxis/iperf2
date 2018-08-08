@@ -8145,6 +8145,18 @@ cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_SO_SNDTIMEO $ac_have_decl
 _ACEOF
 
+ac_fn_c_check_decl "$LINENO" "IPV6_TCLASS" "ac_cv_have_decl_IPV6_TCLASS" "#include <netinet/in.h>
+"
+if test "x$ac_cv_have_decl_IPV6_TCLASS" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_IPV6_TCLASS $ac_have_decl
+_ACEOF
+
 ac_fn_c_check_decl "$LINENO" "CPU_SET" "ac_cv_have_decl_CPU_SET" "
 	#define _GNU_SOURCE
 	#include <sched.h>
