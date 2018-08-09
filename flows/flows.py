@@ -252,7 +252,7 @@ class iperf_flow(object):
         self.ipg = ipg
         self.debug = debug
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
-        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None}
+        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None, 'connect_time' : None}
         self.flowtime = flowtime
         # use python composition for the server and client
         # i.e. a flow has a server and a client
@@ -621,6 +621,10 @@ class iperf_client(object):
                                 self.flowstats['retry'].append(m.group('retry'))
                                 self.flowstats['cwnd'].append(m.group('cwnd'))
                                 self.flowstats['rtt'].append(m.group('rtt'))
+                            else :
+                                m = self._client.regex_connect_time.match(line)
+                                if m :
+                                    self.flowstats['connect_time'].append(m.group('connect_time'))
                         else :
                             pass
 
@@ -669,6 +673,7 @@ class iperf_client(object):
         self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
         # traffic ex: [  3] 0.00-0.50 sec  655620 Bytes  10489920 bits/sec  14/211        446      446K/0 us
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>\d+) Bytes\s+(?P<throughput>\d+) bits/sec\s+(?P<writes>\d+)/(?P<errwrites>\d+)\s+(?P<retry>\d+)\s+(?P<cwnd>\d+)K/(?P<rtt>\d+) us')
+        self.regex_connect_time = re.compile(r'\[\s+\d+]\slocal.*\(ct=(?P<connect_time>\d+\.\d+) ms\)')
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -785,36 +790,37 @@ class flow_histogram(object):
                 fid.write('set y2tics nomirror\n')
                 fid.write('set grid\n')
                 fid.write('set xlabel \"time (ms)\\n{} - {}\"\n'.format(h1.starttime, h2.endtime))
+                default_minx = -0.5
                 if float(uci_val) < 0.4:
-                    fid.write('set xrange [0:0.4]\n')
+                    fid.write('set xrange [{}:0.4]\n'.format(default_minx))
                     fid.write('set xtics auto\n')
                 elif h1.max < 2.0 and h2.max < 2.0 :
-                    fid.write('set xrange [0:2]\n')
+                    fid.write('set xrange [{}:2]\n'.format(default_minx))
                     fid.write('set xtics auto\n')
                 elif h1.max < 5.0 and h2.max < 5.0 :
-                    fid.write('set xrange [0:5]\n')
+                    fid.write('set xrange [{}:5]\n'.format(default_minx))
                     fid.write('set xtics auto\n')
                 elif h1.max < 10.0 and h2.max < 10.0:
-                    fid.write('set xrange [0:10]\n')
+                    fid.write('set xrange [{}:10]\n'.format(default_minx))
                     fid.write('set xtics add 1\n')
                 elif h1.max < 20.0 and h2.max < 20.0 :
-                    fid.write('set xrange [0:20]\n')
+                    fid.write('set xrange [{}:20]\n'.format(default_minx))
                     fid.write('set xtics add 1\n')
                     fid.write('set format x \"%.0f"\n')
                 elif h1.max < 40.0 and h2.max < 40.0:
-                    fid.write('set xrange [0:40]\n')
+                    fid.write('set xrange [{}:40]\n'.format(default_minx))
                     fid.write('set xtics add 5\n')
                     fid.write('set format x \"%.0f"\n')
                 elif h1.max < 50.0 and h2.max < 50.0:
-                    fid.write('set xrange [0:50]\n')
+                    fid.write('set xrange [{}:50]\n'.format(default_minx))
                     fid.write('set xtics add 5\n')
                     fid.write('set format x \"%.0f"\n')
                 elif h1.max < 75.0 and h2.max < 75.0:
-                    fid.write('set xrange [0:75]\n')
+                    fid.write('set xrange [{}:75]\n'.format(default_minx))
                     fid.write('set xtics add 5\n')
                     fid.write('set format x \"%.0f"\n')
                 else :
-                    fid.write('set xrange [0:100]\n')
+                    fid.write('set xrange [{}:100]\n'.format(default_minx))
                     fid.write('set xtics add 10\n')
                     fid.write('set format x \"%.0f"\n')
                 fid.write('plot \"{0}\" using 1:2 index 0 axes x1y2 with impulses linetype 3 notitle,  \"{1}\" using 1:2 index 0 axes x1y2 with impulses linetype 2 notitle, \"{1}\" using 1:3 index 0 axes x1y1 with lines linetype 1 linewidth 2 notitle, \"{0}\" using 1:3 index 0 axes x1y1 with lines linetype -1 linewidth 2 notitle\n'.format(h1.datafilename, h2.datafilename))
