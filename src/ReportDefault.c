@@ -477,6 +477,12 @@ void reporter_reportsettings( ReporterData *data ) {
     }
     byte_snprintf( buffer, sizeof(buffer), win,
                    toupper( (int)data->info.mFormat));
+    if (isFQPacing(data) && (data->mThreadMode == kMode_Client)) {
+	char tmpbuf[40];
+	byte_snprintf(tmpbuf, sizeof(tmpbuf), data->FQPacingRate, 'a');
+	tmpbuf[39]='\0';
+        printf(client_fq_pacing,tmpbuf);
+    }
     printf( "%s: %s", (isUDP( data ) ?
                                 udp_buffer_size : tcp_window_size), buffer );
     if ( win_requested == 0 ) {

@@ -169,6 +169,7 @@ MultiHeader* InitMulti( thread_Settings *agent, int inID) {
                 data->mBufLen = agent->mBufLen;
                 data->mMSS = agent->mMSS;
                 data->mTCPWin = agent->mTCPWin;
+		data->FQPacingRate = agent->mFQPacingRate;
 		data->flags = agent->flags;
                 data->mThreadMode = agent->mThreadMode;
                 data->mode = agent->mReportMode;
@@ -259,6 +260,7 @@ ReportHeader* InitReport( thread_Settings *agent ) {
             data->mBufLen = agent->mBufLen;
             data->mMSS = agent->mMSS;
             data->mTCPWin = agent->mTCPWin;
+	    data->FQPacingRate = agent->mFQPacingRate;
             data->flags = agent->flags;
             data->mThreadMode = agent->mThreadMode;
             data->mode = agent->mReportMode;
@@ -556,6 +558,7 @@ void ReportSettings( thread_Settings *agent ) {
             data->mBufLen = agent->mBufLen;
             data->mMSS = agent->mMSS;
             data->mTCPWin = agent->mTCPWin;
+	    data->FQPacingRate = agent->mFQPacingRate;
             data->flags = agent->flags;
             data->flags_extend = agent->flags_extend;
             data->mThreadMode = agent->mThreadMode;

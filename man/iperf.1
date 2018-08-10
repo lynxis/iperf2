@@ -130,6 +130,9 @@ run in client mode, connecting to \fIhost\fR
 .BR -d ", " --dualtest " "
 Do a bidirectional test simultaneously
 .TP
+.BR "    --fq-rate n[KM]"
+Set a rate to be used with fair-queueing based socket-level pacing, in bits per second. Only available on platforms supporting the SO_MAX_PACING_RATE socket option
+.TP
 .BR "    --incr-dstip"
 increment the destination ip address when using the parallel (-P) option
 .TP

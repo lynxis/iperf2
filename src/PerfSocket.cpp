@@ -177,6 +177,14 @@ void SetSocketOptions( thread_Settings *inSettings ) {
         }
 #endif
     }
+
+#if defined(HAVE_DECL_SO_MAX_PACING_RATE)
+    /* If socket pacing is specified try to enable it. */
+    if (isFQPacing(inSettings) && inSettings->mFQPacingRate > 0) {
+	int rc = setsockopt(inSettings->mSock, SOL_SOCKET, SO_MAX_PACING_RATE, &inSettings->mFQPacingRate, sizeof(inSettings->mFQPacingRate));
+        WARN_errno( rc == SOCKET_ERROR, "setsockopt SO_MAX_PACING_RATE" );
+    }
+#endif /* HAVE_SO_MAX_PACING_RATE */
 }
 
 void SetSocketOptionsSendTimeout( thread_Settings *mSettings, int timer) {

@@ -381,6 +381,7 @@ typedef struct ReporterData {
     IsochStats isochstats;
 #endif
     double TxSyncInterval;
+    unsigned int FQPacingRate;
 } ReporterData;
 
 typedef struct MultiHeader {

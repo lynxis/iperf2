@@ -171,6 +171,7 @@ void pattern( char *outBuf, int inBytes );
 double byte_atof( const char *inString );
 double bitorbyte_atof( const char *inString );
 max_size_t byte_atoi( const char  *inString );
+unsigned int bitorbyte_atoi( const char *inString );
 void byte_snprintf( char* outString, int inLen, double inNum, char inFormat );
 
 /* -------------------------------------------------------------------
@@ -203,4 +204,3 @@ void redirect(const char *inOutputFileName);
 #endif
 
 #endif /* UTIL_H */
-

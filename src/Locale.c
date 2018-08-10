@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------
  * Copyright (c) 1999,2000,2001,2002,2003
  * The Board of Trustees of the University of Illinois
@@ -231,6 +230,9 @@ const char wait_server_threads[] =
 
 const char client_udp_isochronous[] =
 "UDP isochronous: %d frames/sec mean=%s/s, stddev=%s/s, Period/IPG=%0.2f/%0.3f ms\n";
+
+const char client_fq_pacing [] =
+"fair-queue socket pacing set to %s mb/s\n";
 
 /* -------------------------------------------------------------------
  * Legacy reports
