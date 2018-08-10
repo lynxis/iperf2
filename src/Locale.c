@@ -232,7 +232,7 @@ const char client_udp_isochronous[] =
 "UDP isochronous: %d frames/sec mean=%s/s, stddev=%s/s, Period/IPG=%0.2f/%0.3f ms\n";
 
 const char client_fq_pacing [] =
-"fair-queue socket pacing set to %s mb/s\n";
+"fair-queue socket pacing set to %s/s\n";
 
 /* -------------------------------------------------------------------
  * Legacy reports
