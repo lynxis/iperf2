@@ -144,7 +144,7 @@ void SetSocketOptions( thread_Settings *inSettings ) {
     }
 
 #ifdef IP_TOS
-#ifdef HAVE_DECL_IPV6_TCLASS
+#if HAVE_DECL_IPV6_TCLASS
     if (isIPV6(inSettings)) {
 	const int dscp = inSettings->mTOS;
 	int rc = setsockopt(inSettings->mSock, IPPROTO_IPV6, IPV6_TCLASS, &dscp, sizeof(dscp));
@@ -178,7 +178,7 @@ void SetSocketOptions( thread_Settings *inSettings ) {
 #endif
     }
 
-#if defined(HAVE_DECL_SO_MAX_PACING_RATE)
+#if HAVE_DECL_SO_MAX_PACING_RATE
     /* If socket pacing is specified try to enable it. */
     if (isFQPacing(inSettings) && inSettings->mFQPacingRate > 0) {
 	int rc = setsockopt(inSettings->mSock, SOL_SOCKET, SO_MAX_PACING_RATE, &inSettings->mFQPacingRate, sizeof(inSettings->mFQPacingRate));
