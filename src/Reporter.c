@@ -1312,28 +1312,33 @@ static void gettcpistats (ReporterData *stats, int final) {
         static int cnt = 0;
 	struct tcp_info tcp_internal;
 	socklen_t tcp_info_length = sizeof(struct tcp_info);
-	int retry;
-
+	int retry = 0;
 	// Read the TCP retry stats for a client.  Do this
 	// on  a report interval period.
-	if (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) {
-	    WARN_errno( 1 , "getsockopt");
-	    retry = 0;
+	int rc = (stats->info.socket==INVALID_SOCKET) ? 0 : 1;
+	if (rc) {
+	  rc = (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) ? 0 : 1;
+	  if (!rc)
+	    stats->info.socket = INVALID_SOCKET;
+	}
+	if (!rc) {
+	    stats->info.sock_callstats.write.TCPretry = 0;
+	    stats->info.sock_callstats.write.cwnd = 0;
+	    stats->info.sock_callstats.write.rtt = 0;
 	} else {
 	    retry = tcp_internal.tcpi_total_retrans - stats->info.sock_callstats.write.lastTCPretry;
+	    stats->info.sock_callstats.write.TCPretry = retry;
+	    stats->info.sock_callstats.write.totTCPretry += retry;
+	    stats->info.sock_callstats.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+	    stats->info.sock_callstats.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
+	    stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
+	    // New average = old average * (n-1)/n + new value/n
+	    cnt++;
+	    stats->info.sock_callstats.write.meanrtt = (stats->info.sock_callstats.write.meanrtt * ((double) (cnt - 1) / (double) cnt)) + ((double) (tcp_internal.tcpi_rtt) / (double) cnt);
+	    stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
 	}
-	stats->info.sock_callstats.write.TCPretry = retry;
-	stats->info.sock_callstats.write.totTCPretry += retry;
-	stats->info.sock_callstats.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
-	stats->info.sock_callstats.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
-	stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
-	// New average = old average * (n-1)/n + new value/n
-	cnt++;
-	stats->info.sock_callstats.write.meanrtt = (stats->info.sock_callstats.write.meanrtt * ((double) (cnt - 1) / (double) cnt)) + ((double) (tcp_internal.tcpi_rtt) / (double) cnt);
 	if (final) {
 	    stats->info.sock_callstats.write.rtt = stats->info.sock_callstats.write.meanrtt;
-	} else {
-	    stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
 	}
     }
 }
