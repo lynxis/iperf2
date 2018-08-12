@@ -671,6 +671,8 @@ CFLAGS
 CC
 CHECKPROGRAMS_FALSE
 CHECKPROGRAMS_TRUE
+FASTSAMPLING_FALSE
+FASTSAMPLING_TRUE
 UDPTRIGGERS_FALSE
 UDPTRIGGERS_TRUE
 ISOCHRONOUS_FALSE
@@ -757,6 +759,7 @@ enable_kalman
 enable_seqno64b
 enable_isochronous
 enable_udptriggers
+enable_fastsampling
 enable_checkprograms
 enable_af_packet
 enable_dependency_tracking
@@ -1406,6 +1409,8 @@ Optional Features:
                           enable)
   --disable-isochronous   disable isochronous support (default is enable)
   --enable-udptriggers    enable support for udp triggers in udp payloads
+                          (default is disable)
+  --enable-fastsampling   enable support for 100 microsecond report intervals
                           (default is disable)
   --enable-checkprograms  enable support for building support programs such as
                           checkdelay, checkpdfs, etc. (default is disable)
@@ -3322,6 +3327,20 @@ fi
 else
   UDPTRIGGERS_TRUE='#'
   UDPTRIGGERS_FALSE=
+fi
+
+
+# Check whether --enable-fastsampling was given.
+if test "${enable_fastsampling+set}" = set; then :
+  enableval=$enable_fastsampling;
+fi
+
+ if test "x$enable_fastsampling" = "xyes"; then
+  FASTSAMPLING_TRUE=
+  FASTSAMPLING_FALSE='#'
+else
+  FASTSAMPLING_TRUE='#'
+  FASTSAMPLING_FALSE=
 fi
 
 
@@ -8940,6 +8959,12 @@ $as_echo "#define HAVE_UDPTRIGGERS 1" >>confdefs.h
 
 fi
 
+if test "$enable_fastsampling" = yes; then
+
+$as_echo "#define HAVE_FASTSAMPLING 1" >>confdefs.h
+
+fi
+
 case "$ac_cv_host" in
 *-mingw32)
         LIBS="$LIBS -static-libstdc++ -static";;
@@ -9104,6 +9129,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${UDPTRIGGERS_TRUE}" && test -z "${UDPTRIGGERS_FALSE}"; then
   as_fn_error $? "conditional \"UDPTRIGGERS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${FASTSAMPLING_TRUE}" && test -z "${FASTSAMPLING_FALSE}"; then
+  as_fn_error $? "conditional \"FASTSAMPLING\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CHECKPROGRAMS_TRUE}" && test -z "${CHECKPROGRAMS_FALSE}"; then

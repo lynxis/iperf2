@@ -70,7 +70,11 @@ extern "C" {
 #endif
 
 /* Smallest report interval supported. Units is seconds */
+#ifdef HAVE_FASTSAMPLING
+#define SMALLEST_INTERVAL 0.0001
+#else
 #define SMALLEST_INTERVAL 0.005
+#endif
 
 // server/client mode
 typedef enum ThreadMode {

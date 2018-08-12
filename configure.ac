@@ -49,6 +49,10 @@ AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
 	    [enable support for udp triggers in udp payloads (default is disable)]))
 AM_CONDITIONAL([UDPTRIGGERS], [test "x$enable_udptriggers" = "xyes"])
 
+AC_ARG_ENABLE(fastsampling, AC_HELP_STRING([--enable-fastsampling],
+	    [enable support for 100 microsecond report intervals (default is disable)]))
+AM_CONDITIONAL([FASTSAMPLING], [test "x$enable_fastsampling" = "xyes"])
+
 AC_ARG_ENABLE(checkprograms, AC_HELP_STRING([--enable-checkprograms],
 	    [enable support for building support programs such as checkdelay, checkpdfs, etc. (default is disable)]))
 AM_CONDITIONAL([CHECKPROGRAMS], [test "x$enable_checkprograms" = "xyes"])
@@ -325,6 +329,10 @@ fi
 
 if test "$enable_udptriggers" = yes; then
 AC_DEFINE([HAVE_UDPTRIGGERS], 1, [Define if udp triggers option is desired and available])
+fi
+
+if test "$enable_fastsampling" = yes; then
+AC_DEFINE([HAVE_FASTSAMPLING], 1, [Define if fast sampling for report intervals is desired])
 fi
 
 case "$ac_cv_host" in

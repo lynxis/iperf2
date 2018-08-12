@@ -283,8 +283,13 @@ const char report_sum_bw_read_enhanced_format[] =
 const char report_bw_write_enhanced_header[] =
 "[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry     Cwnd/RTT        NetPwr\n";
 
+#ifdef HAVE_FASTSAMPLING
+const char report_bw_write_enhanced_format[] =
+"[%3d] %4.4f-%4.4f sec  %ss  %ss/sec  %d/%d %10d %8dK/%u us  %4.2f\n";
+#else
 const char report_bw_write_enhanced_format[] =
 "[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d %10d %8dK/%u us  %4.2f\n";
+#endif
 
 const char report_sum_bw_write_enhanced_format[] =
 "[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d%10d\n";

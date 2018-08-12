@@ -73,6 +73,9 @@
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
 
+/* Define if fast sampling for report intervals is desired */
+#undef HAVE_FASTSAMPLING
+
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK
 
