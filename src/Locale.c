@@ -165,8 +165,10 @@ Report bugs to <iperf-users@lists.sourceforge.net>\n";
 #endif
 #ifdef HAVE_FASTSAMPLING
 #define IPERFTimeFrmt "%4.4f-%4.4f"
+#define IPERFTimeSpace "            "
 #else
 #define IPERFTimeFrmt "%4.2f-%4.2f"
+#define IPERFTimeSpace "        "
 #endif
 
 const char version[] =
@@ -276,7 +278,7 @@ const char report_sum_bw_enhanced_format[] =
 "[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec\n";
 
 const char report_bw_read_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=%.1fK)\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer    Bandwidth       Reads   Dist(bin=%.1fK)\n";
 
 const char report_bw_read_enhanced_format[] =
 "[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
@@ -286,7 +288,7 @@ const char report_sum_bw_read_enhanced_format[] =
 
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 const char report_bw_write_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry     Cwnd/RTT        NetPwr\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer    Bandwidth       Write/Err  Rtry     Cwnd/RTT        NetPwr\n";
 
 const char report_bw_write_enhanced_format[] =
 "[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %10d %8dK/%u us  %4.2f\n";
@@ -296,7 +298,7 @@ const char report_sum_bw_write_enhanced_format[] =
 
 #else
 const char report_bw_write_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Write/Err\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer    Bandwidth       Write/Err\n";
 
 const char report_bw_write_enhanced_format[] =
 "[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d\n";
@@ -306,13 +308,13 @@ const char report_sum_bw_write_enhanced_format[] =
 #endif
 
 const char report_bw_pps_enhanced_header[] =
-"[ ID] Interval       Transfer     Bandwidth      Write/Err  PPS\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth      Write/Err  PPS\n";
 
 const char report_bw_pps_enhanced_format[] =
 "[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %8.0f pps\n";
 
 const char report_bw_pps_enhanced_isoch_header[] =
-"[ ID] Interval       Transfer     Bandwidth      Write/Err  PPS  frames:tx/missed/slips\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth      Write/Err  PPS  frames:tx/missed/slips\n";
 
 const char report_bw_pps_enhanced_isoch_format[] =
 "[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %8.0f pps  %3d/%d/%d\n";
@@ -321,14 +323,14 @@ const char report_sum_bw_pps_enhanced_format[] =
 "[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %8.0f pps\n";
 
 const char report_bw_jitter_loss_enhanced_header[] =
-"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth        Jitter   Lost/Total \
  Latency avg/min/max/stdev PPS  NetPwr\n";
 
 const char report_bw_jitter_loss_enhanced_format[] =
 "[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps  %4.2f\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_header[] =
-"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth        Jitter   Lost/Total \
  Latency avg/min/max/stdev PPS  NetPwr  Frames/Lost\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_format[] =
