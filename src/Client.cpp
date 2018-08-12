@@ -881,6 +881,11 @@ void Client::FinishTrafficActions(void) {
 	ReportPacket( mSettings->reporthdr, reportstruct );
     }
     CloseReport( mSettings->reporthdr, reportstruct );
+    if ( mSettings->mSock != INVALID_SOCKET ) {
+        int rc = close( mSettings->mSock );
+        WARN_errno( rc == SOCKET_ERROR, "close" );
+        mSettings->mSock = INVALID_SOCKET;
+    }
     EndReport( mSettings->reporthdr );
 }
 
