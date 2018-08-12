@@ -466,10 +466,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		fprintf (stderr, "Invalid value of '%s' for -i interval\n", optarg);
 	    } else {
 	        if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
+		    mExtSettings->mInterval = SMALLEST_INTERVAL;
 #ifndef HAVE_FASTSAMPLING
 		    fprintf (stderr, report_interval_small, mExtSettings->mInterval);
 #endif
-		    mExtSettings->mInterval = SMALLEST_INTERVAL;
 	        }
 		if ( mExtSettings->mInterval < 0.5 ) {
 		    setEnhanced( mExtSettings );
