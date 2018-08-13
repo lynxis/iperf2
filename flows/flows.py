@@ -244,11 +244,12 @@ class iperf_flow(object):
             self.length = length;
         self.interval = round(interval,3)
         self.offered_load = offered_load
-        if len(self.offered_load.split(':')) == 2 :
-            self.isoch = True
-            self.name += '-isoch'
-        else :
-            self.isoch = False
+        if self.offered_load :
+            if len(self.offered_load.split(':')) == 2 :
+                self.isoch = True
+                self.name += '-isoch'
+            else :
+                self.isoch = False
         self.ipg = ipg
         self.debug = debug
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
@@ -678,7 +679,7 @@ class iperf_client(object):
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
 
-    async def start(self, time=time):
+    async def start(self, time=time, amount=None):
         if not self.closed.is_set() :
             return
 

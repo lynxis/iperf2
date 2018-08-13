@@ -45,14 +45,14 @@ class ssh_node:
             ssh_node.rexec_tasks = []
 
     @classmethod
-    def open_consoles(cls) :
+    def open_consoles(cls, silent_mode=False) :
         ssh_node.set_loop()
         nodes = ssh_node.get_instances()
         node_names = []
         tasks = []
         for node in nodes :
             if not node.ssh_console_session :
-                node.ssh_console_session = ssh_session(name=node.name, hostname=node.ipaddr, node=node, control_master=True)
+                node.ssh_console_session = ssh_session(name=node.name, hostname=node.ipaddr, node=node, control_master=True, silent_mode=silent_mode)
                 node.console_task = asyncio.ensure_future(node.ssh_console_session.post_cmd(cmd='dmesg -w', IO_TIMEOUT=None, CMD_TIMEOUT=None))
                 tasks.append(node.console_task)
                 node_names.append(node.name)
@@ -151,7 +151,7 @@ class ssh_node:
 class ssh_session:
     sessionid = 1;
     class SSHReaderProtocol(asyncio.SubprocessProtocol):
-        def __init__(self, session):
+        def __init__(self, session, silent_mode):
             self._exited = False
             self._closed_stdout = False
             self._closed_stderr = False
@@ -160,6 +160,7 @@ class ssh_session:
             self._stderrbuffer = ""
             self.debug = False
             self._session = session
+            self._silent_mode = silent_mode
             self.loop = ssh_node.loop
             if self._session.CONNECT_TIMEOUT is not None :
                 self.watchdog = ssh_node.loop.call_later(self._session.CONNECT_TIMEOUT, self.wd_timer)
@@ -204,7 +205,8 @@ class ssh_session:
                 self._stdoutbuffer += data
                 while "\n" in self._stdoutbuffer:
                     line, self._stdoutbuffer = self._stdoutbuffer.split("\n", 1)
-                    self._session.adapter.info('{}'.format(line))
+                    if not self._silent_mode :
+                        self._session.adapter.info('{}'.format(line))
 
             elif fd == 2:
                 self._stderrbuffer += data
@@ -249,7 +251,7 @@ class ssh_session:
         def process(self, msg, kwargs):
             return '[%s] %s' % (self.extra['connid'], msg), kwargs
 
-    def __init__(self, user='root', name=None, hostname='localhost', CONNECT_TIMEOUT=None, control_master=False, node=None):
+    def __init__(self, user='root', name=None, hostname='localhost', CONNECT_TIMEOUT=None, control_master=False, node=None, silent_mode=False):
         self.hostname = hostname
         self.name = name
         self.user = user
@@ -267,6 +269,7 @@ class ssh_session:
         self.CMD_TIMEOUT = None
         self.control_master = control_master
         self.ssh = '/usr/bin/ssh'
+        self.silent_mode = silent_mode
         logger = logging.getLogger(__name__)
         if control_master :
             conn_id = self.name + '(console)'
@@ -305,7 +308,7 @@ class ssh_session:
         logging.info('{} {}'.format(self.name, s.join(sshcmd)))
 #        logging.debug('{}'.format(sshcmd))
         # self in the ReaderProtocol() is this ssh_session instance
-        self._transport, self._protocol = await ssh_node.loop.subprocess_exec(lambda: self.SSHReaderProtocol(self), *sshcmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=None)
+        self._transport, self._protocol = await ssh_node.loop.subprocess_exec(lambda: self.SSHReaderProtocol(self, self.silent_mode), *sshcmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=None)
         # self.sshpipe = self._transport.get_extra_info('subprocess')
         # Establish the remote command
         self.connected.wait()
