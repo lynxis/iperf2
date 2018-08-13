@@ -119,6 +119,7 @@ typedef struct WriteStats {
     int cwnd;
     int rtt;
     double meanrtt;
+    int up_to_date;
 } WriteStats;
 
 #ifdef HAVE_ISOCHRONOUS

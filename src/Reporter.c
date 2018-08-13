@@ -1308,38 +1308,39 @@ void reporter_handle_multiple_reports( MultiHeader *reporthdr, Transfer_Info *st
 
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 static void gettcpistats (ReporterData *stats, int final) {
-    if (stats->info.mEnhanced && stats->info.mTCP == kMode_Client) {
-        static int cnt = 0;
-	struct tcp_info tcp_internal;
-	socklen_t tcp_info_length = sizeof(struct tcp_info);
-	int retry = 0;
-	// Read the TCP retry stats for a client.  Do this
-	// on  a report interval period.
-	int rc = (stats->info.socket==INVALID_SOCKET) ? 0 : 1;
-	if (rc) {
-	  rc = (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) ? 0 : 1;
-	  if (!rc)
+    static int cnt = 0;
+    struct tcp_info tcp_internal;
+    socklen_t tcp_info_length = sizeof(struct tcp_info);
+    int retry = 0;
+    // Read the TCP retry stats for a client.  Do this
+    // on  a report interval period.
+    int rc = (stats->info.socket==INVALID_SOCKET) ? 0 : 1;
+    if (rc) {
+        rc = (getsockopt(stats->info.socket, IPPROTO_TCP, TCP_INFO, &tcp_internal, &tcp_info_length) < 0) ? 0 : 1;
+	if (!rc)
 	    stats->info.socket = INVALID_SOCKET;
-	}
-	if (!rc) {
-	    stats->info.sock_callstats.write.TCPretry = 0;
-	    stats->info.sock_callstats.write.cwnd = 0;
-	    stats->info.sock_callstats.write.rtt = 0;
-	} else {
-	    retry = tcp_internal.tcpi_total_retrans - stats->info.sock_callstats.write.lastTCPretry;
-	    stats->info.sock_callstats.write.TCPretry = retry;
-	    stats->info.sock_callstats.write.totTCPretry += retry;
-	    stats->info.sock_callstats.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
-	    stats->info.sock_callstats.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
-	    stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
-	    // New average = old average * (n-1)/n + new value/n
-	    cnt++;
-	    stats->info.sock_callstats.write.meanrtt = (stats->info.sock_callstats.write.meanrtt * ((double) (cnt - 1) / (double) cnt)) + ((double) (tcp_internal.tcpi_rtt) / (double) cnt);
-	    stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
-	}
-	if (final) {
-	    stats->info.sock_callstats.write.rtt = stats->info.sock_callstats.write.meanrtt;
-	}
+	else
+	    // Mark stale now so next call at report interval will update
+	    stats->info.sock_callstats.write.up_to_date = 1;
+    }
+    if (!rc) {
+        stats->info.sock_callstats.write.TCPretry = 0;
+	stats->info.sock_callstats.write.cwnd = -1;
+	stats->info.sock_callstats.write.rtt = 0;
+    } else {
+        retry = tcp_internal.tcpi_total_retrans - stats->info.sock_callstats.write.lastTCPretry;
+	stats->info.sock_callstats.write.TCPretry = retry;
+	stats->info.sock_callstats.write.totTCPretry += retry;
+	stats->info.sock_callstats.write.lastTCPretry = tcp_internal.tcpi_total_retrans;
+	stats->info.sock_callstats.write.cwnd = tcp_internal.tcpi_snd_cwnd * tcp_internal.tcpi_snd_mss / 1024;
+	stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
+	// New average = old average * (n-1)/n + new value/n
+	cnt++;
+	stats->info.sock_callstats.write.meanrtt = (stats->info.sock_callstats.write.meanrtt * ((double) (cnt - 1) / (double) cnt)) + ((double) (tcp_internal.tcpi_rtt) / (double) cnt);
+	stats->info.sock_callstats.write.rtt = tcp_internal.tcpi_rtt;
+    }
+    if (final) {
+        stats->info.sock_callstats.write.rtt = stats->info.sock_callstats.write.meanrtt;
     }
 }
 #endif
@@ -1348,10 +1349,12 @@ static void gettcpistats (ReporterData *stats, int final) {
  */
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force ) {
 
-    if ( force ) {
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-        gettcpistats(stats, 1);
+    if ((stats->info.mEnhanced && stats->info.mTCP == kMode_Client) && (force || !stats->info.sock_callstats.write.up_to_date))
+        gettcpistats(stats, force);
 #endif
+
+    if ( force ) {
         stats->info.cntOutofOrder = stats->cntOutofOrder;
         // assume most of the time out-of-order packets are not
         // duplicate packets, so conditionally subtract them from the lost packets.
@@ -1419,9 +1422,6 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
                    stats->intervalTime.tv_usec != 0) &&
                   TimeDifference( stats->nextTime,
                                   stats->packetTime ) < 0 ) {
-#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
-	    gettcpistats(stats, 0);
-#endif
 	    stats->info.cntOutofOrder = stats->cntOutofOrder - stats->lastOutofOrder;
 	    stats->lastOutofOrder = stats->cntOutofOrder;
 	    // assume most of the  time out-of-order packets are not
@@ -1463,6 +1463,10 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 		if ((stats->info.mTCP == (char)kMode_Client) || (stats->info.mUDP == (char)kMode_Client)) {
 		    stats->info.sock_callstats.write.WriteCnt = 0;
 		    stats->info.sock_callstats.write.WriteErr = 0;
+		    stats->info.sock_callstats.write.WriteErr = 0;
+#ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
+		    stats->info.sock_callstats.write.up_to_date = 0;
+#endif
 		} else if (stats->info.mTCP == (char)kMode_Server) {
 		    int ix;
 		    stats->info.sock_callstats.read.cntRead = 0;
