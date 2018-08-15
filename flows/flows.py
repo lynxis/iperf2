@@ -237,7 +237,6 @@ class iperf_flow(object):
         self.dstip = dstip
         self.srcip = srcip
         self.srcport = srcport
-
         self.server = server
         self.client = client
         if not user :
@@ -432,7 +431,7 @@ class iperf_server(object):
                             self._server.opened.set()
                             logging.debug('{} pipe reading (stdout,{})'.format(self._server.name, self._server.remotepid))
                     else :
-                        if self.proto == 'TCP' :
+                        if self._server.proto == 'TCP' :
                             m = self._server.regex_traffic.match(line)
                             if m :
                                 timestamp = datetime.now()
@@ -606,13 +605,12 @@ class iperf_client(object):
                     if not self._client.opened.is_set() :
                         m = self._client.regex_open_pid.match(line)
                         if m :
-                            # logging.debug('remote pid match {}'.format(m.group('pid')))
                             self._client.opened.set()
                             self._client.remotepid = m.group('pid')
                             self.flowstats['starttime'] = datetime.now(timezone.utc).astimezone()
                             logging.debug('{} pipe reading at {} (stdout,{})'.format(self._client.name, self.flowstats['starttime'].isoformat(), self._client.remotepid))
                     else :
-                        if self.proto == 'TCP':
+                        if self._client.proto == 'TCP':
                             m = self._client.regex_traffic.match(line)
                             if m :
                                 timestamp = datetime.now()
@@ -643,7 +641,7 @@ class iperf_client(object):
                             else :
                                 m = self._client.regex_connect_time.match(line)
                                 if m :
-                                    self.flowstats['connect_time'].append(m.group('connect_time'))
+                                    self.flowstats['connect_time']=m.group('connect_time')
                         else :
                             pass
 
