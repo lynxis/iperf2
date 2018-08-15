@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#/bin/env python3.5
 #
 # Author Robert J. McMahon
 # Date August 8, 2018
@@ -44,7 +44,6 @@ root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 loop.set_debug(False)
 
-
 logging.basicConfig(filename='test.log', level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
 
 logging.getLogger('asyncio').setLevel(logging.DEBUG)
@@ -59,7 +58,16 @@ dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
 mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
+elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+
+duts = [duta, dutb, dutc, dutd]
+
 ssh_node.open_consoles(silent_mode=True)
+
+for dut in duts :
+    dut.wl(cmd='status')
+ssh_node.run_all_commands()
 
 duta.wl(cmd='wme_ac ap')
 dutb.wl(cmd='wme_ac sta')
@@ -68,6 +76,9 @@ dutd.wl(cmd='wme_ac sta')
 ssh_node.run_all_commands()
 
 ct_times = []
+
+elephants=[elephant1, elephant2]
+iperf_flow.commence(time=7200, flows=elephants, preclean=False)
 for i in range(args.runcount) :
     print('run={}'.format(i))
     mouse.stats_reset()
@@ -76,11 +87,12 @@ for i in range(args.runcount) :
         ct_times.append(mouse.connect_time)
     logging.info('flowstats={}'.format(mouse.flowstats))
 
-ssh_node.close_consoles()
-loop.close()
-
 if ct_times :
     logging.info('Connect times={}'.format(ct_times))
     print('Connect times={}'.format(ct_times))
+
+iperf_flow.cease(flows=elephants)
+ssh_node.close_consoles()
+loop.close()
 
 logging.shutdown()

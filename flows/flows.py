@@ -82,6 +82,10 @@ class iperf_flow(object):
                 logging.error('preclean timeout')
                 raise
 
+        for flow in flows :
+            iperf_flow.port += 1
+            flow.dstport = iperf_flow.port
+
         logging.info('flow run invoked')
         tasks = [asyncio.ensure_future(flow.rx.start(time=time), loop=iperf_flow.loop) for flow in flows]
         try :
@@ -135,6 +139,39 @@ class iperf_flow(object):
         logging.info('flow run finished')
 
     @classmethod
+    def commence(cls, time=None, flows='all', sample_delay=None, io_timer=None, preclean=False) :
+        if flows == 'all' :
+            flows = iperf_flow.get_instances()
+        if not flows:
+            logging.warn('flow run method called with no flows instantiated')
+            return
+
+        if preclean:
+            hosts = [flow.server for flow in flows]
+            hosts.extend([flow.client for flow in flows])
+            hosts=list(set(hosts))
+            tasks = [asyncio.ensure_future(iperf_flow.cleanup(user='root', host=host)) for host in hosts]
+            try :
+                iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+            except asyncio.TimeoutError:
+                logging.error('preclean timeout')
+                raise
+
+        logging.info('flow start invoked')
+        tasks = [asyncio.ensure_future(flow.rx.start(time=time), loop=iperf_flow.loop) for flow in flows]
+        try :
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+        except asyncio.TimeoutError:
+            logging.error('flow server start timeout')
+            raise
+        tasks = [asyncio.ensure_future(flow.tx.start(time=time), loop=iperf_flow.loop) for flow in flows]
+        try :
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+        except asyncio.TimeoutError:
+            logging.error('flow client start timeout')
+            raise
+
+    @classmethod
     def plot(cls, flows='all', title='None', directory='None') :
         if flows == 'all' :
             flows = iperf_flow.get_instances()
@@ -165,7 +202,7 @@ class iperf_flow(object):
 
 
     @classmethod
-    def stop(cls, flows='all') :
+    def cease(cls, flows='all') :
         loop = asyncio.get_event_loop()
         if flows == 'all' :
             flows = iperf_flow.get_instances()
