@@ -64,7 +64,7 @@ class iperf_flow(object):
         iperf_flow.loop.close()
 
     @classmethod
-    def run(cls, time=None, flows='all', sample_delay=None, io_timer=None, preclean=False) :
+    def run(cls, time=None, amount=None, flows='all', sample_delay=None, io_timer=None, preclean=False) :
         if flows == 'all' :
             flows = iperf_flow.get_instances()
         if not flows:
@@ -89,7 +89,7 @@ class iperf_flow(object):
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise
-        tasks = [asyncio.ensure_future(flow.tx.start(time=time), loop=iperf_flow.loop) for flow in flows]
+        tasks = [asyncio.ensure_future(flow.tx.start(time=time, amount=amount), loop=iperf_flow.loop) for flow in flows]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
@@ -104,16 +104,24 @@ class iperf_flow(object):
             except asyncio.TimeoutError:
                 logging.error('flow traffic check timeout')
                 raise
+        if time :
+            iperf_flow.sleep(time=time, text="Running traffic start", stoptext="Stopping flows")
+            # Signal the remote iperf client sessions to stop them
+            tasks = [asyncio.ensure_future(flow.tx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
+            try :
+                iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=3, loop=iperf_flow.loop))
+            except asyncio.TimeoutError:
+                logging.error('flow tx stop timeout')
+                raise
 
-        iperf_flow.sleep(time=time, text="Running traffic start", stoptext="Stopping flows")
-
-        # Signal the remote iperf client sessions to stop them
-        tasks = [asyncio.ensure_future(flow.tx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
-        try :
-            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=3, loop=iperf_flow.loop))
-        except asyncio.TimeoutError:
-            logging.error('flow tx stop timeout')
-            raise
+        elif amount:
+            tasks = [asyncio.ensure_future(flow.transmit_completed(), loop=iperf_flow.loop) for flow in flows]
+            try :
+                iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+            except asyncio.TimeoutError:
+                logging.error('flow tx completed timed out')
+                raise
+            logging.info('flow transmit completed')
 
         # Now signal the remote iperf server sessions to stop them
         tasks = [asyncio.ensure_future(flow.rx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
@@ -213,7 +221,7 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dstip = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', src=None, srcip = None, srcport = None, dstport = None,  debug = False, udptriggers = False, length = None, latency=False, ipg=0.005):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dstip = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', src=None, srcip = None, srcport = None, dstport = None,  debug = False, udptriggers = False, length = None, latency=False, ipg=0.005, amount=None):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -241,7 +249,9 @@ class iperf_flow(object):
         if not length :
             self.length = 1470
         else :
-            self.length = length;
+            self.length = length
+        if amount :
+            self.amount = amount
         self.interval = round(interval,3)
         self.offered_load = offered_load
         if self.offered_load :
@@ -299,6 +309,10 @@ class iperf_flow(object):
             logging.info('{} {}'.format(self.name, 'traffic check invoked'))
             await self.rx.traffic_event.wait()
             await self.tx.traffic_event.wait()
+
+    async def transmit_completed(self) :
+        logging.info('{} {}'.format(self.name, 'waiting for transmit to complete'))
+        await self.tx.txcompleted.wait()
 
     async def stop(self):
         self.tx.stop()
@@ -513,8 +527,11 @@ class iperf_server(object):
 
         self.opened.clear()
         self.remotepid = None
-        iperftime = time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.dstport), '-e',  '-t ' + str(iperftime), '-z', '-fb', '-w' , self.window]
+        if time :
+            iperftime = time + 30
+            self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.dstport), '-e',  '-t ' + str(iperftime), '-z', '-fb', '-w' , self.window]
+        else :
+            self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-s', '-p ' + str(self.dstport), '-e',  '-z', '-fb', '-w' , self.window]
         if self.interval >= 0.005 :
             self.sshcmd.extend(['-i ', str(self.interval)])
         if self.proto == 'UDP' :
@@ -570,6 +587,7 @@ class iperf_client(object):
                 return
             self._client.closed.set()
             self._client.opened.clear()
+            self._client.txcompleted.set()
 
         def connection_made(self, trans):
             self._client.closed.clear()
@@ -659,7 +677,9 @@ class iperf_client(object):
         self.loop = loop
         self.opened = asyncio.Event(loop=self.loop)
         self.closed = asyncio.Event(loop=self.loop)
+        self.txcompleted = asyncio.Event(loop=self.loop)
         self.closed.set()
+        self.txcompleted.clear()
         self.traffic_event = asyncio.Event(loop=self.loop)
         self.name = name
         self.iperf = '/usr/local/bin/iperf'
@@ -679,17 +699,21 @@ class iperf_client(object):
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
 
-    async def start(self, time=time, amount=None):
+    async def start(self, time=None, amount=None):
         if not self.closed.is_set() :
             return
 
         self.opened.clear()
+        self.txcompleted.clear()
         self.remotepid = None
+
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
         if time:
-            iperftime = time + 30
-        else :
-            ipertime = self.time + 30
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-t ' + str(iperftime), '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
+            self.sshcmd.extend(['-t ', str(time)])
+        elif amount:
+            iperftime = time
+            self.sshcmd.extend(['-n ',  amount])
+
         if self.srcip :
             if self.srcport :
                 self.sshcmd.extend(['-B {}:{}'.format(self.srcip, self.srcport)])

@@ -66,19 +66,8 @@ class ssh_node:
     @classmethod
     def close_consoles(cls) :
         nodes = ssh_node.get_instances()
-        node_names = []
         tasks = []
-        for node in nodes :
-            if node.ssh_console_session :
-                node.console_task = asyncio.ensure_future(node.ssh_console_session.post_cmd(cmd='dmesg --clear', IO_TIMEOUT=None, CMD_TIMEOUT=None))
-                tasks.append(node.console_task)
-                node_names.append(node.name)
-
-        if tasks :
-            s = " "
-            logging.info('Clearing consoles: {}'.format(s.join(node_names)))
-            ssh_node.loop.run_until_complete(asyncio.wait(tasks, timeout=60, loop=ssh_node.loop))
-
+        node_names = []
         for node in nodes :
             if node.ssh_console_session :
                 node.console_task = asyncio.ensure_future(node.ssh_console_session.close())
@@ -90,7 +79,7 @@ class ssh_node:
             logging.info('Closing consoles: {}'.format(s.join(node_names)))
             ssh_node.loop.run_until_complete(asyncio.wait(tasks, timeout=60, loop=ssh_node.loop))
 
-    def __init__(self, name=None, ipaddr=None, console=False, device=None, ssh_speedups=True):
+    def __init__(self, name=None, ipaddr=None, console=False, device=None, ssh_speedups=True, silent_mode=False):
         self.ipaddr = ipaddr
         self.name = name
         self.my_tasks = []
@@ -288,7 +277,21 @@ class ssh_session:
         return self._exited and self._closed_stdout and self._closed_stderr
 
     async def close(self) :
-        if self.sshpipe :
+        if self.control_master :
+            childprocess = await asyncio.create_subprocess_exec(self.ssh, '-o ControlPath={}'.format(self.controlmasters), '{}@{}'.format(self.user, self.hostname), 'pkill', 'dmesg', stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=ssh_node.loop)
+            stdout, _ = await childprocess.communicate()
+            if stdout:
+                logging.debug('dmesg pkilled')
+            self.sshpipe.terminate()
+            await self.closed.wait()
+            childprocess = await asyncio.create_subprocess_exec(self.ssh, '-O exit', '-o ControlPath={}'.format(self.controlmasters), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=ssh_node.loop)
+            stdout, stderr = await childprocess.communicate()
+            if stdout:
+                logging.info('control master exit for {}'.format(self.controlmasters))
+            if stderr:
+                logging.info('control master exit stderr for {}'.format(self.controlmasters))
+
+        elif self.sshpipe :
             self.sshpipe.terminate()
             await self.closed.wait()
 
@@ -300,7 +303,7 @@ class ssh_session:
         self.CMD_TIMEOUT = CMD_TIMEOUT
         sshcmd = [self.ssh]
         if self.control_master :
-            sshcmd.extend(['-o ControlMaster=yes', '-o ControlPath={}'.format(self.controlmasters)])
+            sshcmd.extend(['-o ControlMaster=yes', '-o ControlPath={}'.format(self.controlmasters), '-o ControlPersist=1'])
         elif ssh_speedups :
             sshcmd.append('-o ControlPath={}'.format(self.controlmasters))
         sshcmd.extend(['{}@{}'.format(self.user, self.hostname), cmd])
