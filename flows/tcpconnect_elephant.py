@@ -24,6 +24,7 @@ parser.add_argument('-t','--time', type=float, default=0.5, required=False, help
 parser.add_argument('-T','--title', type=str, default="", required=False, help='title for graphs')
 parser.add_argument('-o','--output_directory', type=str, required=False, default='./data', help='output directory')
 parser.add_argument('--loglevel', type=str, required=False, default='INFO', help='python logging level, e.g. INFO or DEBUG')
+parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 
 # Parse command line arguments
 args = parser.parse_args()
@@ -57,7 +58,7 @@ dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0')
 dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
-mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=args.time)
+mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
 ssh_node.open_consoles(silent_mode=True)
 
 duta.wl(cmd='wme_ac ap')
@@ -69,6 +70,7 @@ ssh_node.run_all_commands()
 ct_times = []
 for i in range(args.runcount) :
     print('run={}'.format(i))
+    mouse.stats_reset()
     iperf_flow.run(amount='256K', time=None, flows=[mouse], preclean=False)
     if mouse.connect_time :
         ct_times.append(mouse.connect_time)

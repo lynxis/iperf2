@@ -262,7 +262,6 @@ class iperf_flow(object):
         self.ipg = ipg
         self.debug = debug
         self.TRAFFIC_EVENT_TIMEOUT = round(self.interval * 4, 3)
-        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None, 'connect_time' : None}
         self.flowtime = flowtime
         # use python composition for the server and client
         # i.e. a flow has a server and a client
@@ -270,7 +269,19 @@ class iperf_flow(object):
         self.tx = iperf_client(name='{}->TX({})'.format(name, str(self.client)), loop=self.loop, host=self.client, flow=self, debug=self.debug)
         self.rx.window=window
         self.tx.window=window
+        self.ks_critical_p = 0.01
+        self.stats_reset()
+
+    def destroy(self) :
+        iperf_flow.instances.remove(self)
+
+    def __getattr__(self, attr) :
+        if attr in self.flowstats :
+            return self.flowstats[attr]
+
+    def stats_reset(self) :
         # Initialize the flow stats dictionary
+        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None, 'connect_time' : None}
         self.flowstats['txdatetime']=[]
         self.flowstats['txbytes']=[]
         self.flowstats['txthroughput']=[]
@@ -285,14 +296,6 @@ class iperf_flow(object):
         self.flowstats['reads']=[]
         self.flowstats['histograms']=[]
         self.flowstats['histogram_names'] = set()
-        self.ks_critical_p = 0.01
-
-    def destroy(self) :
-        iperf_flow.instances.remove(self)
-
-    def __getattr__(self, attr) :
-        if attr in self.flowstats :
-            return self.flowstats[attr]
 
     async def start(self):
         self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None}
