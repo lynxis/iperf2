@@ -546,8 +546,6 @@ class iperf_server(object):
         conn_id = '{}'.format(self.name)
         self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
 
-        # ex. Server listening on TCP port 61003 with pid 2565
-        self.regex_open_pid = re.compile(r'^Server listening on {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
@@ -559,6 +557,9 @@ class iperf_server(object):
     async def start(self, time=time):
         if not self.closed.is_set() :
             return
+
+        # ex. Server listening on TCP port 61003 with pid 2565
+        self.regex_open_pid = re.compile(r'^Server listening on {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
 
         self.opened.clear()
         self.remotepid = None
@@ -677,7 +678,7 @@ class iperf_client(object):
                             else :
                                 m = self._client.regex_connect_time.match(line)
                                 if m :
-                                    self.flowstats['connect_time']=m.group('connect_time')
+                                    self.flowstats['connect_time']=float(m.group('connect_time'))
                         else :
                             pass
 
@@ -724,8 +725,6 @@ class iperf_client(object):
         self._protocol = None
         conn_id = '{}'.format(self.name)
         self.adapter = self.CustomAdapter(logger, {'connid': conn_id})
-        # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
-        self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
         # traffic ex: [  3] 0.00-0.50 sec  655620 Bytes  10489920 bits/sec  14/211        446      446K/0 us
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>\d+) Bytes\s+(?P<throughput>\d+) bits/sec\s+(?P<writes>\d+)/(?P<errwrites>\d+)\s+(?P<retry>\d+)\s+(?P<cwnd>\d+)K/(?P<rtt>\d+) us')
         self.regex_connect_time = re.compile(r'\[\s+\d+]\slocal.*\(ct=(?P<connect_time>\d+\.\d+) ms\)')
@@ -740,6 +739,9 @@ class iperf_client(object):
         self.opened.clear()
         self.txcompleted.clear()
         self.remotepid = None
+
+        # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
+        self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
 
         self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
         if time:

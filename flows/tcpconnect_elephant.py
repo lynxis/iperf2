@@ -39,13 +39,6 @@ fqlogfilename = os.path.join(args.output_directory, logfilename)
 print('Writing log to {}'.format(fqlogfilename))
 
 logging.basicConfig(filename=fqlogfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
-logging.getLogger('asyncio').setLevel(logging.INFO)
-root = logging.getLogger(__name__)
-loop = asyncio.get_event_loop()
-loop.set_debug(False)
-
-logging.basicConfig(filename='test.log', level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
-
 logging.getLogger('asyncio').setLevel(logging.DEBUG)
 root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
@@ -57,9 +50,9 @@ dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0')
 dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
-mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
-elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip='192.168.1.1', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip='args.dst', proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
+elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip='args.dst', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip='args.dst', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
 
 duts = [duta, dutb, dutc, dutd]
 
@@ -90,6 +83,7 @@ for i in range(args.runcount) :
 if ct_times :
     logging.info('Connect times={}'.format(ct_times))
     print('Connect times={}'.format(ct_times))
+    fqdata = os.path.join(args.output_directory, "ctimes.data")
 
 iperf_flow.cease(flows=elephants)
 ssh_node.close_consoles()
