@@ -82,10 +82,6 @@ class iperf_flow(object):
                 logging.error('preclean timeout')
                 raise
 
-        for flow in flows :
-            iperf_flow.port += 1
-            flow.dstport = iperf_flow.port
-
         logging.info('flow run invoked')
         tasks = [asyncio.ensure_future(flow.rx.start(time=time), loop=iperf_flow.loop) for flow in flows]
         try :
