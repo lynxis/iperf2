@@ -1,4 +1,4 @@
-#/bin/env python3.5
+#!/bin/env python3.5
 #
 # Author Robert J. McMahon
 # Date August 8, 2018
