@@ -14,7 +14,7 @@ from datetime import datetime as datetime, timezone
 from flows import *
 from ssh_nodes import *
 
-parser = argparse.ArgumentParser(description='Run an isochronous UDP data stream')
+parser = argparse.ArgumentParser(description='Run mouse flow connect tests with elephant flows')
 parser.add_argument('-s','--server', type=str, default='10.19.87.7',required=False, help='host to run iperf server')
 parser.add_argument('-c','--client', type=str, default='10.19.87.10', required=False, help='host to run iperf client')
 parser.add_argument('-d','--dst', type=str, default='192.168.1.1', required=False, help='iperf destination ip address')
