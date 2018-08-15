@@ -58,6 +58,10 @@
    don't. */
 #undef HAVE_DECL_SIGALRM
 
+/* Define to 1 if you have the declaration of `SO_MAX_PACING_RATE', and to 0
+   if you don't. */
+#undef HAVE_DECL_SO_MAX_PACING_RATE
+
 /* Define to 1 if you have the declaration of `SO_SNDTIMEO', and to 0 if you
    don't. */
 #undef HAVE_DECL_SO_SNDTIMEO
@@ -68,6 +72,9 @@
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
+
+/* Define if fast sampling for report intervals is desired */
+#undef HAVE_FASTSAMPLING
 
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK

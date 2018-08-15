@@ -119,6 +119,7 @@ typedef struct WriteStats {
     int cwnd;
     int rtt;
     double meanrtt;
+    int up_to_date;
 } WriteStats;
 
 #ifdef HAVE_ISOCHRONOUS
@@ -381,6 +382,7 @@ typedef struct ReporterData {
     IsochStats isochstats;
 #endif
     double TxSyncInterval;
+    unsigned int FQPacingRate;
 } ReporterData;
 
 typedef struct MultiHeader {

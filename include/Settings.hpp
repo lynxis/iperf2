@@ -70,7 +70,11 @@ extern "C" {
 #endif
 
 /* Smallest report interval supported. Units is seconds */
+#ifndef HAVE_FASTSAMPLING
 #define SMALLEST_INTERVAL 0.005
+#else
+#define SMALLEST_INTERVAL 0.0001
+#endif
 
 // server/client mode
 typedef enum ThreadMode {
@@ -221,6 +225,7 @@ typedef struct thread_Settings {
     struct timeval thread_synctime;
     double mTxSyncInterval;
     double mVariance; //vbr variance
+    unsigned int mFQPacingRate;
 } thread_Settings;
 
 /*
@@ -277,6 +282,7 @@ typedef struct thread_Settings {
 #define FLAG_TXSYNC         0x00000200
 #define FLAG_INCRDSTIP      0x00000400
 #define FLAG_VARYLOAD       0x00000800
+#define FLAG_FQPACING      0x00001000
 
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
@@ -316,9 +322,10 @@ typedef struct thread_Settings {
 #define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
 #define isUDPHistogram(settings)   ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
 #define isL2LengthCheck(settings)  ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
-#define isIncrDstIP(settings)       ((settings->flags_extend & FLAG_INCRDSTIP) != 0)
+#define isIncrDstIP(settings)      ((settings->flags_extend & FLAG_INCRDSTIP) != 0)
 #define isTxSync(settings)         ((settings->flags_extend & FLAG_TXSYNC) != 0)
-#define isVaryLoad(settings)         ((settings->flags_extend & FLAG_VARYLOAD) != 0)
+#define isVaryLoad(settings)       ((settings->flags_extend & FLAG_VARYLOAD) != 0)
+#define isFQPacing(settings)      ((settings->flags_extend & FLAG_FQPACING) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -358,6 +365,7 @@ typedef struct thread_Settings {
 #define setIncrDstIP(settings)     settings->flags_extend |= FLAG_INCRDSTIP
 #define setTxSync(settings)        settings->flags_extend |= FLAG_TXSYNC
 #define setVaryLoad(settings)      settings->flags_extend |= FLAG_VARYLOAD
+#define setFQPacing(settings)      settings->flags_extend |= FLAG_FQPACING
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -397,6 +405,7 @@ typedef struct thread_Settings {
 #define unsetIncrDstIP(settings)   settings->flags_extend &= ~FLAG_INCRDSTIP
 #define unsetTxSync(settings)      settings->flags_extend &= ~FLAG_TXSYNC
 #define unsetVaryLoad(settings)      settings->flags_extend &= ~FLAG_VARYLOAD
+#define unsetFQPacing(settings)     settings->flags_extend &= ~FLAG_FQPACING
 
 /*
  * Message header flags

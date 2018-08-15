@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------
  * Copyright (c) 1999,2000,2001,2002,2003
  * The Board of Trustees of the University of Illinois
@@ -164,6 +163,13 @@ Report bugs to <iperf-users@lists.sourceforge.net>\n";
 #else
     #define IPERF_THREADS "single threaded"
 #endif
+#ifdef HAVE_FASTSAMPLING
+#define IPERFTimeFrmt "%4.4f-%4.4f"
+#define IPERFTimeSpace "            "
+#else
+#define IPERFTimeFrmt "%4.2f-%4.2f"
+#define IPERFTimeSpace "        "
+#endif
 
 const char version[] =
 "iperf version " IPERF_VERSION " (" IPERF_VERSION_DATE ") " IPERF_THREADS "\n";
@@ -232,6 +238,9 @@ const char wait_server_threads[] =
 const char client_udp_isochronous[] =
 "UDP isochronous: %d frames/sec mean=%s/s, stddev=%s/s, Period/IPG=%0.2f/%0.3f ms\n";
 
+const char client_fq_pacing [] =
+"fair-queue socket pacing set to %s/s\n";
+
 /* -------------------------------------------------------------------
  * Legacy reports
  * ------------------------------------------------------------------- */
@@ -263,87 +272,87 @@ const char server_read_size[] =
 "Read buffer size";
 
 const char report_bw_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec\n";
 
 const char report_sum_bw_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec\n";
+"[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec\n";
 
 const char report_bw_read_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=%.1fK)\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer    Bandwidth       Reads   Dist(bin=%.1fK)\n";
 
 const char report_bw_read_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
 
 const char report_sum_bw_read_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
+"[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
 
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 const char report_bw_write_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry     Cwnd/RTT        NetPwr\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer    Bandwidth       Write/Err  Rtry     Cwnd/RTT        NetPwr\n";
 
 const char report_bw_write_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d %10d %8dK/%u us  %4.2f\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %10d %8dK/%u us  %4.2f\n";
 
 const char report_sum_bw_write_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d%10d\n";
+"[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d%10d\n";
 
 #else
 const char report_bw_write_enhanced_header[] =
-"[ ID] Interval        Transfer    Bandwidth       Write/Err\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer    Bandwidth       Write/Err\n";
 
 const char report_bw_write_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d\n";
 
 const char report_sum_bw_write_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d\n";
+"[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d\n";
 #endif
 
 const char report_bw_pps_enhanced_header[] =
-"[ ID] Interval       Transfer     Bandwidth      Write/Err  PPS\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth      Write/Err  PPS\n";
 
 const char report_bw_pps_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d %8.0f pps\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %8.0f pps\n";
 
 const char report_bw_pps_enhanced_isoch_header[] =
-"[ ID] Interval       Transfer     Bandwidth      Write/Err  PPS  frames:tx/missed/slips\n";
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth      Write/Err  PPS  frames:tx/missed/slips\n";
 
 const char report_bw_pps_enhanced_isoch_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d %8.0f pps  %3d/%d/%d\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %8.0f pps  %3d/%d/%d\n";
 
 const char report_sum_bw_pps_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %d/%d %8.0f pps\n";
+"[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d/%d %8.0f pps\n";
 
 const char report_bw_jitter_loss_enhanced_header[] =
-"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth        Jitter   Lost/Total \
  Latency avg/min/max/stdev PPS  NetPwr\n";
 
 const char report_bw_jitter_loss_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps  %4.2f\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps  %4.2f\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_header[] =
-"[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total \
+"[ ID] Interval" IPERFTimeSpace "Transfer     Bandwidth        Jitter   Lost/Total \
  Latency avg/min/max/stdev PPS  NetPwr  Frames/Lost\n";
 
 const char report_bw_jitter_loss_enhanced_isoch_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps  %4.2f  %3d/%d\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) %6.3f/%6.3f/%6.3f/%6.3f ms %4.0f pps  %4.2f  %3d/%d\n";
 
 const char report_sum_bw_jitter_loss_enhanced_format[] =
-"[SUM] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%)  %4.0f pps\n";
+"[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%)  %4.0f pps\n";
 
 const char report_bw_jitter_loss_suppress_enhanced_format[] =
-"[%3d] %4.2f-%4.2f sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) -/-/-/- ms %4.0f pps\n";
+"[%3d] " IPERFTimeFrmt " sec  %ss  %ss/sec  %6.3f ms %4" IPERFdMAX "/%5" IPERFdMAX " (%.2g%%) -/-/-/- ms %4.0f pps\n";
 
 /* -------------------------------------------------------------------
  * Misc reports
  * ------------------------------------------------------------------- */
 const char report_outoforder[] =
-"[%3d] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
+"[%3d] " IPERFTimeFrmt " sec  %d datagrams received out-of-order\n";
 
 const char report_l2statistics[] =
-"[%3d] %4.2f-%4.2f sec   L2 processing detected errors, total(length/checksum/unknown) = %" IPERFdMAX "(%" IPERFdMAX "/%" IPERFdMAX "/%" IPERFdMAX ")\n";
+"[%3d] " IPERFTimeFrmt " sec   L2 processing detected errors, total(length/checksum/unknown) = %" IPERFdMAX "(%" IPERFdMAX "/%" IPERFdMAX "/%" IPERFdMAX ")\n";
 
 const char report_sum_outoforder[] =
-"[SUM] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
+"[SUM] " IPERFTimeFrmt " sec  %d datagrams received out-of-order\n";
 
 const char report_peer [] =
 "[%3d] local %s port %u connected with %s port %u%s\n";
@@ -367,7 +376,7 @@ const char reportCSV_peer[] =
 "%s,%u,%s,%u";
 
 const char report_l2length_error[] =
-"[%3d] %4.2f-%4.2f sec  %d datagrams received out-of-order\n";
+"[%3d] " IPERFTimeFrmt " sec  %d datagrams received out-of-order\n";
 
 
 const char reportCSV_bw_format[] =
@@ -409,9 +418,13 @@ const char unable_to_change_win[]=
 const char opt_estimate[]=
 "Optimal Estimate\n";
 
+#ifdef HAVE_FASTSAMPLING
 const char report_interval_small[] =
-"WARNING: interval too small, increasing from %3.3f to 5 milliseconds.\n";
-
+"WARNING: interval too small, increasing to %3.4f milliseconds.\n";
+#else
+const char report_interval_small[] =
+"WARNING: interval too small, increasing to %3.3f milliseconds.\n";
+#endif
 const char warn_invalid_server_option[] =
 "WARNING: option -%c is not valid for server mode\n";
 

@@ -49,6 +49,10 @@ AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
 	    [enable support for udp triggers in udp payloads (default is disable)]))
 AM_CONDITIONAL([UDPTRIGGERS], [test "x$enable_udptriggers" = "xyes"])
 
+AC_ARG_ENABLE(fastsampling, AC_HELP_STRING([--enable-fastsampling],
+	    [enable support for 100 microsecond report intervals (default is disable)]))
+AM_CONDITIONAL([FASTSAMPLING], [test "x$enable_fastsampling" = "xyes"])
+
 AC_ARG_ENABLE(checkprograms, AC_HELP_STRING([--enable-checkprograms],
 	    [enable support for building support programs such as checkdelay, checkpdfs, etc. (default is disable)]))
 AM_CONDITIONAL([CHECKPROGRAMS], [test "x$enable_checkprograms" = "xyes"])
@@ -160,7 +164,7 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([atexit memset pthread_cancel select strchr strerror strtol strtoll usleep clock_gettime sched_setscheduler mlockall setitimer nanosleep])
 AC_REPLACE_FUNCS(snprintf inet_pton inet_ntop gettimeofday)
 AC_CHECK_DECLS([ENOBUFS, EWOULDBLOCK],[],[],[#include <errno.h>])
-AC_CHECK_DECLS([SO_TIMESTAMP, SO_SNDTIMEO],[],[],[#include <sys/socket.h>])
+AC_CHECK_DECLS([SO_TIMESTAMP, SO_SNDTIMEO, SO_MAX_PACING_RATE],[],[],[#include <sys/socket.h>])
 AC_CHECK_DECLS([IPV6_TCLASS],[],[],[#include <netinet/in.h>])
 AC_CHECK_DECLS([CPU_SET],[],[],[
 	#define _GNU_SOURCE
@@ -325,6 +329,10 @@ fi
 
 if test "$enable_udptriggers" = yes; then
 AC_DEFINE([HAVE_UDPTRIGGERS], 1, [Define if udp triggers option is desired and available])
+fi
+
+if test "$enable_fastsampling" = yes; then
+AC_DEFINE([HAVE_FASTSAMPLING], 1, [Define if fast sampling for report intervals is desired])
 fi
 
 case "$ac_cv_host" in

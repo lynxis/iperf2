@@ -363,7 +363,11 @@ void Client::RunTCP( void ) {
 
     while (InProgress()) {
         // perform write
-        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+        if (!isModeTime(mSettings)) {
+	    currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
+	} else {
+	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
+	}
         if ( currLen < 0 ) {
 	    if (NONFATALTCPWRITERR(errno)) {
 	        reportstruct->errwrite=WriteErrAccount;
@@ -436,7 +440,11 @@ void Client::RunRateLimitedTCP ( void ) {
 	time1 = time2;
 	if (tokens >= 0.0) {
 	    // perform write
-	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+	    if (!isModeTime(mSettings)) {
+	        currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
+	    } else {
+	        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
+	    }
 	    if ( currLen < 0 ) {
 	        if (NONFATALTCPWRITERR(errno)) {
 		    reportstruct->errwrite=WriteErrAccount;
@@ -577,7 +585,11 @@ void Client::RunUDP( void ) {
 	reportstruct->emptyreport = 0;
 
 	// perform write
-	currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen );
+	if (!isModeTime(mSettings)) {
+	    currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
+	} else {
+	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
+	}
 	if ( currLen < 0 ) {
 	    reportstruct->packetID--;
 	    if (FATALUDPWRITERR(errno)) {
@@ -711,7 +723,11 @@ void Client::RunUDPIsochronous (void) {
 	    reportstruct->emptyreport = 0;
 	    mBuf_isoch->remaining = htonl(bytecnt);
 	    // perform write
-	    currLen = write(mSettings->mSock, mBuf, (bytecnt > mSettings->mBufLen) ? mSettings->mBufLen : bytecnt);
+	    if (!isModeTime(mSettings)) {
+	        currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
+	    } else {
+	        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
+	    }
 	    if ( currLen < 0 ) {
 	        reportstruct->packetID--;
 		reportstruct->emptyreport = 1;
@@ -776,7 +792,11 @@ void Client::RunUDPTxSync (void) {
 	reportstruct->errwrite = 0;
 	reportstruct->emptyreport = 0;
 	// perform write
-	currLen = write(mSettings->mSock, mBuf, mSettings->mBufLen);
+	if (!isModeTime(mSettings)) {
+	    currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
+	} else {
+	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
+	}
 	if ( currLen < 0 ) {
 	    reportstruct->packetID--;
 	    reportstruct->errwrite = 1;
@@ -861,6 +881,11 @@ void Client::FinishTrafficActions(void) {
 	ReportPacket( mSettings->reporthdr, reportstruct );
     }
     CloseReport( mSettings->reporthdr, reportstruct );
+    if (isEnhanced(mSettings) && mSettings->mSock != INVALID_SOCKET ) {
+        int rc = close( mSettings->mSock );
+        WARN_errno( rc == SOCKET_ERROR, "close" );
+        mSettings->mSock = INVALID_SOCKET;
+    }
     EndReport( mSettings->reporthdr );
 }
 

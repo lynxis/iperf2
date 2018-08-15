@@ -83,6 +83,7 @@ static int udphistogram = 0;
 static int l2checks = 0;
 static int incrdstip = 0;
 static int txsync = 0;
+static int fqrate = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
@@ -158,6 +159,7 @@ const struct option long_options[] =
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
 {"tx-sync", required_argument, &txsync, 1},
+{"fq-rate", required_argument, &fqrate, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -463,10 +465,12 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    if (*end != '\0') {
 		fprintf (stderr, "Invalid value of '%s' for -i interval\n", optarg);
 	    } else {
-		if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
-		    fprintf (stderr, report_interval_small, mExtSettings->mInterval);
+	        if ( mExtSettings->mInterval < SMALLEST_INTERVAL ) {
 		    mExtSettings->mInterval = SMALLEST_INTERVAL;
-		}
+#ifndef HAVE_FASTSAMPLING
+		    fprintf (stderr, report_interval_small, mExtSettings->mInterval);
+#endif
+	        }
 		if ( mExtSettings->mInterval < 0.5 ) {
 		    setEnhanced( mExtSettings );
 		}
@@ -771,6 +775,16 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		exit(1);
 		setReverse(mExtSettings);
 	    }
+	    if (fqrate) {
+#if defined(HAVE_DECL_SO_MAX_PACING_RATE)
+	        fqrate=0;
+		setFQPacing(mExtSettings);
+		mExtSettings->mFQPacingRate = (unsigned int) (bitorbyte_atoi(optarg) / 8);
+#else
+		fprintf( stderr, "WARNING: The --fq-rate option is not supported\n");
+#endif
+	    }
+
 #ifdef HAVE_ISOCHRONOUS
 	    if (isochronous) {
 		isochronous = 0;

@@ -127,6 +127,35 @@ max_size_t byte_atoi( const char *inString ) {
 } /* end byte_atof */
 
 /* -------------------------------------------------------------------
+ * bitorbyte_atoi
+ *
+ * Given a string of form #x where # is a number and x is a format
+ * character listed below, this returns the interpreted integer.
+ * Gg, Mm, Kk are giga, mega, kilo respectively
+ * ------------------------------------------------------------------- */
+unsigned int bitorbyte_atoi( const char *inString ) {
+    double theNum;
+    char suffix = '\0';
+
+    assert( inString != NULL );
+
+    /* scan the number and any suffices */
+    sscanf( inString, "%lf%c", &theNum, &suffix );
+
+    /* convert according to [Gg Mm Kk] */
+    switch ( suffix ) {
+    case 'G':  theNum *= (kgiga_to_Unit * 8.0);  break;
+    case 'M':  theNum *= (kmega_to_Unit * 8.0);  break;
+    case 'K':  theNum *= (kkilo_to_Unit * 8.0);  break;
+    case 'g':  theNum *= kgiga_to_Unit;  break;
+    case 'm':  theNum *= kmega_to_Unit;  break;
+    case 'k':  theNum *= kkilo_to_Unit;  break;
+    default: break;
+    }
+    return (unsigned int) theNum;
+} /* end byte_atof */
+
+/* -------------------------------------------------------------------
  * bitorbyte_atof
  *
  * Given a string of form #x where # is a number and x is a format
