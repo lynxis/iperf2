@@ -30,16 +30,16 @@ parser.add_argument('-o','--output_directory', type=str, required=False, default
 parser.add_argument('--loglevel', type=str, required=False, default='INFO', help='python logging level, e.g. INFO or DEBUG')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 parser.add_argument('--stacktest', dest='stack', action='store_true')
+parser.add_argument('--edca_vi', dest='edca_vi', action='store_true')
 parser.set_defaults(stacktest=False)
+parser.set_defaults(edca_vi=False)
 
 
 # Parse command line arguments
 args = parser.parse_args()
 plottitle='Mouse at ' + args.tos + ' 2 TCP uplink BE Elephants (cnt=' + str(args.runcount) + ')'
 if args.stacktest :
-    plottitle='{} (same stack)'.format(plottitle)
-else :
-    plottitle='{} (D11 Mac)'.format(plottitle)
+    plottitle='{} (stack)'.format(plottitle)
 
 # Set up logging
 logfilename='test.log'
@@ -78,6 +78,17 @@ for dut in duts :
     dut.wl(cmd='status')
 ssh_node.run_all_commands()
 
+edca_vi='wme_ac sta be ecwmax 4 ecwmin 3 txop 94 aifsn 2 acm 0'
+edca_be='wme_ac sta be ecwmax 10 ecwmin 4 txop 0 aifsn 3 acm 0'
+if args.tos == 'BE' :
+    if args.edca_vi :
+        dutb.wl(cmd=edca_vi)
+        plottitle='{} (D11 Mac/EDCA=Vi)'.format(plottitle)
+    else :
+        dutb.wl(cmd=edca_be)
+        plottitle='{} (D11 Mac/EDCA=Be)'.format(plottitle)
+    ssh_node.run_all_commands()
+
 duta.wl(cmd='wme_ac ap')
 dutb.wl(cmd='wme_ac sta')
 dutc.wl(cmd='wme_ac sta')
@@ -85,7 +96,6 @@ dutd.wl(cmd='wme_ac sta')
 ssh_node.run_all_commands()
 
 connect_times = []
-
 elephants=[elephant1, elephant2]
 iperf_flow.commence(time=7200, flows=elephants, preclean=False)
 for i in range(args.runcount) :
