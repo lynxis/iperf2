@@ -9,10 +9,14 @@ import argparse
 import time, datetime
 import os,sys
 import ssh_nodes
+import numpy as np
+import tkinter
+import matplotlib.pyplot as plt
 
-from datetime import datetime as datetime, timezone
 from flows import *
 from ssh_nodes import *
+from datetime import datetime as datetime, timezone
+from scipy import stats
 
 parser = argparse.ArgumentParser(description='Run mouse flow connect tests with elephant flows')
 parser.add_argument('-s','--server', type=str, default='10.19.87.7',required=False, help='host to run iperf server')
@@ -28,6 +32,7 @@ parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='
 
 # Parse command line arguments
 args = parser.parse_args()
+plottitle='Mouse at ' + args.tos + ' 2 TCP uplink BE Elephants (cnt=' + str(args.runcount) + ')' +  '(dist)'
 
 # Set up logging
 logfilename='test.log'
@@ -50,9 +55,9 @@ dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0')
 dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
-mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip='args.dst', proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
-elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip='args.dst', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip='args.dst', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
+elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
 
 duts = [duta, dutb, dutc, dutd]
 
@@ -68,7 +73,7 @@ dutc.wl(cmd='wme_ac sta')
 dutd.wl(cmd='wme_ac sta')
 ssh_node.run_all_commands()
 
-ct_times = []
+connect_times = []
 
 elephants=[elephant1, elephant2]
 iperf_flow.commence(time=7200, flows=elephants, preclean=False)
@@ -77,16 +82,27 @@ for i in range(args.runcount) :
     mouse.stats_reset()
     iperf_flow.run(amount='256K', time=None, flows=[mouse], preclean=False)
     if mouse.connect_time :
-        ct_times.append(mouse.connect_time)
+        connect_times.append(mouse.connect_time)
     logging.info('flowstats={}'.format(mouse.flowstats))
 
-if ct_times :
-    logging.info('Connect times={}'.format(ct_times))
-    print('Connect times={}'.format(ct_times))
-    fqdata = os.path.join(args.output_directory, "ctimes.data")
-
+# shut down async
+logging.info('Ceasing elephants')
 iperf_flow.cease(flows=elephants)
 ssh_node.close_consoles()
 loop.close()
+
+# produce plots
+if connect_times :
+    logging.info('Connect times={}'.format(connect_times))
+    logging.info('Connect time stats={}'.format(stats.describe(connect_times)))
+    print('Connect times={}'.format(connect_times))
+    fqdata = os.path.join(args.output_directory, "ctimes.data")
+    fqplot = os.path.join(args.output_directory, "connect_times.png")
+    ct_histo=np.histogram(connect_times, bins=int(args.runcount/10))
+    logging.info('Histogram={}'.format(ct_histo))
+    plt.figure()
+    plt.title("{}".format(plottitle))
+    plt.hist(ct_histo)
+    plt.savefig('{}'.format(fqplot))
 
 logging.shutdown()
