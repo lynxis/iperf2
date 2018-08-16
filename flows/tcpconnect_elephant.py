@@ -39,9 +39,17 @@ parser.set_defaults(nocompete=False)
 
 # Parse command line arguments
 args = parser.parse_args()
-plottitle='Mouse at ' + args.tos + ' 2 TCP uplink BE Elephants (cnt=' + str(args.runcount) + ')'
+plottitle='Mouse at ' + args.tos
+if not args.nocompete:
+    plottitle +=' , 2 TCP uplink BE Elephants'
 if args.stacktest :
-    plottitle='{} (stack)'.format(plottitle)
+    plottitle +='(stack)'
+else :
+    if args.edca_vi :
+        plottitle +='(mac edca)'
+    else :
+        plottitle +='(mac ac)'
+plottitle += ' (cnt=' + args.runcnt + ')'
 
 # Set up logging
 logfilename='test.log'
@@ -66,7 +74,7 @@ dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
 mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
 
-if not args.nocompete:
+if not args.nocompete :
     duts = [duta, dutb, dutc, dutd]
     if args.stacktest :
         elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
@@ -93,10 +101,8 @@ dut_observe = duts[1]
 if args.tos == 'BE' :
     if args.edca_vi :
         dut_observe.wl(cmd=edca_vi)
-        plottitle='{} (D11 Mac/EDCA=Vi)'.format(plottitle)
     else :
         dut_observe.wl(cmd=edca_be)
-        plottitle='{} (D11 Mac/EDCA=Be)'.format(plottitle)
     ssh_node.run_all_commands()
 
 ap.wl(cmd='wme_ac ap')
