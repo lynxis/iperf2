@@ -49,7 +49,7 @@ else :
         plottitle +='(mac edca)'
     else :
         plottitle +='(mac ac)'
-plottitle += ' (cnt=' + args.runcnt + ')'
+plottitle += ' (cnt=' + str(args.runcount) + ')'
 
 # Set up logging
 logfilename='test.log'
