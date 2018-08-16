@@ -120,6 +120,7 @@ private:
     Timestamp now;
     char* readAt;
     Timestamp syncTime;
+    Timestamp connect_start, connect_done;
 
 }; // end class Client
 

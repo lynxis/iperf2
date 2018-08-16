@@ -29,27 +29,34 @@ parser.add_argument('-T','--title', type=str, default="", required=False, help='
 parser.add_argument('-o','--output_directory', type=str, required=False, default='./data', help='output directory')
 parser.add_argument('--loglevel', type=str, required=False, default='INFO', help='python logging level, e.g. INFO or DEBUG')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
-parser.add_argument('--stacktest', dest='stack', action='store_true')
+parser.add_argument('--stacktest', dest='stacktest', action='store_true')
 parser.add_argument('--edca_vi', dest='edca_vi', action='store_true')
 parser.add_argument('--nocompete', dest='nocompete', action='store_true')
 parser.set_defaults(stacktest=False)
 parser.set_defaults(edca_vi=False)
 parser.set_defaults(nocompete=False)
 
-
 # Parse command line arguments
 args = parser.parse_args()
+
 plottitle='Mouse at ' + args.tos
-if not args.nocompete:
-    plottitle +=' , 2 TCP uplink BE Elephants'
+dirtxt = '_' + str(args.tos)
+if args.nocompete :
+    dirtxt +='_nocompete'
+else :
+    plottitle +=', 2 TCP uplink BE Elephants, '
+    dirtxt +='_elephants'
 if args.stacktest :
     plottitle +='(stack)'
+    dirtxt +='_stack'
+if args.edca_vi :
+    plottitle +='(edca)'
+    dirtxt +='_edca'
 else :
-    if args.edca_vi :
-        plottitle +='(mac edca)'
-    else :
-        plottitle +='(mac ac)'
+    plottitle +='(mac ac)'
+    dirtxt +='_ac'
 plottitle += ' (cnt=' + str(args.runcount) + ')'
+args.output_directory += dirtxt
 
 # Set up logging
 logfilename='test.log'
@@ -82,7 +89,7 @@ if not args.nocompete :
     else :
         elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephants=[elephant1, elephant2]
+    elephants=[elephant1, elephant2]
 else :
     duts = [duta, dutb]
 
@@ -112,8 +119,9 @@ ssh_node.run_all_commands()
 
 connect_times = []
 
-if not args.nocompete:
+if not args.nocompete :
     iperf_flow.commence(time=7200, flows=elephants, preclean=False)
+
 for i in range(args.runcount) :
     print('run={} {}'.format(i, plottitle))
     mouse.stats_reset()
@@ -132,15 +140,13 @@ loop.close()
 # produce plots
 if connect_times :
     logging.info('Connect times={}'.format(connect_times))
-    logging.info('Connect time stats={}'.format(stats.describe(connect_times)))
+    mystats = 'Connect time stats={}'.format(stats.describe(connect_times))
+    logging.info(mystats)
     print('Connect times={}'.format(connect_times))
-
-    fqdata = os.path.join(args.output_directory, "ctimes.data")
     fqplot = os.path.join(args.output_directory, "connect_times.png")
-    ct_histo=np.histogram(connect_times, bins=int(args.runcount/10))
-    logging.info('Histogram={}'.format(ct_histo))
     plt.figure(figsize=(10,5))
     plt.title("{}".format(plottitle))
+    plt.annotate(mystats, xy=(1, 1), xytext=(1,1))
     plt.hist(connect_times, bins='auto')
     plt.savefig('{}'.format(fqplot))
 

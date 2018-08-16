@@ -208,21 +208,16 @@ double Client::Connect( ) {
     }
 
     // connect socket
-#ifdef HAVE_CLOCK_GETTIME
-    {
-	Timestamp time1, time2;
+    if (!isUDP(mSettings) && isEnhanced(mSettings)) {
+	connect_start.setnow();
 	rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
                   SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
-	time2.setnow();
-	if (!isUDP(mSettings) && isEnhanced(mSettings)) {
-	    connecttime = 1e3 * time2.subSec(time1);
-	}
-    }
-#else
-    rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
+	connect_done.setnow();
+	connecttime = 1e3 * connect_done.subSec(connect_start);
+    } else {
+	rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
                   SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
-#endif
-
+    }
     FAIL_errno( rc == SOCKET_ERROR, "connect", mSettings );
 
     getsockname( mSettings->mSock, (sockaddr*) &mSettings->local,
