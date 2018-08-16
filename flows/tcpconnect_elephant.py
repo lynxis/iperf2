@@ -115,7 +115,7 @@ connect_times = []
 if not args.nocompete:
     iperf_flow.commence(time=7200, flows=elephants, preclean=False)
 for i in range(args.runcount) :
-    print('run={}'.format(i))
+    print('run={} {}'.format(i, plottitle))
     mouse.stats_reset()
     iperf_flow.run(amount='256K', time=None, flows=[mouse], preclean=False)
     if mouse.connect_time :
