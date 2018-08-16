@@ -106,7 +106,7 @@ if args.tos == 'BE' :
     ssh_node.run_all_commands()
 
 ap.wl(cmd='wme_ac ap')
-for dut in duts[1:-1] :
+for dut in duts[1:] :
     dut.wl(cmd='wme_ac sta')
 ssh_node.run_all_commands()
 
