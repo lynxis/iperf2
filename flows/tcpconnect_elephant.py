@@ -31,8 +31,10 @@ parser.add_argument('--loglevel', type=str, required=False, default='INFO', help
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 parser.add_argument('--stacktest', dest='stack', action='store_true')
 parser.add_argument('--edca_vi', dest='edca_vi', action='store_true')
+parser.add_argument('--nocompete', dest='nocompete', action='store_true')
 parser.set_defaults(stacktest=False)
 parser.set_defaults(edca_vi=False)
+parser.set_defaults(nocompete=False)
 
 
 # Parse command line arguments
@@ -63,14 +65,18 @@ dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
 mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
-if args.stacktest :
-    elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-    elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-else :
-    elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-    elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
 
-duts = [duta, dutb, dutc, dutd]
+if not args.nocompete:
+    duts = [duta, dutb, dutc, dutd]
+    if args.stacktest :
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+    else :
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephants=[elephant1, elephant2]
+else :
+    duts = [duta, dutb]
 
 ssh_node.open_consoles(silent_mode=True)
 
@@ -80,24 +86,28 @@ ssh_node.run_all_commands()
 
 edca_vi='wme_ac sta be ecwmax 4 ecwmin 3 txop 94 aifsn 2 acm 0'
 edca_be='wme_ac sta be ecwmax 10 ecwmin 4 txop 0 aifsn 3 acm 0'
+ap = duts[0]
+dut_observe = duts[1]
+
+# Use EDCA parameters if requesed
 if args.tos == 'BE' :
     if args.edca_vi :
-        dutb.wl(cmd=edca_vi)
+        dut_observe.wl(cmd=edca_vi)
         plottitle='{} (D11 Mac/EDCA=Vi)'.format(plottitle)
     else :
-        dutb.wl(cmd=edca_be)
+        dut_observe.wl(cmd=edca_be)
         plottitle='{} (D11 Mac/EDCA=Be)'.format(plottitle)
     ssh_node.run_all_commands()
 
-duta.wl(cmd='wme_ac ap')
-dutb.wl(cmd='wme_ac sta')
-dutc.wl(cmd='wme_ac sta')
-dutd.wl(cmd='wme_ac sta')
+ap.wl(cmd='wme_ac ap')
+for dut in duts[1:-1] :
+    dut.wl(cmd='wme_ac sta')
 ssh_node.run_all_commands()
 
 connect_times = []
-elephants=[elephant1, elephant2]
-iperf_flow.commence(time=7200, flows=elephants, preclean=False)
+
+if not args.nocompete:
+    iperf_flow.commence(time=7200, flows=elephants, preclean=False)
 for i in range(args.runcount) :
     print('run={}'.format(i))
     mouse.stats_reset()
@@ -108,7 +118,8 @@ for i in range(args.runcount) :
 
 # shut down async
 logging.info('Ceasing elephants')
-iperf_flow.cease(flows=elephants)
+if not args.nocompete:
+    iperf_flow.cease(flows=elephants)
 ssh_node.close_consoles()
 loop.close()
 
@@ -122,7 +133,7 @@ if connect_times :
     fqplot = os.path.join(args.output_directory, "connect_times.png")
     ct_histo=np.histogram(connect_times, bins=int(args.runcount/10))
     logging.info('Histogram={}'.format(ct_histo))
-    plt.figure()
+    plt.figure(figsize=(10,5))
     plt.title("{}".format(plottitle))
     plt.hist(connect_times, bins='auto')
     plt.savefig('{}'.format(fqplot))
