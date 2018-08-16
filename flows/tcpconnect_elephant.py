@@ -29,10 +29,17 @@ parser.add_argument('-T','--title', type=str, default="", required=False, help='
 parser.add_argument('-o','--output_directory', type=str, required=False, default='./data', help='output directory')
 parser.add_argument('--loglevel', type=str, required=False, default='INFO', help='python logging level, e.g. INFO or DEBUG')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
+parser.add_argument('--stacktest', dest='stack', action='store_true')
+parser.set_defaults(stacktest=False)
+
 
 # Parse command line arguments
 args = parser.parse_args()
-plottitle='Mouse at ' + args.tos + ' 2 TCP uplink BE Elephants (cnt=' + str(args.runcount) + ')' +  '(dist)'
+plottitle='Mouse at ' + args.tos + ' 2 TCP uplink BE Elephants (cnt=' + str(args.runcount) + ')'
+if args.stacktest :
+    plottitle='{} (same stack)'.format(plottitle)
+else :
+    plottitle='{} (D11 Mac)'.format(plottitle)
 
 # Set up logging
 logfilename='test.log'
@@ -56,8 +63,12 @@ dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
 mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
-elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+if args.stacktest :
+    elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+    elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+else :
+    elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta.ipaddr, client=dutc.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+    elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta.ipaddr, client=dutd.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
 
 duts = [duta, dutb, dutc, dutd]
 
@@ -96,13 +107,14 @@ if connect_times :
     logging.info('Connect times={}'.format(connect_times))
     logging.info('Connect time stats={}'.format(stats.describe(connect_times)))
     print('Connect times={}'.format(connect_times))
+
     fqdata = os.path.join(args.output_directory, "ctimes.data")
     fqplot = os.path.join(args.output_directory, "connect_times.png")
     ct_histo=np.histogram(connect_times, bins=int(args.runcount/10))
     logging.info('Histogram={}'.format(ct_histo))
     plt.figure()
     plt.title("{}".format(plottitle))
-    plt.hist(ct_histo)
+    plt.hist(connect_times, bins='auto')
     plt.savefig('{}'.format(fqplot))
 
 logging.shutdown()

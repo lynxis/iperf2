@@ -199,23 +199,25 @@ class iperf_flow(object):
 
     @classmethod
     def cease(cls, flows='all') :
-        loop = asyncio.get_event_loop()
+        if not iperf_flow.loop :
+            iperf_flow.loop = asyncio.get_event_loop()
+
         if flows == 'all' :
             flows = iperf_flow.get_instances()
-        iperf_flow.set_loop(loop=loop)
-        tasks = [asyncio.ensure_future(flow.tx.stop(), loop=loop) for flow in flows]
-        try :
-            loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
-        except asyncio.TimeoutError:
-            logging.error('flow server start timeout')
-            raise
 
-        tasks = [asyncio.ensure_future(flow.rx.stop(), loop=loop) for flow in flows]
+        # Signal the remote iperf client sessions to stop them
+        tasks = [asyncio.ensure_future(flow.tx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
         try :
-            loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
-            logging.error('flow server start timeout')
-            raise
+            logging.error('flow tx stop timeout')
+
+        # Now signal the remote iperf server sessions to stop them
+        tasks = [asyncio.ensure_future(flow.rx.signal_stop(), loop=iperf_flow.loop) for flow in flows]
+        try :
+            iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
+        except asyncio.TimeoutError:
+            logging.error('flow rx stop timeout')
 
     @classmethod
     async def cleanup(cls, host=None, sshcmd='/usr/bin/ssh', user='root') :
