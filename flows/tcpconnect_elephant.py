@@ -43,7 +43,7 @@ plottitle='Mouse at ' + args.tos
 dirtxt = '_' + str(args.tos)
 if args.edca_vi :
     plottitle +='(edca=vi)'
-    dirtxt +='_edca'
+    dirtxt +='_viedca'
 else :
     dirtxt +='_ac'
 if args.nocompete :
