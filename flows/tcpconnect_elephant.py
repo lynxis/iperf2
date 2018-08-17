@@ -39,13 +39,9 @@ parser.set_defaults(nocompete=False)
 # Parse command line arguments
 args = parser.parse_args()
 
+# Set directoy name and plot title
 plottitle='Mouse at ' + args.tos
 dirtxt = '_' + str(args.tos)
-if args.edca_vi :
-    plottitle +='(edca=vi)'
-    dirtxt +='_viedca'
-else :
-    dirtxt +='_ac'
 if args.nocompete :
     dirtxt +='_nocompete'
 else :
@@ -57,7 +53,11 @@ else :
     else :
         plottitle +='(multi-mac)'
         dirtxt +='_macs'
-
+if args.edca_vi :
+    plottitle +='(edca=vi)'
+    dirtxt +='_viedca'
+else :
+    dirtxt +='_ac'
 plottitle += ' (cnt=' + str(args.runcount) + ')'
 args.output_directory += dirtxt
 
@@ -66,24 +66,22 @@ logfilename='test.log'
 if not os.path.exists(args.output_directory):
     print('Making log directory {}'.format(args.output_directory))
     os.makedirs(args.output_directory)
-
 fqlogfilename = os.path.join(args.output_directory, logfilename)
 print('Writing log to {}'.format(fqlogfilename))
-
 logging.basicConfig(filename=fqlogfilename, level=logging.INFO, format='%(asctime)s %(name)s %(module)s %(levelname)-8s %(message)s')
 logging.getLogger('asyncio').setLevel(logging.DEBUG)
 root = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 loop.set_debug(False)
 
-#instatiate devices
+#instatiate devices for control using control network, also list the wifi dev
 duta = ssh_node(name='SoftAP', ipaddr=args.server, device='ap0')
 dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0')
 dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
+#instatiate traffic flows to be used by the test
 mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
-
 if not args.nocompete :
     duts = [duta, dutb, dutc, dutd]
     if args.stacktest :
@@ -96,18 +94,19 @@ if not args.nocompete :
 else :
     duts = [duta, dutb]
 
+# Open ssh node consoles (will setup up ssh master control session as well)
 ssh_node.open_consoles(silent_mode=True)
 
+# Perform any pretest wl commands
 for dut in duts :
     dut.wl(cmd='status')
 ssh_node.run_all_commands()
-
 edca_vi='wme_ac sta be ecwmax 4 ecwmin 3 txop 94 aifsn 2 acm 0'
 edca_be='wme_ac sta be ecwmax 10 ecwmin 4 txop 0 aifsn 3 acm 0'
 ap = duts[0]
 dut_observe = duts[1]
 
-# Use EDCA parameters if requesed
+# Possibly override BE EDCA parameters, reset to default if not
 if args.tos == 'BE' :
     if args.edca_vi :
         dut_observe.wl(cmd=edca_vi)
@@ -115,16 +114,18 @@ if args.tos == 'BE' :
         dut_observe.wl(cmd=edca_be)
     ssh_node.run_all_commands()
 
+#Display EDCA used per device
 ap.wl(cmd='wme_ac ap')
 for dut in duts[1:] :
     dut.wl(cmd='wme_ac sta')
 ssh_node.run_all_commands()
 
-connect_times = []
-
+# OK, finally get test going
 if not args.nocompete :
+    logging.info('Commencing elephants')
     iperf_flow.commence(time=7200, flows=elephants, preclean=False)
 
+connect_times = []
 for i in range(args.runcount) :
     print('run={} {}'.format(i, plottitle))
     mouse.stats_reset()
@@ -133,14 +134,14 @@ for i in range(args.runcount) :
         connect_times.append(mouse.connect_time)
     logging.info('flowstats={}'.format(mouse.flowstats))
 
-# shut down async
-logging.info('Ceasing elephants')
+# Test over, shut down traffic and all async
 if not args.nocompete:
+    logging.info('Ceasing elephants')
     iperf_flow.cease(flows=elephants)
 ssh_node.close_consoles()
 loop.close()
 
-# produce plots
+# Log results and produce final plots
 if connect_times :
     logging.info('Connect times={}'.format(connect_times))
     mystats = 'Connect time stats={}'.format(stats.describe(connect_times))
@@ -149,7 +150,7 @@ if connect_times :
     fqplot = os.path.join(args.output_directory, "connect_times.png")
     plt.figure(figsize=(10,5))
     plt.title("{}".format(plottitle))
-    plt.annotate(mystats, xy=(1, 1), xytext=(1,1))
+#    plt.annotate(mystats, xy=(1, 1), xytext=(1,1))
     plt.hist(connect_times, bins='auto')
     plt.savefig('{}'.format(fqplot))
 
