@@ -41,20 +41,23 @@ args = parser.parse_args()
 
 plottitle='Mouse at ' + args.tos
 dirtxt = '_' + str(args.tos)
+if args.edca_vi :
+    plottitle +='(edca=vi)'
+    dirtxt +='_edca'
+else :
+    dirtxt +='_ac'
 if args.nocompete :
     dirtxt +='_nocompete'
 else :
     plottitle +=', 2 TCP uplink BE Elephants, '
     dirtxt +='_elephants'
-if args.stacktest :
-    plottitle +='(stack)'
-    dirtxt +='_stack'
-if args.edca_vi :
-    plottitle +='(edca)'
-    dirtxt +='_edca'
-else :
-    plottitle +='(mac ac)'
-    dirtxt +='_ac'
+    if args.stacktest :
+        plottitle +='(stack)'
+        dirtxt +='_stack'
+    else :
+        plottitle +='(multi-mac)'
+        dirtxt +='_macs'
+
 plottitle += ' (cnt=' + str(args.runcount) + ')'
 args.output_directory += dirtxt
 
