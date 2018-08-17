@@ -272,8 +272,15 @@ class iperf_flow(object):
         self.dstip = dstip
         self.srcip = srcip
         self.srcport = srcport
-        self.server = server
-        self.client = client
+        try :
+            self.server = server.ipaddr
+        except AttributeError:
+            self.server = server
+        try :
+            self.client = client.ipaddr
+        except AttributeError:
+            self.client = client
+
         if not user :
             self.user = getpass.getuser()
         else :
