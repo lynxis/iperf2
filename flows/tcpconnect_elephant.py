@@ -34,11 +34,15 @@ parser.add_argument('--edca_vi', dest='edca_vi', action='store_true')
 parser.add_argument('--edca_reducebe', dest='edca_reducebe', action='store_true')
 parser.add_argument('--txop_reduce', dest='edca_txop_reduce', action='store_true')
 parser.add_argument('--nocompete', dest='nocompete', action='store_true')
+parser.add_argument('--local', dest='local', action='store_true')
+parser.add_argument('--bidir', dest='bidir', action='store_true')
 parser.set_defaults(stacktest=False)
 parser.set_defaults(edca_vi=False)
 parser.set_defaults(nocompete=False)
 parser.set_defaults(edca_reducebe=False)
 parser.set_defaults(edca_txop_reduce=False)
+parser.set_defaults(local=False)
+parser.set_defaults(bidir=False)
 
 # Parse command line arguments
 args = parser.parse_args()
@@ -68,6 +72,12 @@ elif args.edca_txop_reduce :
     dirtxt +='_be_txop_reduce'
 else :
     dirtxt +='_ac'
+if args.local :
+    dirtxt += '_local'
+    plottitle += '(local)'
+if args.bidir :
+    dirtxt += '_bidir'
+    plottitle += '(bidir)'
 
 plottitle += ' (cnt=' + str(args.runcount) + ')'
 args.output_directory += dirtxt
@@ -103,10 +113,17 @@ if not args.nocompete :
     if args.stacktest :
         elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+    elif args.local :
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=dutd, client=dutc, dstip='192.168.1.3', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.4', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     else :
         elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_obstruct[0], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_obstruct[1], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     elephants=[elephant1, elephant2]
+    if args.bidir :
+        elephant3 = iperf_flow(name="Elephant3(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.4', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant4 = iperf_flow(name="Elephant4(tcp)", user='root', server=dutd, client=dutc, dstip='192.168.1.3', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephants.extend([elephant3, elephant4])
 
 # Open ssh node consoles (will setup up ssh master control session as well)
 ssh_node.open_consoles(silent_mode=True)

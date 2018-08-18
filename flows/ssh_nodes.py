@@ -89,6 +89,10 @@ class ssh_node:
         self.ssh_console_session = None
         ssh_node.instances.add(self)
 
+    #ip = re.search(r'inet addr:(\S+)', paragraph)
+    #if ip:
+    #    info['ip_address'] = ip.group(1)
+
     def wl (self, cmd, ASYNC=False) :
         if self.device :
             results=self.rexec(cmd='/usr/bin/wl -i {} {}'.format(self.device, cmd), ASYNC=ASYNC)
