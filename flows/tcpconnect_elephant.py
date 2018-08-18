@@ -91,19 +91,22 @@ dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0')
 dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
 dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
 
+ap = duta
+dut_observe = dutb
+duts = [ap, dut_observe]
+
 #instatiate traffic flows to be used by the test
-mouse = iperf_flow(name="Mouse(tcp)", user='root', server=duta.ipaddr, client=dutb.ipaddr, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
+mouse = iperf_flow(name="Mouse(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
 if not args.nocompete :
-    duts = [duta, dutb, dutc, dutd]
+    dut_obstruct = [dutc, dutd]
+    duts.extend(dut_obstruct)
     if args.stacktest :
-        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta, client=dutb, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta, client=dutb, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     else :
-        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=duta, client=dutc, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=duta, client=dutd, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_obstruct[0], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_obstruct[1], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     elephants=[elephant1, elephant2]
-else :
-    duts = [duta, dutb]
 
 # Open ssh node consoles (will setup up ssh master control session as well)
 ssh_node.open_consoles(silent_mode=True)
@@ -113,9 +116,6 @@ edca_vi='wme_ac sta be ecwmax 4 ecwmin 3 txop 94 aifsn 2 acm 0'
 edca_be='wme_ac sta be ecwmax 10 ecwmin 4 txop 0 aifsn 3 acm 0'
 edca_be_disadvantage='wme_ac sta be ecwmax 10 ecwmin 5 txop 0 aifsn 8 acm 0'
 edca_txop_reduce='wme_ac sta be ecwmax 10 ecwmin 5 txop 27 aifsn 8 acm 0'
-ap = duts[0]
-dut_observe = duts[1]
-duts_obstruct = duts [2:]
 for dut in duts :
     #reset all BE edcas to default values
     dut.wl(cmd=edca_be)
@@ -127,10 +127,10 @@ if args.tos == 'BE' :
     if args.edca_vi :
         dut_observe.wl(cmd=edca_vi)
     elif args.edca_reducebe :
-        for dut in duts_obstruct :
+        for dut in dut_obstruct :
             dut.wl(cmd=edca_be_disadvantage)
     elif args.edca_txop_reduce :
-        for dut in duts_obstruct :
+        for dut in dut_obstruct :
             dut.wl(cmd=edca_txop_reduce)
     ssh_node.run_all_commands()
 
