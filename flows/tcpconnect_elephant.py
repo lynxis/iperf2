@@ -115,13 +115,13 @@ if not args.nocompete :
         elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     elif args.local :
         elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=dutd, client=dutc, dstip='192.168.1.3', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.4', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.2', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     else :
         elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_obstruct[0], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_obstruct[1], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     elephants=[elephant1, elephant2]
     if args.bidir :
-        elephant3 = iperf_flow(name="Elephant3(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.4', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant3 = iperf_flow(name="Elephant3(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.2', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephant4 = iperf_flow(name="Elephant4(tcp)", user='root', server=dutd, client=dutc, dstip='192.168.1.3', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephants.extend([elephant3, elephant4])
 

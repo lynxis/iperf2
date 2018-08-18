@@ -287,10 +287,9 @@ class iperf_flow(object):
             self.user = user
         self.proto = proto
         self.tos = tos
-        if not length :
-            self.length = 1470
-        else :
+        if length :
             self.length = length
+
         if amount :
             self.amount = amount
         self.interval = round(interval,3)
@@ -752,7 +751,9 @@ class iperf_client(object):
         # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
         self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
 
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window, '-l ' + str(self.length)]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window]
+        if self.length :
+            self.sshcmd.extend(['-l ', str(self.length)])
         if time:
             self.sshcmd.extend(['-t ', str(time)])
         elif amount:
