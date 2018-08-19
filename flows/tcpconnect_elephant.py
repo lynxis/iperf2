@@ -100,10 +100,10 @@ loop = asyncio.get_event_loop()
 loop.set_debug(False)
 
 #instatiate devices for control using control network, also list the wifi dev
-duta = ssh_node(name='SoftAP', ipaddr=args.server, device='ap0')
-dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0')
-dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0')
-dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0')
+duta = ssh_node(name='SoftAP', ipaddr=args.server, device='ap0', devip='192.168.1.1')
+dutb = ssh_node(name='STA1', ipaddr='10.19.87.10', device='eth0', devip ='192.168.1.4')
+dutc = ssh_node(name='STA2', ipaddr='10.19.87.9', device='eth0', devip ='192.168.1.2')
+dutd = ssh_node(name='STA3', ipaddr='10.19.87.8', device='eth0', devip ='192.168.1.3')
 
 ap = duta
 dut_observe = dutb
@@ -115,18 +115,18 @@ if not args.nocompete :
     dut_obstruct = [dutc, dutd]
     duts.extend(dut_obstruct)
     if args.stacktest :
-        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_observe, dstip=ap.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_observe, dstip=ap.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     elif args.local :
-        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=dutd, client=dutc, dstip='192.168.1.3', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.2', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=dutd, client=dutc, dstip=dutd.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=dutc, client=dutd, dstip=dutc.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     else :
-        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_obstruct[0], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_obstruct[1], dstip=args.dst, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant1 = iperf_flow(name="Elephant1(tcp)", user='root', server=ap, client=dut_obstruct[0], dstip=ap.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant2 = iperf_flow(name="Elephant2(tcp)", user='root', server=ap, client=dut_obstruct[1], dstip=ap.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
     elephants=[elephant1, elephant2]
     if args.bidir :
-        elephant3 = iperf_flow(name="Elephant3(tcp)", user='root', server=dutc, client=dutd, dstip='192.168.1.2', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
-        elephant4 = iperf_flow(name="Elephant4(tcp)", user='root', server=dutd, client=dutc, dstip='192.168.1.3', proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant3 = iperf_flow(name="Elephant3(tcp)", user='root', server=dutc, client=dutd, dstip=dutc.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
+        elephant4 = iperf_flow(name="Elephant4(tcp)", user='root', server=dutd, client=dutc, dstip=dutd.devip, proto='TCP', interval=1, flowtime=7200, tos="BE", window='4M')
         elephants.extend([elephant3, elephant4])
 
 # Open ssh node consoles (will setup up ssh master control session as well)

@@ -8,6 +8,7 @@ import logging
 import asyncio, subprocess
 import weakref
 import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -79,19 +80,16 @@ class ssh_node:
             logging.info('Closing consoles: {}'.format(s.join(node_names)))
             ssh_node.loop.run_until_complete(asyncio.wait(tasks, timeout=60, loop=ssh_node.loop))
 
-    def __init__(self, name=None, ipaddr=None, console=False, device=None, ssh_speedups=True, silent_mode=False):
+    def __init__(self, name=None, ipaddr=None, devip=None, console=False, device=None, ssh_speedups=True, silent_mode=False):
         self.ipaddr = ipaddr
         self.name = name
         self.my_tasks = []
         self.device=device
+        self.devip = devip
         self.controlmasters = '/tmp/controlmasters_{}'.format(self.ipaddr)
         self.ssh_speedups = ssh_speedups
         self.ssh_console_session = None
         ssh_node.instances.add(self)
-
-    #ip = re.search(r'inet addr:(\S+)', paragraph)
-    #if ip:
-    #    info['ip_address'] = ip.group(1)
 
     def wl (self, cmd, ASYNC=False) :
         if self.device :
