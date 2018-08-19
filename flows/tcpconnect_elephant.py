@@ -50,10 +50,14 @@ args = parser.parse_args()
 # Set directoy name and plot title
 plottitle='Mouse at ' + args.tos
 dirtxt = '_' + str(args.tos)
+if args.local :
+    scopetxt = 'local'
+else :
+    scopetxt = 'uplink'
 if args.nocompete :
     dirtxt +='_nocompete'
 else :
-    plottitle +=', 2 TCP uplink BE Elephants, '
+    plottitle +=', 2 TCP ' + scopetxt + ' BE Elephants, '
     dirtxt +='_elephants'
     if args.stacktest :
         plottitle +='(stack)'
