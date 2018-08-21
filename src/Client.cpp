@@ -996,9 +996,10 @@ void Client::InitiateServer() {
 	    int inLen = (3 * sizeof(uint32_t));
 	    char buf[inLen];
 	    uint32_t *timers = (uint32_t *) buf;
+	    Timestamp t1;
 	    *timers++ = htonl(HEADER_TIMESTAMP);
-	    *timers++ = htonl(connect_done.getSecs());
-	    *timers++ = htonl(connect_done.getUsecs());
+	    *timers++ = htonl(t1.getSecs());
+	    *timers++ = htonl(t1.getUsecs());
 	    int currLen = send( mSettings->mSock, buf, inLen, 0 );
 	    WARN_errno( currLen < 0, "send connect timestamps" );
 	}
