@@ -111,6 +111,12 @@ void reporter_printstats( Transfer_Info *stats ) {
 		       stats->sock_callstats.read.bins[5],
 		       stats->sock_callstats.read.bins[6],
 		       stats->sock_callstats.read.bins[7]);
+		if (stats->tripTime > 0)
+		    printf(report_triptime_enhanced_format,
+		       stats->transferID, stats->startTime, stats->endTime,
+		       buffer, &buffer[sizeof(buffer)/2],
+		       stats->tripTime);
+
 	    } else {
 	        double netpower = 0;
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS

@@ -211,7 +211,7 @@ double Client::Connect( ) {
     if (!isUDP(mSettings) && isEnhanced(mSettings)) {
 	connect_start.setnow();
 	rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
-                  SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
+		      SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
 	connect_done.setnow();
 	connecttime = 1e3 * connect_done.subSec(connect_start);
     } else {
@@ -985,11 +985,22 @@ void Client::InitiateServer() {
             temp_hdr = (client_hdr*)mBuf;
         }
 	flags = Settings_GenerateClientHdr( mSettings, temp_hdr );
+
 	if (flags & (HEADER_EXTEND | HEADER_VERSION1)) {
 	    //  This test requires the pre-test header messages
 	    //  The extended headers require an exchange
 	    //  between the client and server/listener
 	    HdrXchange(flags);
+	}
+	if (!isUDP(mSettings) && isTripTime(mSettings)) {
+	    int inLen = (3 * sizeof(uint32_t));
+	    char buf[inLen];
+	    uint32_t *timers = (uint32_t *) buf;
+	    *timers++ = htonl(HEADER_TIMESTAMP);
+	    *timers++ = htonl(connect_done.getSecs());
+	    *timers++ = htonl(connect_done.getUsecs());
+	    int currLen = send( mSettings->mSock, buf, inLen, 0 );
+	    WARN_errno( currLen < 0, "send connect timestamps" );
 	}
     }
 }

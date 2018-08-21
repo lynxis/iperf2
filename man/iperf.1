@@ -151,6 +151,9 @@ Do a bidirectional test individually
 .BR -t ", " --time " \fIn\fR"
 time in seconds to listen for new traffic connections, receive traffic or transmit traffic (Defaults: transmit is 10 secs while listen and receive are indefinite)
 .TP
+.BR "    --trip-time "
+request the server to report the total trip time, i.e from the client's 3WHS done to server's socket close (requires synchronized clocks)
+.TP
 .BR "    --tx-sync "\fIn\fR
 set the tx-sync interval to \fIn\fR (units of seconds) for synchronized packet writes
 .TP

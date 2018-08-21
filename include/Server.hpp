@@ -94,6 +94,7 @@ private:
     void Isoch_processing (void);
     void UDPTriggers_processing (void);
     bool InProgress(void);
+    Timestamp connect_done;
 
 #if HAVE_DECL_SO_TIMESTAMP
     // Structures needed for recvmsg

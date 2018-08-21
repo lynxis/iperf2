@@ -275,6 +275,7 @@ typedef struct Transfer_Info {
     double startTime;
     double endTime;
     double IPGsum;
+    double tripTime;
     // chars
     char   mFormat;                 // -f
     char   mEnhanced;               // -e
@@ -378,13 +379,13 @@ typedef struct ReporterData {
     struct timeval nextTime;
     struct timeval intervalTime;
     struct timeval IPGstart;
+    struct timeval clientStartTime;
 #ifdef HAVE_ISOCHRONOUS
     IsochStats isochstats;
 #endif
     double TxSyncInterval;
     unsigned int FQPacingRate;
 } ReporterData;
-
 typedef struct MultiHeader {
     int reporterindex;
     int agentindex;

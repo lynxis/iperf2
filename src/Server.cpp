@@ -290,6 +290,16 @@ void Server::InitTrafficLoop (void) {
 #endif
     }
 
+    if (isTripTime(mSettings)) {
+	int n, len=3;
+	uint32_t buf[len];
+	if (len && ((n = recvn(mSettings->mSock, (char *)&buf[0], sizeof(buf), MSG_PEEK)) != len)) {
+	    fprintf(stdout,"Warn: socket trip time read error\n");
+	} else {
+	    mSettings->reporthdr->report.clientStartTime.tv_sec = ntohl(buf[1]);
+	    mSettings->reporthdr->report.clientStartTime.tv_usec = ntohl(buf[2]);
+	}
+    }
 }
 
 int Server::ReadWithRxTimestamp (int *readerr) {

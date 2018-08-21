@@ -148,6 +148,8 @@ extern const char report_bw_read_enhanced_format[];
 
 extern const char report_sum_bw_read_enhanced_format[];
 
+extern const char report_triptime_enhanced_format[];
+
 extern const char report_bw_write_enhanced_header[];
 
 extern const char report_bw_write_enhanced_format[];

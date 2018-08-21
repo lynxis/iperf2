@@ -62,7 +62,6 @@
 #define HEADERS()
 
 #include "headers.h"
-
 #include "Settings.hpp"
 #include "Locale.h"
 #include "SocketAddr.h"
@@ -84,6 +83,7 @@ static int l2checks = 0;
 static int incrdstip = 0;
 static int txsync = 0;
 static int fqrate = 0;
+static int triptime = 0;
 #ifdef HAVE_UDPTRIGGERS
 static int udptriggers = 0;
 #endif
@@ -160,6 +160,7 @@ const struct option long_options[] =
 {"incr-dstip", no_argument, &incrdstip, 1},
 {"tx-sync", required_argument, &txsync, 1},
 {"fq-rate", required_argument, &fqrate, 1},
+{"trip-time", no_argument, &triptime, 1},
 #ifdef HAVE_UDPTRIGGERS
 {"udp-triggers", no_argument, &udptriggers, 1},
 #endif
@@ -753,6 +754,10 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		if (*end != '\0') {
 		    fprintf (stderr, "Invalid value of '%s' for --tx-sync\n", optarg);
 		}
+	    }
+	    if (triptime) {
+		triptime = 0;
+		setTripTime(mExtSettings);
 	    }
 	    if (udphistogram) {
 		udphistogram = 0;
