@@ -1367,6 +1367,7 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
         stats->info.TotalLen = stats->TotalLen;
         stats->info.startTime = 0;
         stats->info.endTime = TimeDifference( stats->packetTime, stats->startTime );
+
 	// There is a corner case when the first packet is also the last where the start time (which comes
 	// from app level syscall) is greater than the packetTime (which come for kernel level SO_TIMESTAMP)
 	// For this case set the start and end time to both zero.
@@ -1399,6 +1400,10 @@ int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int 
 	    for (ix = 0; ix < 8; ix++) {
 		stats->info.sock_callstats.read.bins[ix] = stats->info.sock_callstats.read.totbins[ix];
 	    }
+	    if (stats->clientStartTime.tv_sec > 0)
+		stats->info.tripTime = TimeDifference( stats->packetTime, stats->clientStartTime );
+	    else
+		stats->info.tripTime = 0;
 	}
 	if (stats->info.endTime > 0) {
 	    stats->info.IPGcnt = (int) (stats->cntDatagrams / stats->info.endTime);

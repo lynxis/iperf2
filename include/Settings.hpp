@@ -282,7 +282,8 @@ typedef struct thread_Settings {
 #define FLAG_TXSYNC         0x00000200
 #define FLAG_INCRDSTIP      0x00000400
 #define FLAG_VARYLOAD       0x00000800
-#define FLAG_FQPACING      0x00001000
+#define FLAG_FQPACING       0x00001000
+#define FLAG_TRIPTIME       0x00002000
 
 
 #define isBuflenSet(settings)      ((settings->flags & FLAG_BUFLENSET) != 0)
@@ -325,7 +326,8 @@ typedef struct thread_Settings {
 #define isIncrDstIP(settings)      ((settings->flags_extend & FLAG_INCRDSTIP) != 0)
 #define isTxSync(settings)         ((settings->flags_extend & FLAG_TXSYNC) != 0)
 #define isVaryLoad(settings)       ((settings->flags_extend & FLAG_VARYLOAD) != 0)
-#define isFQPacing(settings)      ((settings->flags_extend & FLAG_FQPACING) != 0)
+#define isFQPacing(settings)       ((settings->flags_extend & FLAG_FQPACING) != 0)
+#define isTripTime(settings)       ((settings->flags_extend & FLAG_TRIPTIME) != 0)
 
 #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
 #define setCompat(settings)        settings->flags |= FLAG_COMPAT
@@ -366,6 +368,7 @@ typedef struct thread_Settings {
 #define setTxSync(settings)        settings->flags_extend |= FLAG_TXSYNC
 #define setVaryLoad(settings)      settings->flags_extend |= FLAG_VARYLOAD
 #define setFQPacing(settings)      settings->flags_extend |= FLAG_FQPACING
+#define setTripTime(settings)      settings->flags_extend |= FLAG_TRIPTIME
 
 #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
 #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
@@ -406,6 +409,7 @@ typedef struct thread_Settings {
 #define unsetTxSync(settings)      settings->flags_extend &= ~FLAG_TXSYNC
 #define unsetVaryLoad(settings)      settings->flags_extend &= ~FLAG_VARYLOAD
 #define unsetFQPacing(settings)     settings->flags_extend &= ~FLAG_FQPACING
+#define unsetTripTime(settings)     settings->flags_extend &= ~FLAG_TRIPTIME
 
 /*
  * Message header flags
@@ -415,6 +419,7 @@ typedef struct thread_Settings {
 #define HEADER_VERSION1 0x80000000
 #define HEADER_EXTEND   0x40000000
 #define HEADER_UDPTESTS 0x20000000
+#define HEADER_TIMESTAMP 0x10000000
 
 // Below flags are used to pass test settings in *every* UDP packet
 // and not just during the header exchange
@@ -433,9 +438,6 @@ typedef struct thread_Settings {
 // later features
 #define HDRXACKMAX 2500000 // default 2.5 seconds, units microseconds
 #define HDRXACKMIN   10000 // default 10 ms, units microseconds
-#define MAGIC_NUMBER_TYPE 0x100 //
-#define MAGIC_NUMBER_LEN   0x4
-#define MAGIC_DHDHOST_TIMESTAMP 0x18EF0001 // Value used in the UDP payload to trigger the driver to insert DHD host timestamp
 
 /*
  * Structures used for test messages which
