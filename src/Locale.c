@@ -287,7 +287,7 @@ const char report_sum_bw_read_enhanced_format[] =
 "[SUM] " IPERFTimeFrmt " sec  %ss  %ss/sec  %d    %d:%d:%d:%d:%d:%d:%d:%d\n";
 
 const char report_triptime_enhanced_format[] =
-"[%3d] " IPERFTimeFrmt "trip time %4.2f\n";
+"[%3d] " IPERFTimeFrmt " trip time (3WHS done->fin+finack) = %4.4f sec\n";
 
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 const char report_bw_write_enhanced_header[] =

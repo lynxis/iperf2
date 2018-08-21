@@ -293,7 +293,7 @@ void Server::InitTrafficLoop (void) {
     if (isTripTime(mSettings)) {
 	int n, len=3;
 	uint32_t buf[len];
-	if (len && ((n = recvn(mSettings->mSock, (char *)&buf[0], sizeof(buf), MSG_PEEK)) != len)) {
+	if (len && ((n = recvn(mSettings->mSock, (char *)&buf[0], sizeof(buf), MSG_PEEK)) != (int) sizeof(buf))) {
 	    fprintf(stdout,"Warn: socket trip time read error\n");
 	} else {
 	    mSettings->reporthdr->report.clientStartTime.tv_sec = ntohl(buf[1]);
