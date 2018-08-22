@@ -535,7 +535,7 @@ class iperf_server(object):
                                 else :
                                     m = self._server.regex_trip_time.match(line)
                                     if m :
-                                        self.flowstats['trip_time'].append(float(m.group('trip_time')))
+                                        self.flowstats['trip_time'].append(float(m.group('trip_time')) * 1000)
 
 
             elif fd == 2:

@@ -199,8 +199,18 @@ trip_times = []
 total_times = []
 for i in range(args.runcount) :
     print('run={} {}'.format(i, plottitle))
+
+    for dut in [dut_observe, ap] :
+        dut.wl(cmd='dump_clear ampdu')
+    ssh_node.run_all_commands()
     mouse.stats_reset()
+
     iperf_flow.run(amount='256K', time=None, flows=[mouse], preclean=False, parallel=args.parallel, triptime=True)
+
+    for dut in [dut_observe, ap] :
+        dut.wl(cmd='dump ampdu')
+    ssh_node.run_all_commands()
+
     if mouse.connect_time :
         connect_times.extend(mouse.connect_time)
         if mouse.trip_time :
@@ -227,8 +237,8 @@ if connect_times :
     logging.info(mystats)
     fqplot = os.path.join(args.output_directory, "connect_times.png")
     plt.figure(figsize=(10,5))
-    plt.title("{}(tot)".format(plottitle))
-    plt.hist(connect_times, bins='auto')
+    plt.title("{}(ct)".format(plottitle))
+    plt.hist(connect_times, bins='auto', color='blue')
     plt.savefig('{}'.format(fqplot))
 
     logging.info(mystats)
@@ -237,8 +247,8 @@ if connect_times :
     logging.info(mystats)
     fqplot = os.path.join(args.output_directory, "trip_times.png")
     plt.figure(figsize=(10,5))
-    plt.title("{}(trip_".format(plottitle))
-    plt.hist(connect_times, bins='auto')
+    plt.title("{}(trip)".format(plottitle))
+    plt.hist(trip_times, bins='auto', color='burlywood')
     plt.savefig('{}'.format(fqplot))
 
     logging.info(mystats)
@@ -248,8 +258,13 @@ if connect_times :
     fqplot = os.path.join(args.output_directory, "total_times.png")
     plt.figure(figsize=(10,5))
     plt.title("{}(tot)".format(plottitle))
-    plt.hist(connect_times, bins='auto')
+    plt.hist(total_times, bins='auto', color='darkseagreen')
     plt.savefig('{}'.format(fqplot))
 
+    fqplot = os.path.join(args.output_directory, "combined.png")
+    plt.hist([connect_times, trip_times, total_times], bins='auto', label=['ct', 'trip', 'tot'])
+    plt.title("{}(all)".format(plottitle))
+    plt.legend(loc='upper right')
+    plt.savefig('{}'.format(fqplot))
 
 logging.shutdown()
