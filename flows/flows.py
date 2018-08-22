@@ -64,7 +64,7 @@ class iperf_flow(object):
         iperf_flow.loop.close()
 
     @classmethod
-    def run(cls, time=None, amount=None, flows='all', sample_delay=None, io_timer=None, preclean=False) :
+    def run(cls, time=None, amount=None, flows='all', sample_delay=None, io_timer=None, preclean=False, parallel=None, triptime=False) :
         if flows == 'all' :
             flows = iperf_flow.get_instances()
         if not flows:
@@ -89,7 +89,7 @@ class iperf_flow(object):
         except asyncio.TimeoutError:
             logging.error('flow server start timeout')
             raise
-        tasks = [asyncio.ensure_future(flow.tx.start(time=time, amount=amount), loop=iperf_flow.loop) for flow in flows]
+        tasks = [asyncio.ensure_future(flow.tx.start(time=time, amount=amount, parallel=parallel, triptime=triptime), loop=iperf_flow.loop) for flow in flows]
         try :
             iperf_flow.loop.run_until_complete(asyncio.wait(tasks, timeout=10, loop=iperf_flow.loop))
         except asyncio.TimeoutError:
@@ -322,7 +322,7 @@ class iperf_flow(object):
 
     def stats_reset(self) :
         # Initialize the flow stats dictionary
-        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None, 'connect_time' : None}
+        self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None, 'starttime' : None}
         self.flowstats['txdatetime']=[]
         self.flowstats['txbytes']=[]
         self.flowstats['txthroughput']=[]
@@ -337,6 +337,8 @@ class iperf_flow(object):
         self.flowstats['reads']=[]
         self.flowstats['histograms']=[]
         self.flowstats['histogram_names'] = set()
+        self.flowstats['connect_time']=[]
+        self.flowstats['trip_time']=[]
 
     async def start(self):
         self.flowstats = {'current_rxbytes' : None , 'current_txbytes' : None , 'flowrate' : None}
@@ -498,14 +500,19 @@ class iperf_server(object):
                                     self.flowstats['rxbytes'].append(m.group('bytes'))
                                     self.flowstats['rxthroughput'].append(m.group('throughput'))
                                     self.flowstats['reads'].append(m.group('reads'))
-                        else :
-                            m = self._server.regex_final_isoch_traffic.match(line)
-                            if m :
-                                timestamp = datetime.now(timezone.utc).astimezone()
-                                self.flowstats['histogram_names'].add(m.group('pdfname'))
-                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), uci=m.group('uci'), uci_val=m.group('uci_val'), lci=m.group('lci'), lci_val=m.group('lci_val')))
-                                # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
-                                logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
+                            else :
+                                m = self._server.regex_final_isoch_traffic.match(line)
+                                if m :
+                                    timestamp = datetime.now(timezone.utc).astimezone()
+                                    self.flowstats['histogram_names'].add(m.group('pdfname'))
+                                    self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), uci=m.group('uci'), uci_val=m.group('uci_val'), lci=m.group('lci'), lci_val=m.group('lci_val')))
+                                    # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
+                                    logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
+                                else :
+                                    m = self._server.regex_trip_time.match(line)
+                                    if m :
+                                        self.flowstats['trip_time'].append(float(m.group('trip_time')))
+
 
             elif fd == 2:
                 self._stderrbuffer += data
@@ -558,6 +565,8 @@ class iperf_server(object):
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
         self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\((?P<lci>[0-9]+)/(?P<uci>[0-9]+)%=(?P<lci_val>[0-9]+)/(?P<uci_val>[0-9]+),Outliers=(?P<outliers>[0-9]+),obl/obu=[0-9]+/[0-9]+\)')
+        # 0.0000-0.5259 trip-time (3WHS done->fin+finack) = 0.5597 sec
+        self.regex_trip_time = re.compile(r'.+trip\-time\s+\(3WHS\sdone\->fin\+finack\)\s=\s(?P<trip_time>\d+\.\d+)\ssec')
 
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
@@ -686,7 +695,7 @@ class iperf_client(object):
                             else :
                                 m = self._client.regex_connect_time.match(line)
                                 if m :
-                                    self.flowstats['connect_time']=float(m.group('connect_time'))
+                                    self.flowstats['connect_time'].append(float(m.group('connect_time')))
                         else :
                             pass
 
@@ -740,7 +749,7 @@ class iperf_client(object):
     def __getattr__(self, attr):
         return getattr(self.flow, attr)
 
-    async def start(self, time=None, amount=None):
+    async def start(self, time=None, amount=None, parallel=None, triptime=False):
         if not self.closed.is_set() :
             return
 
@@ -751,7 +760,7 @@ class iperf_client(object):
         # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
         self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
 
-        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-z', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window]
+        self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window ,'--realtime']
         if self.length :
             self.sshcmd.extend(['-l ', str(self.length)])
         if time:
@@ -759,6 +768,10 @@ class iperf_client(object):
         elif amount:
             iperftime = time
             self.sshcmd.extend(['-n ',  amount])
+        if parallel :
+            self.sshcmd.extend(['-P', str(parallel)])
+        if triptime :
+            self.sshcmd.extend(['--trip-time'])
 
         if self.srcip :
             if self.srcport :

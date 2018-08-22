@@ -29,6 +29,7 @@ parser.add_argument('-T','--title', type=str, default="", required=False, help='
 parser.add_argument('-o','--output_directory', type=str, required=False, default='./data', help='output directory')
 parser.add_argument('--loglevel', type=str, required=False, default='INFO', help='python logging level, e.g. INFO or DEBUG')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
+parser.add_argument('-P','--parallel', type=int, default=None, required=False, help='use parallel threads on the mouse client')
 parser.add_argument('--stacktest', dest='stacktest', action='store_true')
 parser.add_argument('--edca_vi', dest='edca_vi', action='store_true')
 parser.add_argument('--edca_reducebe', dest='edca_reducebe', action='store_true')
@@ -82,6 +83,9 @@ if args.local :
 if args.bidir :
     dirtxt += '_bidir'
     plottitle += '(bidir)'
+if args.parallel :
+    dirtxt += '_p{}'.format(args.parallel)
+    plottitle += 'p({})'.format(args.parallel)
 
 plottitle += ' (cnt=' + str(args.runcount) + ')'
 args.output_directory += dirtxt
@@ -110,7 +114,7 @@ dut_observe = dutb
 duts = [ap, dut_observe]
 
 #instatiate traffic flows to be used by the test
-mouse = iperf_flow(name="Mouse(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos)
+mouse = iperf_flow(name="Mouse(tcp)", user='root', server=ap, client=dut_observe, dstip=args.dst, proto='TCP', interval=1, flowtime=args.time, tos=args.tos, debug=False)
 if not args.nocompete :
     dut_obstruct = [dutc, dutd]
     duts.extend(dut_obstruct)
@@ -167,12 +171,17 @@ if not args.nocompete :
     iperf_flow.commence(time=7200, flows=elephants, preclean=False)
 
 connect_times = []
+trip_times = []
+total_times = []
 for i in range(args.runcount) :
     print('run={} {}'.format(i, plottitle))
     mouse.stats_reset()
-    iperf_flow.run(amount='256K', time=None, flows=[mouse], preclean=False)
+    iperf_flow.run(amount='256K', time=None, flows=[mouse], preclean=False, parallel=args.parallel, triptime=True)
     if mouse.connect_time :
-        connect_times.append(mouse.connect_time)
+        connect_times.extend(mouse.connect_time)
+        if mouse.trip_time :
+            trip_times.extend(mouse.trip_time)
+            total_times.extend([mouse.trip_time[0] + mouse.connect_time[0]])
     logging.info('flowstats={}'.format(mouse.flowstats))
 
 
@@ -192,12 +201,31 @@ if connect_times :
     logging.info('Connect times={}'.format(connect_times))
     mystats = 'Connect time stats={}'.format(stats.describe(connect_times))
     logging.info(mystats)
-    print('Connect times={}'.format(connect_times))
     fqplot = os.path.join(args.output_directory, "connect_times.png")
     plt.figure(figsize=(10,5))
-    plt.title("{}".format(plottitle))
-#    plt.annotate(mystats, xy=(1, 1), xytext=(1,1))
+    plt.title("{}(tot)".format(plottitle))
     plt.hist(connect_times, bins='auto')
     plt.savefig('{}'.format(fqplot))
+
+    logging.info(mystats)
+    logging.info('Trip times={}'.format(trip_times))
+    mystats = 'Trip time stats={}'.format(stats.describe(trip_times))
+    logging.info(mystats)
+    fqplot = os.path.join(args.output_directory, "trip_times.png")
+    plt.figure(figsize=(10,5))
+    plt.title("{}(trip_".format(plottitle))
+    plt.hist(connect_times, bins='auto')
+    plt.savefig('{}'.format(fqplot))
+
+    logging.info(mystats)
+    logging.info('Total times={}'.format(total_times))
+    mystats = 'Total time stats={}'.format(stats.describe(total_times))
+    logging.info(mystats)
+    fqplot = os.path.join(args.output_directory, "total_times.png")
+    plt.figure(figsize=(10,5))
+    plt.title("{}(tot)".format(plottitle))
+    plt.hist(connect_times, bins='auto')
+    plt.savefig('{}'.format(fqplot))
+
 
 logging.shutdown()
