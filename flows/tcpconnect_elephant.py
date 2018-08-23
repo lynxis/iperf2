@@ -54,6 +54,7 @@ parser.add_argument('-o','--output_directory', type=str, required=False, default
 parser.add_argument('--loglevel', type=str, required=False, default='INFO', help='python logging level, e.g. INFO or DEBUG')
 parser.add_argument('-S','--tos', type=str, default='BE', required=False, help='type of service or access class; BE, VI, VO or BK')
 parser.add_argument('-P','--parallel', type=int, default=None, required=False, help='use parallel threads on the mouse client')
+parser.add_argument('--initcwnd', type=int, default=None, required=False, help='set initcwnd')
 parser.add_argument('--stacktest', dest='stacktest', action='store_true')
 parser.add_argument('--edca_vi', dest='edca_vi', action='store_true')
 parser.add_argument('--edca_reducebe', dest='edca_reducebe', action='store_true')
@@ -61,6 +62,7 @@ parser.add_argument('--txop_reduce', dest='edca_txop_reduce', action='store_true
 parser.add_argument('--nocompete', dest='nocompete', action='store_true')
 parser.add_argument('--local', dest='local', action='store_true')
 parser.add_argument('--bidir', dest='bidir', action='store_true')
+parser.add_argument('--frameburst', dest='frameburst', action='store_true')
 parser.set_defaults(stacktest=False)
 parser.set_defaults(edca_vi=False)
 parser.set_defaults(nocompete=False)
@@ -68,6 +70,7 @@ parser.set_defaults(edca_reducebe=False)
 parser.set_defaults(edca_txop_reduce=False)
 parser.set_defaults(local=False)
 parser.set_defaults(bidir=False)
+parser.set_defaults(frameburst=False)
 
 # Parse command line arguments
 args = parser.parse_args()
@@ -110,6 +113,15 @@ if args.bidir :
 if args.parallel :
     dirtxt += '_p{}'.format(args.parallel)
     plottitle += 'p({})'.format(args.parallel)
+if args.frameburst :
+    plottitle += '(fb=1)'
+    dirtxt +='_fb1'
+else :
+    plottitle += '(fb=0)'
+    dirtxt +='_fb0'
+if args.initcwnd :
+    plottitle += '(cwnd={})'.format(args.initcwnd)
+    dirtxt += '_cwnd{}'.format(args.initcwnd)
 
 plottitle += ' (cnt=' + str(args.runcount) + ')'
 args.output_directory += dirtxt
@@ -169,6 +181,14 @@ for dut in duts :
     #reset all BE edcas to default values
     dut.wl(cmd=edca_be)
     dut.wl(cmd='status')
+    if args.frameburst :
+        dut.wl(cmd='frameburst 1')
+    else :
+        dut.wl(cmd='frameburst 0')
+    dut.rexec(cmd='pkill dmesg')
+    dut.rexec(cmd='pkill iperf')
+if args.initcwnd :
+    dut_observe.rexec(cmd='ip route change {}/32 initcwnd {} initrwnd {} dev {}'.format(ap.devip, str(args.initcwnd), str(args.initcwnd), dut_observe.device))
 ssh_node.run_all_commands()
 
 # Possibly override BE EDCA parameters
@@ -187,6 +207,8 @@ if args.tos == 'BE' :
 ap.wl(cmd='wme_ac ap')
 for dut in duts[1:] :
     dut.wl(cmd='wme_ac sta')
+if args.initcwnd :
+    dut_observe.rexec(cmd='ip route show')
 ssh_node.run_all_commands()
 
 # OK, finally get test going
