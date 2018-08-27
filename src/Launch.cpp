@@ -133,11 +133,12 @@ void client_spawn( thread_Settings *thread ) {
     //start up the client
     theClient = new Client( thread );
 
+    // set traffic thread to realtime if needed
+    set_scheduler(thread);
+
     // Let the server know about our settings
     theClient->InitiateServer();
 
-    // set traffic thread to realtime if needed
-    set_scheduler(thread);
     // Run the test
     theClient->Run();
     DELETE_PTR( theClient );

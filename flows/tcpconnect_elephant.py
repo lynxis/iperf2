@@ -263,7 +263,6 @@ if connect_times :
     plt.hist(connect_times, bins='auto', color='blue')
     plt.savefig('{}'.format(fqplot))
 
-    logging.info(mystats)
     logging.info('Trip times={}'.format(trip_times))
     mystats = 'Trip time stats={}'.format(stats.describe(trip_times))
     logging.info(mystats)
@@ -273,7 +272,6 @@ if connect_times :
     plt.hist(trip_times, bins='auto', color='burlywood')
     plt.savefig('{}'.format(fqplot))
 
-    logging.info(mystats)
     logging.info('Total times={}'.format(total_times))
     mystats = 'Total time stats={}'.format(stats.describe(total_times))
     logging.info(mystats)
