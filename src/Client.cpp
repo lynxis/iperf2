@@ -287,8 +287,6 @@ void Client::InitTrafficLoop (void) {
 #endif
     }
 
-    if (isTxStartTime(mSettings)) {
-    }
     lastPacketTime.setnow();
     readAt = mBuf;
 }
