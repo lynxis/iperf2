@@ -147,9 +147,6 @@ typedef struct thread_Settings {
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
     int mSockDrop;
 #endif
-#ifdef HAVE_UDPTRIGGERS
-    int mSockIoctl;
-#endif
     int Extractor_size;
     int mBufLen;                    // -l
     int mMSS;                       // -M
@@ -222,10 +219,9 @@ typedef struct thread_Settings {
     int l4offset; // used in l2 mode to offset the raw packet
     int l4payloadoffset;
     int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L
-    struct timeval thread_synctime;
-    double mTxSyncInterval;
     double mVariance; //vbr variance
     unsigned int mFQPacingRate;
+    struct timeval txstart;
 } thread_Settings;
 
 /*
@@ -276,10 +272,10 @@ typedef struct thread_Settings {
 #define FLAG_SEQNO64        0x00000002
 #define FLAG_REVERSE        0x00000004
 #define FLAG_ISOCHRONOUS    0x00000008
-#define FLAG_UDPTRIGGERS    0x00000010
+#define FLAG_UDPUNUSED      0x00000010
 #define FLAG_UDPHISTOGRAM   0x00000020
 #define FLAG_L2LENGTHCHECK  0x00000100
-#define FLAG_TXSYNC         0x00000200
+#define FLAG_TXSTARTTIME    0x00000200
 #define FLAG_INCRDSTIP      0x00000400
 #define FLAG_VARYLOAD       0x00000800
 #define FLAG_FQPACING       0x00001000
@@ -320,11 +316,10 @@ typedef struct thread_Settings {
 #define isSeqNo64b(settings)       ((settings->flags_extend & FLAG_SEQNO64) != 0)
 #define isReverse(settings)        ((settings->flags_extend & FLAG_REVERSE) != 0)
 #define isIsochronous(settings)    ((settings->flags_extend & FLAG_ISOCHRONOUS) != 0)
-#define isUDPTriggers(settings)    ((settings->flags_extend & FLAG_UDPTRIGGERS) != 0)
 #define isUDPHistogram(settings)   ((settings->flags_extend & FLAG_UDPHISTOGRAM) != 0)
 #define isL2LengthCheck(settings)  ((settings->flags_extend & FLAG_L2LENGTHCHECK) != 0)
 #define isIncrDstIP(settings)      ((settings->flags_extend & FLAG_INCRDSTIP) != 0)
-#define isTxSync(settings)         ((settings->flags_extend & FLAG_TXSYNC) != 0)
+#define isTxStartTime(settings)         ((settings->flags_extend & FLAG_TXSTARTTIME) != 0)
 #define isVaryLoad(settings)       ((settings->flags_extend & FLAG_VARYLOAD) != 0)
 #define isFQPacing(settings)       ((settings->flags_extend & FLAG_FQPACING) != 0)
 #define isTripTime(settings)       ((settings->flags_extend & FLAG_TRIPTIME) != 0)
@@ -361,11 +356,10 @@ typedef struct thread_Settings {
 #define setSeqNo64b(settings)      settings->flags_extend |= FLAG_SEQNO64
 #define setReverse(settings)       settings->flags_extend |= FLAG_REVERSE
 #define setIsochronous(settings)   settings->flags_extend |= FLAG_ISOCHRONOUS
-#define setUDPTriggers(settings)   settings->flags_extend |= FLAG_UDPTRIGGERS
 #define setUDPHistogram(settings)  settings->flags_extend |= FLAG_UDPHISTOGRAM
 #define setL2LengthCheck(settings)    settings->flags_extend |= FLAG_L2LENGTHCHECK
 #define setIncrDstIP(settings)     settings->flags_extend |= FLAG_INCRDSTIP
-#define setTxSync(settings)        settings->flags_extend |= FLAG_TXSYNC
+#define setTxStartTime(settings)        settings->flags_extend |= FLAG_TXSTARTTIME
 #define setVaryLoad(settings)      settings->flags_extend |= FLAG_VARYLOAD
 #define setFQPacing(settings)      settings->flags_extend |= FLAG_FQPACING
 #define setTripTime(settings)      settings->flags_extend |= FLAG_TRIPTIME
@@ -402,11 +396,10 @@ typedef struct thread_Settings {
 #define unsetSeqNo64b(settings)    settings->flags_extend &= ~FLAG_SEQNO64
 #define unsetReverse(settings)     settings->flags_extend &= ~FLAG_REVERSE
 #define unsetIsochronous(settings) settings->flags_extend &= ~FLAG_ISOCHRONOUS
-#define unsetUDPTriggers(settings) settings->flags_extend &= ~FLAG_UDPTRIGGERS
 #define unsetUDPHistogram(settings)    settings->flags_extend &= ~FLAG_UDPHISTOGRAM
 #define unsetL2LengthCheck(settings)  settings->flags_extend &= ~FLAG_L2LENGTHCHECK
 #define unsetIncrDstIP(settings)   settings->flags_extend &= ~FLAG_INCRDSTIP
-#define unsetTxSync(settings)      settings->flags_extend &= ~FLAG_TXSYNC
+#define unsetTxStartTime(settings)      settings->flags_extend &= ~FLAG_TXSTARTTIME
 #define unsetVaryLoad(settings)      settings->flags_extend &= ~FLAG_VARYLOAD
 #define unsetFQPacing(settings)     settings->flags_extend &= ~FLAG_FQPACING
 #define unsetTripTime(settings)     settings->flags_extend &= ~FLAG_TRIPTIME
@@ -426,7 +419,6 @@ typedef struct thread_Settings {
 #define HEADER_UDP_ISOCH    0x00000001
 #define HEADER_L2ETHPIPV6   0x00000002
 #define HEADER_L2LENCHECK   0x00000004
-#define HEADER_UDPTRIGGERS  0x00000008
 
 #define RUN_NOW         0x00000001
 // newer flags
@@ -643,99 +635,13 @@ typedef struct client_hdr_udp_tests {
     u_int16_t tlvoffset;
     u_int32_t version_u;
     u_int32_t version_l;
-    u_int32_t ref_sync_tv_sec;
-    u_int32_t ref_sync_tv_nsec;
-    u_int32_t gps_sync_tv_sec;
-    u_int32_t gps_sync_tv_nsec;
 #else
     unsigned short testflags   : 16;
     unsigned short tlvoffset   : 16;
     unsigned int version_u   : 32;
     unsigned int version_l   : 32;
-    unsigned int ref_sync_tv_sec : 32;
-    unsigned int ref_sync_tv_nsec : 32;
-    unsigned int gps_sync_tv_sec : 32;
-    unsigned int gps_sync_tv_nsec : 32;
 #endif
 } client_hdr_udp_tests;
-
-#ifdef HAVE_UDPTRIGGERS
-/*
- *   UDP FW inline timestamps
- *
- *                 0      7 8     15 16    23 24    31
- *                +--------+--------+--------+--------+
- *            1   |  type (0x100)  |   length (68)    |   length including the 4 bytes tlv
- *                +--------+--------+--------+--------+
- *            2   |             host tx tv sec        |
- *                +--------+--------+--------+--------+
- *            3   |             host tx tv usec       |
- *                +--------+--------+--------+--------+
- *            4   |             host rx tv sec        |
- *                +--------+--------+--------+--------+
- *            5   |             host rx tv usec       |
- *                +--------+--------+--------+--------+
- *            6   |     type (0x1)  |      cnt (2)    |    fw rx tlv
- *                +--------+--------+--------+--------+
- *            7   |        fw rx ts 1 (mac)           |
- *                +--------+--------+--------+--------+
- *            8   |        fw rx ts 2 (pcie)          |
- *                +--------+--------+--------+--------+
- *            9   |     type (0x2)  |      cnt (1)    |    fw tx tlv
- *                +--------+--------+--------+--------+
- *            10  |        seqno lower                |
- *                +--------+--------+--------+--------+
- *            11  |        iperf tv_sec               |
- *                +--------+--------+--------+--------+
- *            12  |        iperf tv_usec              |
- *                +--------+--------+--------+--------+
- *            13  |        seqno upper ??             |
- *                +--------+--------+--------+--------+
- *            14  |        fw tx ts 1  pcie           |
- *                +--------+--------+--------+--------+
- *            15  |        fw tx ts 2  tx dma         |
- *                +--------+--------+--------+--------+
- *            16  |        fw tx ts 3  tx status      |
- *                +--------+--------+--------+--------+
- *            17  |        fw tx ts 4  pcie rt        |
- *                +--------+--------+--------+--------+
- *
- * TSF histograms
- * DHDRX-DHDTX 'DRRx-DRTx;'
- * hs1 = 14,8 T6 "FWR2-FWT1"
- * hs2 = 15,7 T5 "FWR1-FWT2'
- * hs3 = 14,17 T4 'FWT4-FWT1'
- * hs4 = 15,16 T3 'FWT3-FWT2'
- * hs5 = 7,8 T2 'FWR2-FWR1'
- */
-typedef struct fwtsfrx_t {
-    u_int16_t fwtype;
-    u_int16_t fwnct;
-    u_int32_t tsf_rxmac;
-    u_int32_t tsf_rxpcie;
-} fwtsfrx_t;
-
-typedef struct fwtsftx_t {
-    struct UDP_datagram udpid;
-    u_int32_t tsf_txpcie;
-    u_int32_t tsf_txdma;
-    u_int32_t tsf_txstatus;
-    u_int32_t tsf_txpciert;
-} fwtsftx_t;
-
-typedef struct UDPTriggers {
-    u_int16_t type;
-    u_int16_t length;
-    u_int32_t hosttx_tv_sec;
-    u_int32_t hosttx_tv_usec;
-    u_int32_t hostrx_tv_sec;
-    u_int32_t hostrx_tv_usec;
-    struct fwtsfrx_t fwtsf_rx;
-    u_int16_t fwtsf_type;
-    u_int16_t fwtsf_cnt;
-    struct fwtsftx_t fwtsf_tx[];
-} UDPTriggers;
-#endif //UDPTRIGGERS
 
 
 typedef struct client_hdr_udp_isoch_tests {

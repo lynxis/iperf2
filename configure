@@ -673,8 +673,6 @@ CHECKPROGRAMS_FALSE
 CHECKPROGRAMS_TRUE
 FASTSAMPLING_FALSE
 FASTSAMPLING_TRUE
-UDPTRIGGERS_FALSE
-UDPTRIGGERS_TRUE
 ISOCHRONOUS_FALSE
 ISOCHRONOUS_TRUE
 MAINT
@@ -758,7 +756,6 @@ enable_web100
 enable_kalman
 enable_seqno64b
 enable_isochronous
-enable_udptriggers
 enable_fastsampling
 enable_checkprograms
 enable_af_packet
@@ -1408,8 +1405,6 @@ Optional Features:
   --disable-seqno64b      disable 64 bit sequence numer support (default is
                           enable)
   --disable-isochronous   disable isochronous support (default is enable)
-  --enable-udptriggers    enable support for udp triggers in udp payloads
-                          (default is disable)
   --enable-fastsampling   enable support for 100 microsecond report intervals
                           (default is disable)
   --enable-checkprograms  enable support for building support programs such as
@@ -3313,20 +3308,6 @@ fi
 else
   ISOCHRONOUS_TRUE='#'
   ISOCHRONOUS_FALSE=
-fi
-
-
-# Check whether --enable-udptriggers was given.
-if test "${enable_udptriggers+set}" = set; then :
-  enableval=$enable_udptriggers;
-fi
-
- if test "x$enable_udptriggers" = "xyes"; then
-  UDPTRIGGERS_TRUE=
-  UDPTRIGGERS_FALSE='#'
-else
-  UDPTRIGGERS_TRUE='#'
-  UDPTRIGGERS_FALSE=
 fi
 
 
@@ -9125,10 +9106,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ISOCHRONOUS_TRUE}" && test -z "${ISOCHRONOUS_FALSE}"; then
   as_fn_error $? "conditional \"ISOCHRONOUS\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${UDPTRIGGERS_TRUE}" && test -z "${UDPTRIGGERS_FALSE}"; then
-  as_fn_error $? "conditional \"UDPTRIGGERS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${FASTSAMPLING_TRUE}" && test -z "${FASTSAMPLING_FALSE}"; then

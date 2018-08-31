@@ -45,10 +45,6 @@ AC_ARG_ENABLE(isochronous, AC_HELP_STRING([--disable-isochronous],
 	    [disable isochronous support (default is enable)]))
 AM_CONDITIONAL([ISOCHRONOUS], [test "x${enable_isochronous}" = "xyes"])
 
-AC_ARG_ENABLE(udptriggers, AC_HELP_STRING([--enable-udptriggers],
-	    [enable support for udp triggers in udp payloads (default is disable)]))
-AM_CONDITIONAL([UDPTRIGGERS], [test "x$enable_udptriggers" = "xyes"])
-
 AC_ARG_ENABLE(fastsampling, AC_HELP_STRING([--enable-fastsampling],
 	    [enable support for 100 microsecond report intervals (default is disable)]))
 AM_CONDITIONAL([FASTSAMPLING], [test "x$enable_fastsampling" = "xyes"])

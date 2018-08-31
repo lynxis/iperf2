@@ -92,7 +92,6 @@ private:
     void L2_processing (void);
     int L2_quintuple_filter (void);
     void Isoch_processing (void);
-    void UDPTriggers_processing (void);
     bool InProgress(void);
     Timestamp connect_done;
 
@@ -109,17 +108,6 @@ private:
     struct ether_header *eth_hdr;
     struct iphdr *ip_hdr;
     struct udphdr *udp_hdr;
-#endif
-#ifdef HAVE_UDPTRIGGERS
-    uint16_t packetidhash (int64_t);
-    struct fwtsf_entry_t {
-	bool free;
-	int64_t packetID;
-	uint32_t fwrxts1;
-	uint32_t fwrxts2;
-    };
-#define HASHTABLESIZE (1 << 16)
-    fwtsf_entry_t fwtsf_hashtable[HASHTABLESIZE];
 #endif
 }; // end class Server
 

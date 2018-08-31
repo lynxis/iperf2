@@ -64,9 +64,6 @@
 #include "isochronous.hpp"
 #include "pdfs.h"
 #include "version.h"
-#ifdef HAVE_UDPTRIGGERS
-#include "ioctls.h"
-#endif
 
 // const double kSecs_to_usecs = 1e6;
 const double kSecs_to_nsecs = 1e9;
@@ -117,6 +114,14 @@ Client::Client( thread_Settings *inSettings ) {
 	FAIL_errno( !(mSettings->mFPS > 0.0), "Invalid value for frames per second in the isochronous settings\n", mSettings );
 #endif
 
+    if (isTxStartTime(inSettings)) {
+	Timestamp currentTime;
+	if (currentTime.before(inSettings->txstart)) {
+	    int startdelay = currentTime.mysubUsec(inSettings->txstart);
+	    // printf("TxStart delay of %f secs\n", (double) (startdelay / 1e6));
+	    delay_loop(startdelay);
+	}
+    }
     ct = Connect( );
 
     if ( isReport( inSettings ) ) {
@@ -130,8 +135,8 @@ Client::Client( thread_Settings *inSettings ) {
         }
     }
 
-    // InitReport handles Barrier for multiple Streams
-    mSettings->reporthdr = InitReport( mSettings );
+    // InitDataReport handles Barrier for multiple Streams
+    InitReport(mSettings);
     if (mSettings->reporthdr) {
 	mSettings->reporthdr->report.connection.connecttime = ct;
     }
@@ -142,8 +147,6 @@ Client::Client( thread_Settings *inSettings ) {
     reportstruct->errwrite=WriteNoErr;
     reportstruct->emptyreport=0;
     reportstruct->socket = mSettings->mSock;
-    if (isTxSync(mSettings))
-	syncTime.set(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
 } // end Client
 
@@ -156,9 +159,6 @@ Client::~Client() {
         WARN_errno( rc == SOCKET_ERROR, "close" );
         mSettings->mSock = INVALID_SOCKET;
     }
-#ifdef HAVE_UDPTRIGGERS
-    close_ioctl_sock(mSettings);
-#endif
     DELETE_ARRAY( mBuf );
     DELETE_PTR(reportstruct);
 } // end ~Client
@@ -287,6 +287,8 @@ void Client::InitTrafficLoop (void) {
 #endif
     }
 
+    if (isTxStartTime(mSettings)) {
+    }
     lastPacketTime.setnow();
     readAt = mBuf;
 }
@@ -303,6 +305,8 @@ void Client::InitTrafficLoop (void) {
  * ------------------------------------------------------------------- */
 void Client::Run( void ) {
 
+    // Post the very first report which will have connection, version and test information
+    PostFirstReport(mSettings);
     // Peform common traffic setup
     InitTrafficLoop();
     /*
@@ -334,8 +338,6 @@ void Client::Run( void ) {
 	// Launch the approprate UDP traffic loop
 	if (isIsochronous(mSettings)) {
 	    RunUDPIsochronous();
-	} else if (isTxSync(mSettings)) {
-	    RunUDPTxSync();
 	} else {
 	    RunUDP();
 	}
@@ -646,8 +648,6 @@ void Client::RunUDPIsochronous (void) {
     int bytecntmin = sizeof(UDP_datagram) + sizeof(client_hdr_udp_tests);
 
     mBuf_isoch->burstperiod = htonl(fc->period_us());
-    if (isTxSync(mSettings))
-	fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
 
     int initdone = 0;
     int fatalwrite_err = 0;
@@ -761,61 +761,6 @@ void Client::RunUDPIsochronous (void) {
 }
 // end RunUDPIsoch
 
-void Client::RunUDPTxSync (void) {
-    struct UDP_datagram* mBuf_UDP = (struct UDP_datagram*) mBuf;
-    Timestamp t1;
-    int currLen = 0;
-    Isochronous::FrameCounter *fc = NULL;
-
-    fc = new Isochronous::FrameCounter(1.0 / mSettings->mTxSyncInterval);
-    fc->wait_sync(mSettings->thread_synctime.tv_sec, mSettings->thread_synctime.tv_usec);
-
-    while (InProgress()) {
-	fc->wait_tick();
-	t1.setnow();
-	reportstruct->packetTime.tv_sec = t1.getSecs();
-	reportstruct->packetTime.tv_usec = t1.getUsecs();
-	mBuf_UDP->tv_sec  = htonl(reportstruct->packetTime.tv_sec);
-	mBuf_UDP->tv_usec = htonl(reportstruct->packetTime.tv_usec);
-	WritePacketID();
-
-	if (!isSeqNo64b(mSettings) && (reportstruct->packetID & 0x80000000L)) {
-	    // seqno wrapped
-	    fprintf(stderr, "%s", warn_seqno_wrap);
-	    break;
-	}
-	reportstruct->errwrite = 0;
-	reportstruct->emptyreport = 0;
-	// perform write
-	if (!isModeTime(mSettings)) {
-	    currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
-	} else {
-	    currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
-	}
-	if ( currLen < 0 ) {
-	    reportstruct->packetID--;
-	    reportstruct->errwrite = 1;
-	    reportstruct->emptyreport = 1;
-	    currLen = 0;
-	    if (FATALUDPWRITERR(errno)) {
-	        reportstruct->errwrite = WriteErrFatal;
-	        WARN_errno( 1, "write" );
-		break;
-	    } else {
-	        reportstruct->errwrite = WriteErrAccount;
-	        currLen = 0;
-	    }
-	  reportstruct->emptyreport = 1;
-	}
-	reportstruct->packetLen = (unsigned long) currLen;
-	ReportPacket( mSettings->reporthdr, reportstruct );
-    }
-
-    FinishTrafficActions();
-
-    DELETE_PTR(fc);
-}
-// end RunUDPTxSync
 
 
 void Client::WritePacketID (void) {

@@ -121,6 +121,9 @@ int reporter_handle_packet( ReportHeader *report );
 int reporter_condprintstats( ReporterData *stats, MultiHeader *multireport, int force );
 int reporter_print( ReporterData *stats, int type, int end );
 void PrintMSS( ReporterData *stats );
+
+static void InitDataReport(struct thread_Settings *mSettings);
+static void InitConnectionReport(struct thread_Settings *mSettings);
 #ifdef HAVE_STRUCT_TCP_INFO_TCPI_TOTAL_RETRANS
 static void gettcpistats(ReporterData *stats, int final);
 #endif
@@ -229,204 +232,188 @@ void BarrierClient( ReportHeader *agent ) {
 /*
  * InitReport is called by a transfer agent (client or
  * server) to setup the needed structures to communicate
- * traffic.
+ * traffic and connection information.  Also initialize
+ * the report start time and next interval report time
+ * Finally, in the case of parallel clients, have them all
+ * synchronize on compeleting their connect()
  */
-ReportHeader* InitReport( thread_Settings *agent ) {
-    ReportHeader *reporthdr = NULL;
-    ReporterData *data = NULL;
-    if ( isDataReport( agent ) ) {
-        /*
-         * Create in one big chunk
-         */
-        reporthdr = calloc( sizeof(ReportHeader) +
-                            NUM_REPORT_STRUCTS * sizeof(ReportStruct), sizeof(char*));
-        if ( reporthdr != NULL ) {
-            reporthdr->data = (ReportStruct*)(reporthdr+1);
-            reporthdr->multireport = agent->multihdr;
-            data = &reporthdr->report;
-            reporthdr->reporterindex = NUM_REPORT_STRUCTS - 1;
-            data->info.transferID = agent->mSock;
-            data->info.groupID = (agent->multihdr != NULL ? agent->multihdr->groupID : -1);
-            data->type = TRANSFER_REPORT;
-            if ( agent->mInterval != 0.0 ) {
-                struct timeval *interval = &data->intervalTime;
-                interval->tv_sec = (long) agent->mInterval;
-                interval->tv_usec = (long) ((agent->mInterval - interval->tv_sec) * rMillion);
-            }
-            data->mHost = agent->mHost;
-            data->mLocalhost = agent->mLocalhost;
-	    data->mSSMMulticastStr = agent->mSSMMulticastStr;
-	    data->mIfrname = agent->mIfrname;
-            data->mBufLen = agent->mBufLen;
-            data->mMSS = agent->mMSS;
-            data->mTCPWin = agent->mTCPWin;
-	    data->FQPacingRate = agent->mFQPacingRate;
-            data->flags = agent->flags;
-            data->mThreadMode = agent->mThreadMode;
-            data->mode = agent->mReportMode;
-	    data->TxSyncInterval = agent->mTxSyncInterval;
-            data->info.mFormat = agent->mFormat;
-            data->info.mTTL = agent->mTTL;
-	    if (data->mThreadMode == kMode_Server)
-		data->info.sock_callstats.read.binsize = data->mBufLen / 8;
-            if ( isUDP( agent ) ) {
-		gettimeofday(&data->IPGstart, NULL);
-                reporthdr->report.info.mUDP = (char)agent->mThreadMode;
-            } else {
-                reporthdr->report.info.mTCP = (char)agent->mThreadMode;
-	    }
-	    if ( isEnhanced( agent ) ) {
-		data->info.mEnhanced = 1;
-	    } else {
-		data->info.mEnhanced = 0;
-	    }
-	    if (data->mThreadMode == kMode_Server) {
-		if (isUDPHistogram(agent)) {
-		    char name[] = "T8";
-		    data->info.latency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0,\
-								   (agent->mUDPunits ? 1e6 : 1e3), \
-								   agent->mUDPci_lower, agent->mUDPci_upper, data->info.transferID, name);
-		}
-#ifdef HAVE_UDPTRIGGERS
-                /*
-		 * TSF histograms
-		 * DHDRX-DHDTX 'DRRx-DRTx;'
-		 * hs1 = 14,8 T6 "FWR2-FWT1"
-		 * hs2 = 15,7 T5 "FWR1-FWT2'
-		 * hs3 = 14,17 T4 'FWT4-FWT1'
-		 * hs4 = 15,16 T3 'FWT3-FWT2'
-		 * hs5 = 7,8 T2 'FWR2-FWR1'
-		 * hs6 = 15, 14  "FWT2-FWT1'
-		 */
-		if (isUDPTriggers(agent)) {
-		    char name[] = "DRRx-DRTx";
-		    // Bins, bin size, bin, offset, bin units (1e6 = us), confidence low (e.g. 5%), confidence high (e.g. 95%), id, name)
-		    data->info.hostlatency_histogram =  histogram_init(100000,10, 0, 1e6, 5, 95,  \
-								       data->info.transferID, name);
-		    strcpy(name,"FWR2-FWT1");
-		    data->info.h1_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
-		    strcpy(name,"FWR1-FWT2");
-		    data->info.h2_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
-		    strcpy(name,"FWT4-FWT1");
-		    data->info.h3_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
-		    strcpy(name,"FWT3-FWT2");
-		    data->info.h4_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
-		    strcpy(name,"FWR2-FWR1");
-		    data->info.h5_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
-		    strcpy(name,"FWT2-FWT1");
-		    data->info.h6_histogram =  histogram_init(1000000,10, 0, 1e6, 5, 95, data->info.transferID, name);
-
-		    memset(&data->info.tsftv_rxmac,0,sizeof(struct tsftv_t));
-//		    memcpy(&data->info.tsftv_rxpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
-		    memcpy(&data->info.tsftv_txpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
-		    memcpy(&data->info.tsftv_txpciert, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
-		    memcpy(&data->info.tsftv_txdma, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
-		    memcpy(&data->info.tsftv_txstatus, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
-
-		    // sync the RX tsf structs with gps
-		    tsfgps_sync(&data->info.tsftv_rxmac, NULL, agent);
-		    memcpy(&data->info.tsftv_rxpcie, &data->info.tsftv_rxmac, sizeof(struct tsftv_t));
-		}
-#endif
-#ifdef HAVE_ISOCHRONOUS
-		if (isUDPHistogram(agent) && isIsochronous(agent)) {
-		    char name[] = "F8";
-		    // make sure frame bin size min is 100 microsecond
-		    if (agent->mUDPunits && (agent->mUDPbinsize < 100))
-			agent->mUDPbinsize = 100;
-		    agent->mUDPunits = 1;
-		    data->info.framelatency_histogram =  histogram_init(agent->mUDPbins,agent->mUDPbinsize,0, \
-									(agent->mUDPunits ? 1e6 : 1e3), agent->mUDPci_lower, \
-									agent->mUDPci_upper, data->info.transferID, name);
-		}
-#endif
-	    }
-#ifdef HAVE_ISOCHRONOUS
-	    if ( isIsochronous( agent ) ) {
-		data->info.mIsochronous = 1;
-	    } else {
-		data->info.mIsochronous = 0;
-	    }
-#endif
-        } else {
-            FAIL(1, "Out of Memory!!\n", agent);
-        }
+void InitReport(thread_Settings *mSettings) {
+    // Note, this must be called in order as
+    // the data report structures need to be
+    // initialized first
+    if (isDataReport(mSettings)) {
+	InitDataReport(mSettings);
     }
-    if ( isConnectionReport( agent ) ) {
-        if ( reporthdr == NULL ) {
-            /*
-             * Create in one big chunk
-             */
-            reporthdr = calloc( sizeof(ReportHeader), sizeof(char*) );
-            if ( reporthdr != NULL ) {
-                data = &reporthdr->report;
-                data->info.transferID = agent->mSock;
-                data->info.groupID = -1;
-            } else {
-                FAIL(1, "Out of Memory!!\n", agent);
-            }
-        }
-        if ( reporthdr != NULL ) {
-            data->type |= CONNECTION_REPORT;
-            data->connection.peer = agent->peer;
-            data->connection.size_peer = agent->size_peer;
-            data->connection.local = agent->local;
-            data->connection.size_local = agent->size_local;
-	    data->connection.peerversion = agent->peerversion;
-	    // Set the l2mode flags
-	    data->connection.l2mode = isL2LengthCheck(agent);
-	    if (data->connection.l2mode)
-		data->connection.l2mode = ((isIPV6(agent) << 1) | data->connection.l2mode);
-        } else {
-            FAIL(1, "Out of Memory!!\n", agent);
-        }
+    if (isConnectionReport(mSettings)) {
+	InitConnectionReport(mSettings);
     }
-    if ( isConnectionReport( agent ) || isDataReport( agent ) ) {
-
+    ReportHeader *reporthdr = mSettings->reporthdr;
+    if (reporthdr && (isDataReport(mSettings) || isConnectionReport(mSettings))) {
+	//
+	// Set the report start times and next report times
+	//
 #ifdef HAVE_THREAD
-        /*
-         * Update the ReportRoot to include this report.
-         */
-        if ( reporthdr->report.mThreadMode == kMode_Client &&
-             reporthdr->multireport != NULL ) {
-            // syncronize watches on my mark......
-            BarrierClient( reporthdr );
-        } else {
-            if ( reporthdr->multireport != NULL && isMultipleReport( agent )) {
-                reporthdr->multireport->threads++;
-                if ( reporthdr->multireport->report->startTime.tv_sec == 0 ) {
-                    gettimeofday( &(reporthdr->multireport->report->startTime), NULL );
-                }
-                reporthdr->report.startTime = reporthdr->multireport->report->startTime;
-            } else {
-                // set start time
-                gettimeofday( &(reporthdr->report.startTime), NULL );
-            }
-            reporthdr->report.nextTime = reporthdr->report.startTime;
-            TimeAdd( reporthdr->report.nextTime, reporthdr->report.intervalTime );
-        }
-        Condition_Lock( ReportCond );
-        reporthdr->next = ReportRoot;
-        ReportRoot = reporthdr;
-        Condition_Signal( &ReportCond );
-        Condition_Unlock( ReportCond );
+	// In the case of parellel clients synchronize them after the connect(),
+	// i.e. before their traffic run loops
+	if ((reporthdr->report.mThreadMode == kMode_Client) && (reporthdr->multireport != NULL)) {
+	    // syncronize watches on my mark......
+	    BarrierClient(reporthdr);
+	} else {
+	    if ( reporthdr->multireport != NULL && isMultipleReport( mSettings )) {
+		reporthdr->multireport->threads++;
+		if ( reporthdr->multireport->report->startTime.tv_sec == 0 ) {
+		    gettimeofday( &(reporthdr->multireport->report->startTime), NULL );
+		}
+		reporthdr->report.startTime = reporthdr->multireport->report->startTime;
+	    } else {
+		// set start time
+		gettimeofday( &(reporthdr->report.startTime), NULL );
+	    }
+	    reporthdr->report.nextTime = reporthdr->report.startTime;
+	    TimeAdd( reporthdr->report.nextTime, reporthdr->report.intervalTime );
+	}
 #else
-        // set start time
-        gettimeofday( &(reporthdr->report.startTime), NULL );
-        // set next report time
+	// set start time
+	gettimeofday( &(reporthdr->report.startTime), NULL );
+	// set next report time
 	reporthdr->report.nextTime = reporthdr->report.startTime;
 	TimeAdd( reporthdr->report.nextTime, reporthdr->report.intervalTime );
-        /*
-         * Process the report in this thread
-         */
-        reporthdr->next = NULL;
-        process_report ( reporthdr );
 #endif
     }
-    if ( !isDataReport( agent ) ) {
-        reporthdr = NULL;
+}
+
+void InitDataReport(thread_Settings *mSettings) {
+    ReportHeader *reporthdr = NULL;
+    ReporterData *data = NULL;
+    /*
+     * Create in one big chunk
+     */
+    reporthdr = calloc( sizeof(ReportHeader) +
+			NUM_REPORT_STRUCTS * sizeof(ReportStruct), sizeof(char*));
+
+    if ( reporthdr != NULL ) {
+	mSettings->reporthdr = reporthdr;
+	reporthdr->data = (ReportStruct*)(reporthdr+1);
+	reporthdr->multireport = mSettings->multihdr;
+	data = &reporthdr->report;
+	reporthdr->reporterindex = NUM_REPORT_STRUCTS - 1;
+	data->info.transferID = mSettings->mSock;
+	data->info.groupID = (mSettings->multihdr != NULL ? mSettings->multihdr->groupID : -1);
+	data->type = TRANSFER_REPORT;
+	if ( mSettings->mInterval != 0.0 ) {
+	    struct timeval *interval = &data->intervalTime;
+	    interval->tv_sec = (long) mSettings->mInterval;
+	    interval->tv_usec = (long) ((mSettings->mInterval - interval->tv_sec) * rMillion);
+	}
+	data->mHost = mSettings->mHost;
+	data->mLocalhost = mSettings->mLocalhost;
+	data->mSSMMulticastStr = mSettings->mSSMMulticastStr;
+	data->mIfrname = mSettings->mIfrname;
+	data->mBufLen = mSettings->mBufLen;
+	data->mMSS = mSettings->mMSS;
+	data->mTCPWin = mSettings->mTCPWin;
+	data->FQPacingRate = mSettings->mFQPacingRate;
+	data->flags = mSettings->flags;
+	data->mThreadMode = mSettings->mThreadMode;
+	data->mode = mSettings->mReportMode;
+	data->info.mFormat = mSettings->mFormat;
+	data->info.mTTL = mSettings->mTTL;
+	if (data->mThreadMode == kMode_Server)
+	    data->info.sock_callstats.read.binsize = data->mBufLen / 8;
+	if ( isUDP( mSettings ) ) {
+	    gettimeofday(&data->IPGstart, NULL);
+	    reporthdr->report.info.mUDP = (char)mSettings->mThreadMode;
+	} else {
+	    reporthdr->report.info.mTCP = (char)mSettings->mThreadMode;
+	}
+	if ( isEnhanced( mSettings ) ) {
+	    data->info.mEnhanced = 1;
+	} else {
+	    data->info.mEnhanced = 0;
+	}
+	if (data->mThreadMode == kMode_Server) {
+	    if (isUDPHistogram(mSettings)) {
+		char name[] = "T8";
+		data->info.latency_histogram =  histogram_init(mSettings->mUDPbins,mSettings->mUDPbinsize,0,\
+							       (mSettings->mUDPunits ? 1e6 : 1e3), \
+							       mSettings->mUDPci_lower, mSettings->mUDPci_upper, data->info.transferID, name);
+	    }
+#ifdef HAVE_ISOCHRONOUS
+	    if (isUDPHistogram(mSettings) && isIsochronous(mSettings)) {
+		char name[] = "F8";
+		// make sure frame bin size min is 100 microsecond
+		if (mSettings->mUDPunits && (mSettings->mUDPbinsize < 100))
+		    mSettings->mUDPbinsize = 100;
+		mSettings->mUDPunits = 1;
+		data->info.framelatency_histogram =  histogram_init(mSettings->mUDPbins,mSettings->mUDPbinsize,0, \
+								    (mSettings->mUDPunits ? 1e6 : 1e3), mSettings->mUDPci_lower, \
+								    mSettings->mUDPci_upper, data->info.transferID, name);
+	    }
+#endif
+	}
+#ifdef HAVE_ISOCHRONOUS
+	if ( isIsochronous( mSettings ) ) {
+	    data->info.mIsochronous = 1;
+	} else {
+	    data->info.mIsochronous = 0;
+	}
+#endif
+    } else {
+	FAIL(1, "Out of Memory!!\n", mSettings);
     }
-    return reporthdr;
+}
+
+void InitConnectionReport (thread_Settings *mSettings) {
+    ReportHeader *reporthdr = mSettings->reporthdr;
+    ReporterData *data = NULL;
+
+    if (reporthdr == NULL) {
+	/*
+	 * We don't have a Data Report structure in which to hang
+	 * the connection report so allocate a minimal one
+	 */
+	reporthdr = calloc( sizeof(ReportHeader), sizeof(char*) );
+	if (reporthdr == NULL ) {
+	    FAIL(1, "Out of Memory!!\n", mSettings);
+	}
+	mSettings->reporthdr = reporthdr;
+    }
+    // Fill out known fields for the connection report
+    data = &reporthdr->report;
+    data->info.transferID = mSettings->mSock;
+    data->info.groupID = -1;
+    data->type |= CONNECTION_REPORT;
+    data->connection.peer = mSettings->peer;
+    data->connection.size_peer = mSettings->size_peer;
+    data->connection.local = mSettings->local;
+    data->connection.size_local = mSettings->size_local;
+    data->connection.peerversion = mSettings->peerversion;
+    // Set the l2mode flags
+    data->connection.l2mode = isL2LengthCheck(mSettings);
+    if (data->connection.l2mode)
+	data->connection.l2mode = ((isIPV6(mSettings) << 1) | data->connection.l2mode);
+}
+
+void PostFirstReport (thread_Settings *mSettings) {
+    if (mSettings->reporthdr) {
+	ReportHeader *reporthdr = mSettings->reporthdr;
+#ifdef HAVE_THREAD
+	/*
+	 * Update the ReportRoot to include this report.
+	 */
+	Condition_Lock( ReportCond );
+	reporthdr->next = ReportRoot;
+	ReportRoot = reporthdr;
+	Condition_Signal( &ReportCond );
+	Condition_Unlock( ReportCond );
+#else
+	/*
+	 * Process the report in this thread
+	 */
+	reporthdr->next = NULL;
+	process_report ( reporthdr );
+#endif
+    }
 }
 
 /*
@@ -571,7 +558,6 @@ void ReportSettings( thread_Settings *agent ) {
             data->connection.size_local = agent->size_local;
             data->mUDPRate = agent->mUDPRate;
             data->mUDPRateUnits = agent->mUDPRateUnits;
-	    data->TxSyncInterval = agent->mTxSyncInterval;
 #ifdef HAVE_ISOCHRONOUS
 	    if (isIsochronous(data)) {
 		data->isochstats.mFPS = agent->mFPS;
@@ -716,6 +702,13 @@ void reporter_spawn( thread_Settings *thread ) {
         Condition_Unlock ( ReportCond );
 
 again:
+		{
+		    struct timespec requested;
+		    requested.tv_sec  = 0;
+		    requested.tv_nsec = 10000000L;
+		    nanosleep(&requested, NULL);
+		}
+
         if ( ReportRoot != NULL ) {
             ReportHeader *temp = ReportRoot;
             //Condition_Unlock ( ReportCond );
@@ -742,25 +735,6 @@ again:
 #ifdef HAVE_ISOCHRONOUS
 		if (temp->report.info.framelatency_histogram) {
 		    histogram_delete(temp->report.info.framelatency_histogram);
-		}
-#endif
-#ifdef HAVE_UDPTRIGGERS
-		if (temp->report.info.hostlatency_histogram) {
-		    histogram_delete(temp->report.info.hostlatency_histogram);
-		}
-		if (temp->report.info.h1_histogram) {
-		    histogram_delete(temp->report.info.h1_histogram);
-		    temp->report.info.h1_histogram = NULL;
-		    histogram_delete(temp->report.info.h2_histogram);
-		    temp->report.info.h2_histogram = NULL;
-		    histogram_delete(temp->report.info.h3_histogram);
-		    temp->report.info.h3_histogram = NULL;
-		    histogram_delete(temp->report.info.h4_histogram);
-		    temp->report.info.h4_histogram = NULL;
-		    histogram_delete(temp->report.info.h5_histogram);
-		    temp->report.info.h5_histogram = NULL;
-		    histogram_delete(temp->report.info.h6_histogram);
-		    temp->report.info.h6_histogram = NULL;
 		}
 #endif
                 free( temp );
@@ -833,11 +807,6 @@ void process_report ( ReportHeader *report ) {
 		histogram_delete(report->report.info.framelatency_histogram);
 	    }
 #endif
-#ifdef HAVE_UDPTRIGGERS
-	    if (report->report.info.hostlatency_histogram) {
-		histogram_delete(report->report.info.hostlatency_histogram);
-	    }
-#endif
             free( report );
         }
     }
@@ -861,11 +830,6 @@ int reporter_process_report ( ReportHeader *reporthdr ) {
 #ifdef HAVE_ISOCHRONOUS
 	    if (temp->report.info.framelatency_histogram) {
 		histogram_delete(temp->report.info.framelatency_histogram);
-	    }
-#endif
-#ifdef HAVE_UDPTRIGGERS
-	    if (temp->report.info.hostlatency_histogram) {
-		histogram_delete(temp->report.info.hostlatency_histogram);
 	    }
 #endif
             free( temp );
@@ -1036,84 +1000,6 @@ int reporter_handle_packet( ReportHeader *reporthdr ) {
 		    if (stats->latency_histogram) {
 			histogram_insert(stats->latency_histogram, transit);
 		    }
-#ifdef HAVE_UDPTRIGGERS
-		    if (stats->hostlatency_histogram) {
-			double hosttransit = TimeDifference(packet->hostRxTime, packet->hostTxTime);
-			histogram_insert(stats->hostlatency_histogram, hosttransit);
-		    }
-
-		    if (stats->h1_histogram) {
-			// apply sync to the TX tsf structs if needed
-			if (!stats->tsftv_txpcie.synced) {
-			    struct gpsref_sync_t tsfgps;
-			    tsfgps.gps_ts.tv_sec = packet->gps_sync.tv_sec;
-			    tsfgps.gps_ts.tv_nsec = packet->gps_sync.tv_nsec;
-			    tsfgps.ref_ts.tv_sec = packet->ref_sync.tv_sec;
-			    tsfgps.ref_ts.tv_nsec = packet->ref_sync.tv_nsec;
-			    tsfgps_sync(&stats->tsftv_txpcie, &tsfgps, NULL);
-			    tsfgps_sync(&stats->tsftv_txpciert, &tsfgps, NULL);
-			    tsfgps_sync(&stats->tsftv_txdma, &tsfgps, NULL);
-			    tsfgps_sync(&stats->tsftv_txstatus, &tsfgps, NULL);
-			}
-			int ix;
-			for (ix = 0; ix < packet->tsfcount; ix ++) {
-			    /*
-			     * TSF histograms
-			     * hs1 = 14,8
-			     * hs2 = 15,7
-			     * hs3 = 14,17
-			     * hs4 = 15,16
-			     * hs5 = 7,8 (7-1,8-2)
-			     * hs6 = 14,15
-			     *
-			     * u_int32_t tsf_rxmac   7
-			     * u_int32_t tsf_rxpcie  8
-			     * u_int32_t tsf_txpcie  14
-			     * u_int32_t tsf_txdma   15
-			     * u_int32_t tsf_txstatus 16
-			     * u_int32_t tsf_txpciert  17
-			     */
-			    // A TSF of all ones indicates invalid, ignore those samples
-			    if ((packet->tsf[ix].tsf_rxmac != 0xFFFFFFFF) && \
-				(packet->tsf[ix].tsf_rxpcie != 0xFFFFFFFF) && \
-				(packet->tsf[ix].tsf_txpcie != 0xFFFFFFFF) && \
-				(packet->tsf[ix].tsf_txdma != 0xFFFFFFFF) && \
-				(packet->tsf[ix].tsf_txstatus != 0xFFFFFFFF) && \
-				(packet->tsf[ix].tsf_txpciert != 0xFFFFFFFF)) {
-				// Update the TSF timestamp structures using the raw timestamps
-				tsfraw_update(&stats->tsftv_rxpcie, packet->tsf[ix].tsf_rxpcie);
-				tsfraw_update(&stats->tsftv_rxmac, packet->tsf[ix].tsf_rxmac);
-				tsfraw_update(&stats->tsftv_txpcie, packet->tsf[ix].tsf_txpcie);
-				tsfraw_update(&stats->tsftv_txpciert, packet->tsf[ix].tsf_txpciert);
-				tsfraw_update(&stats->tsftv_txdma, packet->tsf[ix].tsf_txdma);
-				tsfraw_update(&stats->tsftv_txstatus, packet->tsf[ix].tsf_txstatus);
-				// compute the diffs
-				float hs1 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_rxpcie);
-				float hs2 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_rxmac);
-				float hs3 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txpciert);
-				float hs4 = tsf_sec_delta(&stats->tsftv_txdma, &stats->tsftv_txstatus);
-				float hs5 = tsf_sec_delta(&stats->tsftv_rxmac, &stats->tsftv_rxpcie);
-				float hs6 = tsf_sec_delta(&stats->tsftv_txpcie, &stats->tsftv_txdma);
-#if 0
-				{
-				    fprintf(stderr, "TSF Debug: hs1=%f\n", hs1);
-				    fprintf(stderr, "TSF Debug: hs2=%f\n", hs2);
-				    fprintf(stderr, "TSF Debug: hs3=%f\n", hs3);
-				    fprintf(stderr, "TSF Debug: hs4=%f\n", hs4);
-				    fprintf(stderr, "TSF Debug: hs5=%f\n", hs5);
-				    fprintf(stderr, "TSF Debug: hs6=%f\n", hs6);
-				}
-#endif
-				histogram_insert(stats->h1_histogram, hs1);
-				histogram_insert(stats->h2_histogram, hs2);
-				histogram_insert(stats->h3_histogram, hs3);
-				histogram_insert(stats->h4_histogram, hs4);
-				histogram_insert(stats->h5_histogram, hs5);
-				histogram_insert(stats->h6_histogram, hs6);
-			    }
-			}
-		    }
-#endif
 
 		    // packet loss occured if the datagram numbers aren't sequential
 		    if ( packet->packetID != data->PacketID + 1 ) {

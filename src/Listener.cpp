@@ -1036,7 +1036,8 @@ void Listener::UDPSingleServer( ) {
                 server->runNext =  tempSettings;
             }
         }
-        server->reporthdr = InitReport( server );
+        InitReport(server);
+        PostFirstReport(server);
 
         // Prep for next connection
         if ( !isSingleClient( mSettings ) ) {
@@ -1071,12 +1072,6 @@ int Listener::ReadClientHeader(client_hdr *hdr ) {
 	    if ((testflags & HEADER_L2LENCHECK) != 0) {
 		setL2LengthCheck(server);
 	    }
-#ifdef HAVE_UDPTRIGGERS
-	    if ((testflags & HEADER_UDPTRIGGERS) != 0) {
-		setUDPTriggers(server);
-		setSeqNo64b(server);
-	    }
-#endif
 	    reporter_peerversion(server, ntohl(hdr->udp.version_u), ntohl(hdr->udp.version_l));
 	}
     } else {

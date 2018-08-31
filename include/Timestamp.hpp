@@ -159,6 +159,15 @@ public:
     }
 
     /* -------------------------------------------------------------------
+     * subtract my timestamp from the right timestamp
+     * return the difference in microseconds.
+     * ------------------------------------------------------------------- */
+    long mysubUsec( timeval right ) {
+        return(right.tv_sec - mTime.tv_sec) * kMillion +
+        (right.tv_usec - mTime.tv_usec);
+    }
+
+    /* -------------------------------------------------------------------
      * Return the number of microseconds from now to last time of setting.
      * ------------------------------------------------------------------- */
     long delta_usec(void) {

@@ -72,21 +72,15 @@
 #include "isochronous.hpp"
 #include "pdfs.h"
 #endif
-#ifdef HAVE_UDPTRIGGERS
-#include "ioctls.h"
-#endif
 
 static int seqno64b = 0;
 static int reversetest = 0;
 static int udphistogram = 0;
 static int l2checks = 0;
 static int incrdstip = 0;
-static int txsync = 0;
+static int txstarttime = 0;
 static int fqrate = 0;
 static int triptime = 0;
-#ifdef HAVE_UDPTRIGGERS
-static int udptriggers = 0;
-#endif
 #ifdef HAVE_ISOCHRONOUS
 static int burstipg = 0;
 static int burstipg_set = 0;
@@ -158,12 +152,9 @@ const struct option long_options[] =
 {"udp-histogram", optional_argument, &udphistogram, 1},
 {"l2checks", no_argument, &l2checks, 1},
 {"incr-dstip", no_argument, &incrdstip, 1},
-{"tx-sync", required_argument, &txsync, 1},
+{"txstart-time", required_argument, &txstarttime, 1},
 {"fq-rate", required_argument, &fqrate, 1},
 {"trip-time", no_argument, &triptime, 1},
-#ifdef HAVE_UDPTRIGGERS
-{"udp-triggers", no_argument, &udptriggers, 1},
-#endif
 #ifdef HAVE_ISOCHRONOUS
 {"ipg", required_argument, &burstipg, 1},
 {"isochronous", optional_argument, &isochronous, 1},
@@ -746,14 +737,19 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		incrdstip = 0;
 		setIncrDstIP(mExtSettings);
 	    }
-	    if (txsync) {
-		txsync = 0;
-		setTxSync(mExtSettings);
-		char *end;
-		mExtSettings->mTxSyncInterval = strtof(optarg,&end);
-		if (*end != '\0') {
-		    fprintf (stderr, "Invalid value of '%s' for --tx-sync\n", optarg);
-		}
+	    if (txstarttime) {
+		int seconds, useconds, match;
+		txstarttime = 0;
+		setTxStartTime(mExtSettings);
+		match = sscanf(optarg,"%d.%d", &seconds, &useconds);
+		if (match == 2) {
+		    mExtSettings->txstart.tv_sec = seconds;
+		    mExtSettings->txstart.tv_usec = useconds;
+		} else if (match == 1) {
+		    mExtSettings->txstart.tv_sec = seconds;
+		    mExtSettings->txstart.tv_usec = 0;
+		} else
+		    fprintf(stderr, "WARNING: invalid --txstart-time format\n");
 	    }
 	    if (triptime) {
 		triptime = 0;
@@ -816,14 +812,6 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		}
 	    }
 #endif
-#ifdef HAVE_UDPTRIGGERS
-	    if (udptriggers) {
-		udptriggers = 0;
-		setUDP( mExtSettings );
-		setUDPTriggers(mExtSettings);
-		setSeqNo64b(mExtSettings);  // enable this if udp triggers
-	    }
-#endif
 	    break;
         default: // ignore unknown
             break;
@@ -862,26 +850,7 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
     if (!isBWSet(mExtSettings) && isUDP(mExtSettings)) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
-    // Check options for mutualities
-    if (isTxSync(mExtSettings)) {
-	if (mExtSettings->mThreadMode != kMode_Client) {
-	    fprintf(stderr, "option --tx-sync only supported on clients\n");
-	    exit(1);
-	}
-	if (isUDP(mExtSettings)) {
-	    if (isBWSet(mExtSettings)) {
-		fprintf(stderr, "option --tx-sync and -b are mutually exclusive\n");
-		exit(1);
-	    }
-	} else {
-	    fprintf(stderr, "option --tx-sync not supported for TCP, only UDP (-u option)\n");
-	    exit(1);
-	}
-	if (isIsochronous(mExtSettings)) {
-	  fprintf(stderr, "option --tx-sync and --isochronous are mutually exclusive\n");
-	  exit(1);
-	}
-    }
+
     if ((mExtSettings->mThreadMode != kMode_Client) && isVaryLoad(mExtSettings)) {
 	fprintf(stderr, "option of variance ignored as not supported on the server\n");
     }
@@ -1187,7 +1156,7 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	 */
 	hdr->udp.tlvoffset = htons((sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
 
-	if (isL2LengthCheck(client) || isIsochronous(client) || isUDPTriggers(client)) {
+	if (isL2LengthCheck(client) || isIsochronous(client)) {
 	    flags |= HEADER_UDPTESTS;
 	    uint16_t testflags = 0;
 
@@ -1199,21 +1168,6 @@ int Settings_GenerateClientHdr( thread_Settings *client, client_hdr *hdr ) {
 	    if (isIsochronous(client)) {
 		hdr->udp.tlvoffset = htons((sizeof(UDP_isoch_payload) + sizeof(client_hdr_udp_tests) + sizeof(client_hdr_v1) + sizeof(UDP_datagram)));
 		testflags |= HEADER_UDP_ISOCH;
-	    }
-	    if (isUDPTriggers(client)) {
-		testflags |= HEADER_UDPTRIGGERS;
-		hdr->udp.ref_sync_tv_sec = htonl(0xFFFFFFFF);
-	        hdr->udp.ref_sync_tv_nsec = htonl(0x0);
-#ifdef HAVE_UDPTRIGGERS
-		if (client->mIfrname) {
-		    uint32_t tsfnow = read_80211_tsf(client);
-		    hdr->udp.ref_sync_tv_sec = htonl(tsfnow/1000000);
-		    hdr->udp.ref_sync_tv_nsec = htonl((tsfnow%1000000) * 1000);
-		    Timestamp gpsnow;
-		    hdr->udp.gps_sync_tv_sec = htonl(gpsnow.getSecs());
-		    hdr->udp.gps_sync_tv_nsec = htonl(gpsnow.getUsecs() * 1000);
-		}
-#endif
 	    }
 	    // Write flags to header so the listener can determine the tests requested
 	    hdr->udp.testflags = htons(testflags);

@@ -56,9 +56,6 @@
 #include "headers.h"
 #include "Mutex.h"
 #include "histogram.h"
-#ifdef HAVE_UDPTRIGGERS
-#include "ioctls.h"
-#endif
 
 struct thread_Settings;
 struct server_hdr;
@@ -163,55 +160,6 @@ typedef struct L2Stats {
     max_size_t tot_lengtherr;
 } L2Stats;
 
-
-#ifdef HAVE_UDPTRIGGERS
-/*
- *  FW timestamps are broken accross packets, the rx comes first
- *  then the tx
- *
- *
- *                +--------+--------+--------+--------+
- *            7   |        fw rx ts 1 (mac)           |
- *                +--------+--------+--------+--------+
- *            8   |        fw rx ts 2 (pcie)          |
- *                +--------+--------+--------+--------+
- *            9   |     type (0x2)  |      cnt (1)    |    fw tx tlv
- *                +--------+--------+--------+--------+
- *            10  |        seqno lower                |
- *                +--------+--------+--------+--------+
- *            11  |        iperf tv_sec               |
- *                +--------+--------+--------+--------+
- *            12  |        iperf tv_usec              |
- *                +--------+--------+--------+--------+
- *            13  |        seqno upper ??             |
- *                +--------+--------+--------+--------+
- *            14  |        fw tx ts 1 pcie            |
- *                +--------+--------+--------+--------+
- *            15  |        fw tx ts 2 tx dma          |
- *                +--------+--------+--------+--------+
- *            16  |        fw tx ts 3 tx status       |
- *                +--------+--------+--------+--------+
- *            17  |        fw tx ts 4 pcie rt         |
- *                +--------+--------+--------+--------+
- *
- * TSF histograms
- * hs1 = 14,8
- * hs2 = 15,7
- * hs3 = 14,17
- * hs4 = 15,16
- * hs5 = 7,8
- */
-
-typedef struct fwtsf_report_entry_t {
-    u_int32_t tsf_rxmac; // 7
-    u_int32_t tsf_rxpcie; // 8
-    u_int32_t tsf_txpcie; // 14
-    u_int32_t tsf_txdma; // 15
-    u_int32_t tsf_txstatus; // 16
-    u_int32_t tsf_txpciert; // 17
-} fwtsf_report_entry_t;
-#endif
-
 typedef struct ReportStruct {
     max_size_t packetID;
     umax_size_t packetLen;
@@ -230,16 +178,6 @@ typedef struct ReportStruct {
     max_size_t burstsize;
     max_size_t burstperiod;
     max_size_t remaining;
-#endif
-#ifdef HAVE_UDPTRIGGERS
-#define MAXTSFCHAIN 1470/32
-    struct timeval hostTxTime;
-    struct timeval hostRxTime;
-    struct timespec ref_sync;
-    struct timespec gps_sync;
-    bool hashcollision;
-    int tsfcount;
-    struct fwtsf_report_entry_t tsf[MAXTSFCHAIN];
 #endif
 } ReportStruct;
 
@@ -290,29 +228,6 @@ typedef struct Transfer_Info {
     char   mIsochronous;                 // -e
     TransitStats frame;
     histogram_t *framelatency_histogram;
-#endif
-#ifdef HAVE_UDPTRIGGERS
-    histogram_t *hostlatency_histogram;
-    histogram_t *h1_histogram;
-    histogram_t *h2_histogram;
-    histogram_t *h3_histogram;
-    histogram_t *h4_histogram;
-    histogram_t *h5_histogram;
-    histogram_t *h6_histogram;
-    /*
-     * u_int32_t tsf_rxmac   7
-     * u_int32_t tsf_rxpcie  8
-     * u_int32_t tsf_txpcie  14
-     * u_int32_t tsf_txdma   15
-     * u_int32_t tsf_txstatus 16
-     * u_int32_t tsf_txpciert  17
-     */
-    struct tsftv_t tsftv_rxpcie;
-    struct tsftv_t tsftv_rxmac;
-    struct tsftv_t tsftv_txpcie;
-    struct tsftv_t tsftv_txpciert;
-    struct tsftv_t tsftv_txdma;
-    struct tsftv_t tsftv_txstatus;
 #endif
 } Transfer_Info;
 
@@ -386,6 +301,7 @@ typedef struct ReporterData {
     double TxSyncInterval;
     unsigned int FQPacingRate;
 } ReporterData;
+
 typedef struct MultiHeader {
     int reporterindex;
     int agentindex;
@@ -412,7 +328,8 @@ typedef void (* report_statistics)( Transfer_Info* );
 typedef void (* report_serverstatistics)( Connection_Info*, Transfer_Info* );
 
 MultiHeader* InitMulti( struct thread_Settings *agent, int inID );
-ReportHeader* InitReport( struct thread_Settings *agent );
+void InitReport( struct thread_Settings *agent );
+void PostFirstReport(struct thread_Settings *mSettings);
 void ReportPacket( ReportHeader *agent, ReportStruct *packet );
 void CloseReport( ReportHeader *agent, ReportStruct *packet );
 void EndReport( ReportHeader *agent );

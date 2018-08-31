@@ -67,9 +67,6 @@
 #if defined(HAVE_LINUX_FILTER_H) && defined(HAVE_AF_PACKET)
 #include "checksums.h"
 #endif
-#ifdef HAVE_UDPTRIGGERS
-#include "ioctls.h"
-#endif
 
 /* -------------------------------------------------------------------
  * Stores connected socket and socket info.
@@ -90,12 +87,6 @@ Server::Server( thread_Settings *inSettings ) {
     // initialize buffer, length checking done by the Listener
     mBuf = new char[((mSettings->mBufLen > SIZEOF_MAXHDRMSG) ? mSettings->mBufLen : SIZEOF_MAXHDRMSG)];
     FAIL_errno( mBuf == NULL, "No memory for buffer\n", mSettings );
-#ifdef HAVE_UDPTRIGGERS
-    int ix;
-    for (ix=0; ix < HASHTABLESIZE; ix++) {
-	fwtsf_hashtable[ix].free=1;
-    }
-#endif
     SockAddr_Ifrname(mSettings);
 }
 
@@ -116,9 +107,6 @@ Server::~Server() {
         WARN_errno( rc == SOCKET_ERROR, "server close drop" );
         mSettings->mSockDrop = INVALID_SOCKET;
     }
-#endif
-#ifdef HAVE_UDPTRIGGERS
-    close_ioctl_sock(mSettings);
 #endif
     DELETE_ARRAY( mBuf );
 }
@@ -237,10 +225,11 @@ void Server::InitTimeStamping (void) {
 }
 
 void Server::InitTrafficLoop (void) {
+    InitReport(mSettings);
+    PostFirstReport(mSettings);
     reportstruct = new ReportStruct;
     reportstruct->emptyreport=0;
     FAIL(reportstruct == NULL, "Out of memory! Closing server thread\n", mSettings);
-    mSettings->reporthdr = InitReport( mSettings );
     reportstruct->packetID = 0;
     reportstruct->l2len = 0;
     reportstruct->l2errors = 0x0;
@@ -508,66 +497,6 @@ void Server::Isoch_processing (void) {
 #endif
 }
 
-void Server::UDPTriggers_processing (void) {
-#ifdef HAVE_UDPTRIGGERS
-    struct client_hdr_udp_tests *tlvhdr = (client_hdr_udp_tests *)(mBuf + sizeof(client_hdr_v1) + sizeof(UDP_datagram));
-    int offset = ntohs(tlvhdr->tlvoffset);
-    reportstruct->tsfcount = 0;
-
-    // protect against offets that go over the packet length
-    if ((offset + sizeof(UDP_isoch_payload) + sizeof(client_hdr_v1) + sizeof(UDP_datagram) + sizeof(UDPTriggers)) <= reportstruct->packetLen) {
-	UDPTriggers *trig = (UDPTriggers *) (mBuf + offset);
-	// pull the host/driver tx/rx timestamps from the packet
-	uint16_t type = ntohs(trig->type);
-	uint16_t len = ntohs(trig->length);
-	if (type==0x100 && len) {
-	    int txtsfcnt = ntohs(trig->fwtsf_cnt);
-	    reportstruct->hostTxTime.tv_sec=ntohl(trig->hosttx_tv_sec);
-	    reportstruct->hostTxTime.tv_usec=ntohl(trig->hosttx_tv_usec);
-	    reportstruct->hostRxTime.tv_sec=ntohl(trig->hostrx_tv_sec);
-	    reportstruct->hostRxTime.tv_usec=ntohl(trig->hostrx_tv_usec);
-	    // Grab the TX side sync timestamps here with ntohl
-	    reportstruct->ref_sync.tv_sec = ntohl(tlvhdr->ref_sync_tv_sec);
-	    reportstruct->ref_sync.tv_nsec = ntohl(tlvhdr->ref_sync_tv_nsec);
-	    reportstruct->gps_sync.tv_sec = ntohl(tlvhdr->gps_sync_tv_sec);
-	    reportstruct->gps_sync.tv_nsec = ntohl(tlvhdr->gps_sync_tv_nsec);
-
-	    // Process tx tsf first
-	    int tsfcount = 0;
-	    if (txtsfcnt <= MAXTSFCHAIN) {
-		fwtsftx_t *fwtimes = &trig->fwtsf_tx[0];
-		while (txtsfcnt--) {
-		    int64_t txpacketID = (((int64_t) (ntohl(fwtimes->udpid.id2)) << 32) | ntohl(fwtimes->udpid.id));
-		    int txhash = packetidhash(txpacketID);
-		    if ((!fwtsf_hashtable[txhash].free) && (fwtsf_hashtable[txhash].packetID == txpacketID)) {
-			reportstruct->tsf[tsfcount].tsf_rxmac = fwtsf_hashtable[txhash].fwrxts1;
-			reportstruct->tsf[tsfcount].tsf_rxpcie = fwtsf_hashtable[txhash].fwrxts2;
-			reportstruct->tsf[tsfcount].tsf_txpcie =  ntohl(fwtimes->tsf_txpcie);
-			reportstruct->tsf[tsfcount].tsf_txdma = ntohl(fwtimes->tsf_txdma);
-			reportstruct->tsf[tsfcount].tsf_txstatus = ntohl(fwtimes->tsf_txstatus);
-			reportstruct->tsf[tsfcount].tsf_txpciert = ntohl(fwtimes->tsf_txpciert);
-			fwtsf_hashtable[txhash].free = 1;
-			tsfcount++;
-		    }
-		    fwtimes++;
-		}
-		reportstruct->tsfcount = tsfcount;
-	    }
-	    // Insert rx tsf in hash table
-	    int rxhash = packetidhash(reportstruct->packetID);
-	    if (fwtsf_hashtable[rxhash].free) {
-		reportstruct->hashcollision = 0;
-	    } else {
-		reportstruct->hashcollision = 1;
-	    }
-	    fwtsf_hashtable[rxhash].packetID = reportstruct->packetID;
-	    fwtsf_hashtable[rxhash].fwrxts1 = ntohl(trig->fwtsf_rx.tsf_rxmac);
-	    fwtsf_hashtable[rxhash].fwrxts2 = ntohl(trig->fwtsf_rx.tsf_rxpcie);
-	    fwtsf_hashtable[rxhash].free = 0;
-	}
-    }
-#endif
-}
 /* -------------------------------------------------------------------
  * Receive UDP data from the (connected) socket.
  * Sends termination flag several times at the end.
@@ -613,9 +542,6 @@ void Server::RunUDP( void ) {
 		lastpacket = ReadPacketID();
 		if (isIsochronous(mSettings)) {
 		    Isoch_processing();
-		}
-		if (isUDPTriggers(mSettings)) {
-		    UDPTriggers_processing();
 		}
 	    }
 	}
@@ -745,19 +671,3 @@ void Server::write_UDP_AckFIN( ) {
     fprintf( stderr, warn_ack_failed, mSettings->mSock, count );
 }
 // end write_UDP_AckFIN
-#ifdef HAVE_UDPTRIGGERS
-/*
- * The iperf 64 bit seq number is a running counter.  For this hash assume the lower bits will be unique most of the time
- * then hash the upper bits to a small space.  The hash table entry isn't expect to live long.
- * Hopefully this will provide low collisions at a relatively low memory cost.
- */
-uint16_t Server::packetidhash (int64_t packetID) {
-    uint64_t m = packetID >> 10;
-    int r = m % 17;
-    if (r == 16) {
-	r = m % 13;
-    }
-    uint16_t hash = (r << 10) | (packetID & 0x3FF);
-    return hash;
-}
-#endif
