@@ -114,14 +114,19 @@ Client::Client( thread_Settings *inSettings ) {
 	FAIL_errno( !(mSettings->mFPS > 0.0), "Invalid value for frames per second in the isochronous settings\n", mSettings );
 #endif
 
+#ifdef HAVE_CLOCK_NANOSLEEP
+#ifdef HAVE_CLOCK_GETTIME
     if (isTxStartTime(inSettings)) {
-	Timestamp currentTime;
-	if (currentTime.before(inSettings->txstart)) {
-	    int startdelay = currentTime.mysubUsec(inSettings->txstart);
-	    // printf("TxStart delay of %f secs\n", (double) (startdelay / 1e6));
-	    delay_loop(startdelay);
-	}
+	struct timespec t1;
+	clock_gettime(CLOCK_REALTIME, &t1);
+	fprintf(stdout, "Client thread traffic start time in epoch (unix) format is %ld.%ld (current is %ld.%ld)\n",inSettings->txstart.tv_sec, inSettings->txstart.tv_nsec, t1.tv_sec, t1.tv_nsec);
+	int rc = clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &inSettings->txstart, NULL);
+        if (rc)
+	    fprintf(stderr, "clock_nanosleep()=%d\n", rc);
     }
+#endif
+#endif
+
     ct = Connect( );
 
     if ( isReport( inSettings ) ) {

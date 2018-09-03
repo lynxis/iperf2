@@ -738,18 +738,24 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 		setIncrDstIP(mExtSettings);
 	    }
 	    if (txstarttime) {
-		int seconds, useconds, match;
+#ifdef HAVE_CLOCK_NANOSLEEP
+		long seconds, nseconds;
+		int match = 0;
 		txstarttime = 0;
 		setTxStartTime(mExtSettings);
-		match = sscanf(optarg,"%d.%d", &seconds, &useconds);
+		match = sscanf(optarg,"%ld.%ld", &seconds, &nseconds);
 		if (match == 2) {
 		    mExtSettings->txstart.tv_sec = seconds;
-		    mExtSettings->txstart.tv_usec = useconds;
+		    mExtSettings->txstart.tv_nsec = nseconds % 1000000000;
 		} else if (match == 1) {
 		    mExtSettings->txstart.tv_sec = seconds;
-		    mExtSettings->txstart.tv_usec = 0;
-		} else
+		    mExtSettings->txstart.tv_nsec = 0;
+		} else {
 		    fprintf(stderr, "WARNING: invalid --txstart-time format\n");
+		}
+#else
+	        fprintf(stderr, "WARNING: --txstart-time not supported\n");
+#endif
 	    }
 	    if (triptime) {
 		triptime = 0;
