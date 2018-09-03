@@ -121,8 +121,12 @@ Client::Client( thread_Settings *inSettings ) {
 	clock_gettime(CLOCK_REALTIME, &t1);
 	fprintf(stdout, "Client thread traffic start time in epoch (unix) format is %ld.%ld (current is %ld.%ld)\n",inSettings->txstart.tv_sec, inSettings->txstart.tv_nsec, t1.tv_sec, t1.tv_nsec);
 	int rc = clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &inSettings->txstart, NULL);
-        if (rc)
-	    fprintf(stderr, "clock_nanosleep()=%d\n", rc);
+        if (rc) {
+	    fprintf(stderr, "failed clock_nanosleep()=%d\n", rc);
+	} else {
+	    clock_gettime(CLOCK_REALTIME, &t1);
+	    fprintf(stdout, "Client thread traffic started at %ld.%ld\n", t1.tv_sec, t1.tv_nsec);
+	}
     }
 #endif
 #endif
