@@ -155,7 +155,7 @@ time in seconds to listen for new traffic connections, receive traffic or transm
 request the server to report the total trip time, i.e from the client's 3WHS done to client's (fin, fin-ack or socket close) (requires synchronized clocks)
 .TP
 .BR "    --txstart-time "\fIn\fR.\fIn\fR
-set the txstart-time to \fIn\fR.\fIn\fR using unix or epoch time format (supports seconds.microseconds)
+set the txstart-time to \fIn\fR.\fIn\fR using unix or epoch time format (supports nanonsecond resolution, e.g 1536014418.839992457)
 .TP
 .BR -B ", " --bind " \fIip\fR | \fIip\fR:\fIport\fR | \fIipv6 -V\fR | \fI[ipv6]\fR:\fIport -V\fR"
 bind src ip addr and optional port as the source of traffic (see notes)
