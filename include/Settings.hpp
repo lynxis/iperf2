@@ -221,7 +221,9 @@ typedef struct thread_Settings {
     int recvflags; // used to set recv flags,e.g. MSG_TRUNC with L
     double mVariance; //vbr variance
     unsigned int mFQPacingRate;
+#ifdef HAVE_CLOCK_NANOSLEEP
     struct timespec txstart;
+#endif
 } thread_Settings;
 
 /*
