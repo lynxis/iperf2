@@ -119,7 +119,7 @@ Client::Client( thread_Settings *inSettings ) {
     if (isTxStartTime(inSettings)) {
 	struct timespec t1;
 	clock_gettime(CLOCK_REALTIME, &t1);
-	fprintf(stdout, "Client thread traffic start time %ld.%ld (epoch/unix format, current time is %ld.%ld)\n",inSettings->txstart.tv_sec, inSettings->txstart.tv_nsec, t1.tv_sec, t1.tv_nsec);
+	fprintf(stdout, "Client thread traffic start time %ld.%ld ,current time is %ld.%ld (epoch/unix format)\n",inSettings->txstart.tv_sec, inSettings->txstart.tv_nsec, t1.tv_sec, t1.tv_nsec);
 	int rc = clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &inSettings->txstart, NULL);
         if (rc) {
 	    fprintf(stderr, "failed clock_nanosleep()=%d\n", rc);

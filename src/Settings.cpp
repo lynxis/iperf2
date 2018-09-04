@@ -739,14 +739,32 @@ void Settings_Interpret( char option, const char *optarg, thread_Settings *mExtS
 	    }
 	    if (txstarttime) {
 #ifdef HAVE_CLOCK_NANOSLEEP
-		long seconds, nseconds;
+		long seconds;
 		int match = 0;
+		char f0 = '0';
+		char f1 = '0';
+		char f2 = '0';
+		char f3 = '0';
+		char f4 = '0';
+		char f5 = '0';
+		char f6 = '0';
+		char f7 = '0';
+		char f8 = '0';
 		txstarttime = 0;
 		setTxStartTime(mExtSettings);
-		match = sscanf(optarg,"%ld.%ld", &seconds, &nseconds);
-		if (match == 2) {
+		match = sscanf(optarg,"%ld.%c%c%c%c%c%c%c%c%c", &seconds, &f0,&f1,&f2,&f3,&f4,&f5,&f6,&f7,&f8);
+		if (match > 1) {
+		    int i;
 		    mExtSettings->txstart.tv_sec = seconds;
-		    mExtSettings->txstart.tv_nsec = nseconds % 1000000000;
+		    i = f0 - '0'; mExtSettings->txstart.tv_nsec  = i * 100000000;
+		    i = f1 - '0'; mExtSettings->txstart.tv_nsec += i * 10000000;
+		    i = f2 - '0'; mExtSettings->txstart.tv_nsec += i * 1000000;
+		    i = f3 - '0'; mExtSettings->txstart.tv_nsec += i * 100000;
+		    i = f4 - '0'; mExtSettings->txstart.tv_nsec += i * 10000;
+		    i = f5 - '0'; mExtSettings->txstart.tv_nsec += i * 1000;
+		    i = f6 - '0'; mExtSettings->txstart.tv_nsec += i * 100;
+		    i = f7 - '0'; mExtSettings->txstart.tv_nsec += i * 10;
+		    i = f8 - '0'; mExtSettings->txstart.tv_nsec += i;
 		} else if (match == 1) {
 		    mExtSettings->txstart.tv_sec = seconds;
 		    mExtSettings->txstart.tv_nsec = 0;
