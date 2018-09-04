@@ -117,8 +117,7 @@ private:
     Timestamp lastPacketTime;
     Timestamp now;
     char* readAt;
-    Timestamp connect_start, connect_done;
-
+    Timestamp connect_done, connect_start;
 }; // end class Client
 
 #endif // CLIENT_H

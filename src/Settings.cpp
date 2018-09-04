@@ -875,9 +875,16 @@ void Settings_ModalOptions( thread_Settings *mExtSettings ) {
 	mExtSettings->mUDPRate = kDefault_UDPRate;
     }
 
-    if ((mExtSettings->mThreadMode != kMode_Client) && isVaryLoad(mExtSettings)) {
-	fprintf(stderr, "option of variance ignored as not supported on the server\n");
+    if (mExtSettings->mThreadMode != kMode_Client) {
+	if (isVaryLoad(mExtSettings)) {
+	    fprintf(stderr, "option of variance ignored as not supported on the server\n");
+	}
+	if (isTxStartTime(mExtSettings)) {
+	    unsetTxStartTime(mExtSettings);
+	    fprintf(stderr, "option of --txstart-time ignored as not supported on the server\n");
+	}
     }
+
 
     // UDP histogram settings
     if (isUDPHistogram(mExtSettings) && isUDP(mExtSettings) && mExtSettings->mThreadMode != kMode_Client) {

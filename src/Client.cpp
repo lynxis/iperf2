@@ -117,15 +117,14 @@ Client::Client( thread_Settings *inSettings ) {
 #ifdef HAVE_CLOCK_NANOSLEEP
 #ifdef HAVE_CLOCK_GETTIME
     if (isTxStartTime(inSettings)) {
-	struct timespec t1;
-	clock_gettime(CLOCK_REALTIME, &t1);
-	fprintf(stdout, "Client thread traffic start time %ld.%.9ld current time is %ld.%.9ld (epoch/unix format)\n",inSettings->txstart.tv_sec, inSettings->txstart.tv_nsec, t1.tv_sec, t1.tv_nsec);
 	int rc = clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &inSettings->txstart, NULL);
         if (rc) {
 	    fprintf(stderr, "failed clock_nanosleep()=%d\n", rc);
 	} else {
-	    clock_gettime(CLOCK_REALTIME, &t1);
-	    fprintf(stdout, "Client thread traffic started at %ld.%.9ld\n", t1.tv_sec, t1.tv_nsec);
+	    // Mark the epoch start time before the bind call
+	    now.setnow();
+	    mSettings->txstart_epoch.tv_sec = now.getSecs();
+	    mSettings->txstart_epoch.tv_usec = now.getUsecs();
 	}
     }
 #endif
@@ -203,6 +202,7 @@ double Client::Connect( ) {
     SetSocketOptions( mSettings );
 
     SockAddr_localAddr( mSettings );
+
     if ( mSettings->mLocalhost != NULL ) {
         // bind socket to local address
         rc = bind( mSettings->mSock, (sockaddr*) &mSettings->local,
@@ -225,7 +225,7 @@ double Client::Connect( ) {
 	connecttime = 1e3 * connect_done.subSec(connect_start);
     } else {
 	rc = connect( mSettings->mSock, (sockaddr*) &mSettings->peer,
-                  SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
+		      SockAddr_get_sizeof_sockaddr( &mSettings->peer ));
     }
     FAIL_errno( rc == SOCKET_ERROR, "connect", mSettings );
 

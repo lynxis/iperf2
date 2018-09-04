@@ -392,6 +392,10 @@ void InitConnectionReport (thread_Settings *mSettings) {
     data->connection.l2mode = isL2LengthCheck(mSettings);
     if (data->connection.l2mode)
 	data->connection.l2mode = ((isIPV6(mSettings) << 1) | data->connection.l2mode);
+    if (isEnhanced(mSettings) && isTxStartTime(mSettings)) {
+	data->connection.epochStartTime.tv_sec = mSettings->txstart_epoch.tv_sec;
+	data->connection.epochStartTime.tv_usec = mSettings->txstart_epoch.tv_usec;
+    }
 }
 
 void PostFirstReport (thread_Settings *mSettings) {
