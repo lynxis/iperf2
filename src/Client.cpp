@@ -607,6 +607,15 @@ void Client::RunUDP( void ) {
 	  reportstruct->emptyreport = 1;
 	}
 
+	if (!isModeTime(mSettings)) {
+	    /* mAmount may be unsigned, so don't let it underflow! */
+	    if( mSettings->mAmount >= (unsigned long) currLen ) {
+	        mSettings->mAmount -= (unsigned long) currLen;
+	    } else {
+	        mSettings->mAmount = 0;
+	    }
+	}
+
 	// report packets
 	reportstruct->packetLen = (unsigned long) currLen;
 	ReportPacket( mSettings->reporthdr, reportstruct );
@@ -617,15 +626,6 @@ void Client::RunUDP( void ) {
 	    // and invoke the microsecond delay
 	    delay_loop((unsigned long) (delay / 1000));
 	}
-	if (!isModeTime(mSettings)) {
-	    /* mAmount may be unsigned, so don't let it underflow! */
-	    if( mSettings->mAmount >= (unsigned long) currLen ) {
-		mSettings->mAmount -= (unsigned long) currLen;
-	    } else {
-		mSettings->mAmount = 0;
-	    }
-	}
-
     }
 
     FinishTrafficActions();
@@ -723,13 +723,16 @@ void Client::RunUDPIsochronous (void) {
 
 	    reportstruct->errwrite = WriteNoErr;
 	    reportstruct->emptyreport = 0;
-	    mBuf_isoch->remaining = htonl(bytecnt);
+
 	    // perform write
-	    if (!isModeTime(mSettings)) {
-	        currLen = write( mSettings->mSock, mBuf, (mSettings->mAmount < (unsigned) mSettings->mBufLen) ? mSettings->mAmount : mSettings->mBufLen);
+	    if (!isModeTime(mSettings) && (mSettings->mAmount < (unsigned) mSettings->mBufLen)) {
+	        mBuf_isoch->remaining = htonl(mSettings->mAmount);
+	        currLen = write(mSettings->mSock, mBuf, mSettings->mAmount);
 	    } else {
-	        currLen = write( mSettings->mSock, mBuf, mSettings->mBufLen);
+	        mBuf_isoch->remaining = htonl(bytecnt);
+	        currLen = write(mSettings->mSock, mBuf, (bytecnt < mSettings->mBufLen) ? bytecnt : mSettings->mBufLen);
 	    }
+
 	    if ( currLen < 0 ) {
 	        reportstruct->packetID--;
 		reportstruct->emptyreport = 1;
@@ -745,6 +748,14 @@ void Client::RunUDPIsochronous (void) {
 		bytecnt -= currLen;
 	    }
 
+	    if (!isModeTime(mSettings)) {
+	        /* mAmount may be unsigned, so don't let it underflow! */
+	        if( mSettings->mAmount >= (unsigned long) currLen ) {
+		    mSettings->mAmount -= (unsigned long) currLen;
+		} else {
+		    mSettings->mAmount = 0;
+		}
+	    }
 	    // report packets
 
 	    reportstruct->frameID=frameid;
