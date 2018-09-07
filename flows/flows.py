@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.5
-#
 # ---------------------------------------------------------------
 # * Copyright (c) 2018
 # * Broadcom Corporation
@@ -19,7 +17,7 @@
 # IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
 # FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
 # CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USEn,
 # DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -280,7 +278,7 @@ class iperf_flow(object):
         }
         return switcher.get(txt.upper(), None)
 
-    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dstip = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = None, tos='BE', window='4M', src=None, srcip = None, srcport = None, dstport = None,  debug = False, udptriggers = False, length = None, latency=False, ipg=0.005, amount=None):
+    def __init__(self, name='iperf', server='localhost', client = 'localhost', user = None, proto = 'TCP', dstip = '127.0.0.1', interval = 0.5, flowtime=10, offered_load = '1m', tos='BE', window='4M', src=None, srcip = None, srcport = None, dstport = None,  debug = False, udptriggers = False, length = None, latency=False, ipg=0.005, amount=None):
         iperf_flow.instances.add(self)
         if not iperf_flow.loop :
             iperf_flow.set_loop()
@@ -525,17 +523,17 @@ class iperf_server(object):
                                     self.flowstats['rxthroughput'].append(m.group('throughput'))
                                     self.flowstats['reads'].append(m.group('reads'))
                             else :
-                                m = self._server.regex_final_isoch_traffic.match(line)
+                                m = self._server.regex_trip_time.match(line)
                                 if m :
-                                    timestamp = datetime.now(timezone.utc).astimezone()
-                                    self.flowstats['histogram_names'].add(m.group('pdfname'))
-                                    self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), uci=m.group('uci'), uci_val=m.group('uci_val'), lci=m.group('lci'), lci_val=m.group('lci_val')))
-                                    # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
-                                    logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
-                                else :
-                                    m = self._server.regex_trip_time.match(line)
-                                    if m :
-                                        self.flowstats['trip_time'].append(float(m.group('trip_time')) * 1000)
+                                    self.flowstats['trip_time'].append(float(m.group('trip_time')) * 1000)
+                        else :
+                            m = self._server.regex_final_isoch_traffic.match(line)
+                            if m :
+                                timestamp = datetime.now(timezone.utc).astimezone()
+                                self.flowstats['histogram_names'].add(m.group('pdfname'))
+                                self.flowstats['histograms'].append(flow_histogram(name=m.group('pdfname'),values=m.group('pdf'), population=m.group('population'), binwidth=m.group('binwidth'), starttime=self.flowstats['starttime'], endtime=timestamp, outliers=m.group('outliers'), uci=m.group('uci'), uci_val=m.group('uci_val'), lci=m.group('lci'), lci_val=m.group('lci_val')))
+                                # logging.debug('pdf {} {}={}'.format(m.group('pdfname'), m.group('pdf'), m.group('binwidth')))
+                                logging.info('pdf {} found with bin width={} us'.format(m.group('pdfname'),  m.group('binwidth')))
 
 
             elif fd == 2:
@@ -588,7 +586,7 @@ class iperf_server(object):
         # ex. [  4] 0.00-0.50 sec  657090 Bytes  10513440 bits/sec  449    449:0:0:0:0:0:0:0
         self.regex_traffic = re.compile(r'\[\s+\d+] (?P<timestamp>.*) sec\s+(?P<bytes>[0-9]+) Bytes\s+(?P<throughput>[0-9]+) bits/sec\s+(?P<reads>[0-9]+)')
         #ex. [  3] 0.00-21.79 sec T8(f)-PDF: bin(w=10us):cnt(261674)=223:1,240:1,241:1 (5/95%=117/144,obl/obu=0/0)
-        self.regex_final_isoch_traffic = re.compile(r'\[\s+\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\((?P<lci>[0-9]+)/(?P<uci>[0-9]+)%=(?P<lci_val>[0-9]+)/(?P<uci_val>[0-9]+),Outliers=(?P<outliers>[0-9]+),obl/obu=[0-9]+/[0-9]+\)')
+        self.regex_final_isoch_traffic = re.compile(r'\[\s*\d+\] (?P<timestamp>.*) sec\s+(?P<pdfname>[A-Za-z0-9\-]+)\(f\)-PDF: bin\(w=(?P<binwidth>[0-9]+)us\):cnt\((?P<population>[0-9]+)\)=(?P<pdf>.+)\s+\((?P<lci>[0-9]+)/(?P<uci>[0-9]+)%=(?P<lci_val>[0-9]+)/(?P<uci_val>[0-9]+),Outliers=(?P<outliers>[0-9]+),obl/obu=[0-9]+/[0-9]+\)')
         # 0.0000-0.5259 trip-time (3WHS done->fin+finack) = 0.5597 sec
         self.regex_trip_time = re.compile(r'.+trip\-time\s+\(3WHS\sdone\->fin\+finack\)\s=\s(?P<trip_time>\d+\.\d+)\ssec')
 
@@ -783,7 +781,6 @@ class iperf_client(object):
 
         # Client connecting to 192.168.100.33, TCP port 61009 with pid 1903
         self.regex_open_pid = re.compile(r'Client connecting to .*, {} port {} with pid (?P<pid>\d+)'.format(self.proto, str(self.dstport)))
-
         self.sshcmd=[self.ssh, self.user + '@' + self.host, self.iperf, '-c', self.dstip, '-p ' + str(self.dstport), '-e', '-fb', '-S ', iperf_flow.txt_to_tos(self.tos), '-w' , self.window ,'--realtime']
         if self.length :
             self.sshcmd.extend(['-l ', str(self.length)])
