@@ -163,13 +163,6 @@ Report bugs to <iperf-users@lists.sourceforge.net>\n";
 #else
     #define IPERF_THREADS "single threaded"
 #endif
-#ifdef HAVE_FASTSAMPLING
-#define IPERFTimeFrmt "%4.4f-%4.4f"
-#define IPERFTimeSpace "            "
-#else
-#define IPERFTimeFrmt "%4.2f-%4.2f"
-#define IPERFTimeSpace "        "
-#endif
 
 const char version[] =
 "iperf version " IPERF_VERSION " (" IPERF_VERSION_DATE ") " IPERF_THREADS "\n";

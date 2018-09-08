@@ -267,6 +267,14 @@ typedef unsigned long umax_size_t;
 #  endif // INT32
 #endif
 
+#ifdef HAVE_FASTSAMPLING
+#define IPERFTimeFrmt "%4.4f-%4.4f"
+#define IPERFTimeSpace "            "
+#else
+#define IPERFTimeFrmt "%4.2f-%4.2f"
+#define IPERFTimeSpace "        "
+#endif
+
 /* in case the OS doesn't have these, we provide our own implementations */
 #include "gettimeofday.h"
 #include "inet_aton.h"
