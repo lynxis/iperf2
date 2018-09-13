@@ -920,7 +920,7 @@ void Client::write_UDP_FIN (void) {
             // socket ready to read, this packet size
 	    // is set by the server.  Assume it's large enough
 	    // to contain the final server packet
-            rc = read( mSettings->mSock, mBuf, (int) (sizeof(UDP_datagram) + sizeof(server_hdr)));
+            rc = read( mSettings->mSock, mBuf, MAXUDPBUF);
 	    WARN_errno( rc < 0, "read" );
 	    if ( rc < 0 ) {
                 break;
