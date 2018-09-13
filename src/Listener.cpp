@@ -560,7 +560,7 @@ void Listener::McastJoin( ) {
 		source->sin_len = group->sin_len;
 #endif
 		source->sin_port = 0;    /* Ignored */
-		rc = setsockopt(mSettings->mSock,IPPROTO_IP,IP_ADD_MEMBERSHIP, &group_source_req,
+		rc = setsockopt(mSettings->mSock,IPPROTO_IP,MCAST_JOIN_SOURCE_GROUP, &group_source_req,
 				sizeof(group_source_req));
 		FAIL_errno( rc == SOCKET_ERROR, "mcast join source group",mSettings);
 	    } else {
