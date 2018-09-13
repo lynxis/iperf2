@@ -134,6 +134,7 @@ int main (int argc, char **argv) {
 	}
 	if (queryinterval) {
 	    alarm(queryinterval);
+	    pause();
 	}
 	if (daemonmode && sendcount <= 0)
 	    pause();
